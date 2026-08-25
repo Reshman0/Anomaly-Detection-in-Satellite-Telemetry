@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    @apply bg-ops-bg text-ops-text font-sans antialiased;
+    /* Rakam genişliği sabit — akan telemetride oynama olmasın (§8). */
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-ops-panel border border-ops-line;
+  }
+  .panel-title {
+    @apply text-2xs uppercase tracking-[0.14em] text-ops-dim px-2 py-1 border-b border-ops-line bg-ops-sunken;
+  }
+  .num {
+    @apply font-mono tabular-nums;
+  }
+  .card-in {
+    animation: cardIn 260ms ease-out both;
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3a45;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

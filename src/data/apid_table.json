@@ -1,0 +1,12 @@
+{
+  "_gnd_note": "APID 200 uyduya ait degildir: yer tarafinda hesaplanan turetilmis parametrelerin MIB icindeki adresleme grubudur. Bu APID icin indirilen bir TM paketi yoktur; ST[05] esdeger bildirimleri yer tarafinda uretilir.",
+  "_ref": "APID alani CCSDS 133.0-B-2 Space Packet birincil basliginda 11 bittir (0..2047). 2047 (0x7FF) CCSDS tarafindan Idle Packet icin ayrilmistir.",
+  "spacecraft_id": "AZS-DEMO",
+  "entries": [
+    { "apid": 42, "hex": "0x02A", "subsystem": "SS1", "label": "Guc HK", "packet_type": "TM", "vcid": 0, "services": [3, 5, 12] },
+    { "apid": 43, "hex": "0x02B", "subsystem": "SS3", "label": "Yonelim Kontrolu HK", "packet_type": "TM", "vcid": 0, "services": [3, 5, 12] },
+    { "apid": 44, "hex": "0x02C", "subsystem": "SS5", "label": "Termal HK", "packet_type": "TM", "vcid": 0, "services": [3, 5, 12] },
+    { "apid": 200, "hex": "0x0C8", "subsystem": "GND", "label": "Yer Turetilmis Parametreler (indirme yok)", "packet_type": "GND", "vcid": null, "services": [5] },
+    { "apid": 2047, "hex": "0x7FF", "subsystem": "—", "label": "Idle Packet (CCSDS ayrilmis)", "packet_type": "TM", "vcid": 7, "services": [] }
+  ]
+}

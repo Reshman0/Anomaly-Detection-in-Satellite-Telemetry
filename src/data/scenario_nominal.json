@@ -1,0 +1,9 @@
+{
+  "id": "nominal",
+  "name": "Nominal akış",
+  "button": "Nominal akışa dön",
+  "description": "Enjeksiyon yok. Tüm parametreler MIB nominal profillerinde akar; ST[12] ve AI türetilmiş parametreler NOMİNAL kalır.",
+  "model": "—",
+  "duration_s": 0,
+  "timeline": []
+}

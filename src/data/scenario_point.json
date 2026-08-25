@@ -1,0 +1,66 @@
+{
+  "id": "point",
+  "name": "Nokta anomalisi",
+  "button": "Nokta anomalisi enjekte et",
+  "description": "SS1 alt sisteminde kısa süreli sıçrama. Sabit limit bandını aştığı için ST[12] izleme de tepki verir — bu senaryo limit kontrolünün gerçekten çalıştığını gösterir.",
+  "model": "Spectrogram-AE",
+  "duration_s": 90,
+  "_note": "Buradaki ST[12] gecis raporlari senaryo dosyasindan gelmez; limitChecker MIB limitleriyle akan degeri karsilastirarak uretir.",
+  "timeline": [
+    { "t": 29, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 3.6 },
+    { "t": 30, "type": "inject_point", "pid": "ch_11", "magnitude": 7.4, "width_s": 3 },
+    { "t": 31, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 6.4 },
+    {
+      "t": 32,
+      "type": "event",
+      "service": [5, 4],
+      "severity": 3,
+      "pid": "AI_SCORE_SS1",
+      "text": "Nokta anomalisi — SS1, ch_11 tekil sıçrama",
+      "model": "Spectrogram-AE",
+      "confidence": 0.94
+    },
+    {
+      "t": 32,
+      "type": "show_xai",
+      "level": 1,
+      "asset": "xai/specae_ss1_spectrogram.png",
+      "caption": "Spectrogram-AE rekonstrüksiyon artığı — ch_11",
+      "model": "Spectrogram-AE",
+      "top_channels": ["ch_11"],
+      "band": "0.15–0.45 Hz"
+    },
+    { "t": 36, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 2.4 },
+    {
+      "t": 40,
+      "type": "show_xai",
+      "level": 2,
+      "asset": "xai/specae_ss1_channel_attr.png",
+      "caption": "Kanal katkı dağılımı — SS1",
+      "model": "Spectrogram-AE",
+      "top_channels": ["ch_11", "ch_12"],
+      "band": "0.15–0.45 Hz"
+    },
+    { "t": 44, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 1.1 },
+    {
+      "t": 52,
+      "type": "show_xai",
+      "level": 3,
+      "asset": "xai/specae_ss1_gradcam.png",
+      "caption": "Grad-CAM zaman-frekans ısı haritası — ch_11",
+      "model": "Spectrogram-AE",
+      "top_channels": ["ch_11"],
+      "band": "0.15–0.45 Hz"
+    },
+    {
+      "t": 62,
+      "type": "event",
+      "service": [5, 1],
+      "severity": 0,
+      "pid": "AI_SCORE_SS1",
+      "text": "SS1 nominale döndü — anomali skoru eşiğin altında",
+      "model": "Spectrogram-AE",
+      "confidence": 0.88
+    }
+  ]
+}

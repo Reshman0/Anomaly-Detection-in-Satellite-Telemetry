@@ -1,0 +1,91 @@
+{
+  "id": "collective",
+  "name": "Kolektif sapma",
+  "button": "Kolektif sapma enjekte et",
+  "description": "SS3 ve SS5 kanalları birbiriyle ilişkili şekilde kayar. Kanalların hiçbiri tek başına limit aşmaz; anomali yalnızca çok değişkenli yapıda görünür. XAI paneli kaynak kanalı teşhis eder.",
+  "model": "TCN-AE",
+  "duration_s": 90,
+  "timeline": [
+    {
+      "t": 0,
+      "type": "inject_collective",
+      "duration_s": 78,
+      "ramp_s": 22,
+      "oscillation_hz": 0.045,
+      "max_abs_eng": 2.6,
+      "targets": [
+        { "pid": "ch_42", "magnitude": 1.15 },
+        { "pid": "ch_75", "magnitude": -1.3 },
+        { "pid": "ch_58", "magnitude": 0.95 }
+      ]
+    },
+    { "t": 20, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 1.6 },
+    { "t": 20, "type": "ai_score", "pid": "AI_SCORE_SS5", "value": 1.3 },
+    { "t": 34, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 2.8 },
+    { "t": 34, "type": "ai_score", "pid": "AI_SCORE_SS5", "value": 2.2 },
+    {
+      "t": 36,
+      "type": "event",
+      "service": [5, 2],
+      "severity": 1,
+      "pid": "AI_SCORE_SS3",
+      "text": "İlişkili sapma — SS3/SS5 kanalları birlikte kayıyor",
+      "model": "TCN-AE",
+      "confidence": 0.72
+    },
+    { "t": 44, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 4.6 },
+    { "t": 44, "type": "ai_score", "pid": "AI_SCORE_SS5", "value": 3.1 },
+    {
+      "t": 46,
+      "type": "event",
+      "service": [5, 3],
+      "severity": 2,
+      "pid": "AI_SCORE_SS3",
+      "text": "Anomali adayı — kolektif sapma, ch_75 baskın katkı",
+      "model": "TCN-AE",
+      "confidence": 0.84
+    },
+    {
+      "t": 46,
+      "type": "show_xai",
+      "level": 1,
+      "asset": "xai/collective_residual.png",
+      "caption": "Çok kanallı rekonstrüksiyon artığı",
+      "model": "TCN-AE",
+      "top_channels": ["ch_75", "ch_42", "ch_58"],
+      "band": "0.02–0.08 Hz"
+    },
+    {
+      "t": 56,
+      "type": "show_xai",
+      "level": 2,
+      "asset": "xai/collective_channel_attr.png",
+      "caption": "Kanal katkı dağılımı — kaynak teşhisi",
+      "model": "TCN-AE",
+      "top_channels": ["ch_75", "ch_42", "ch_58"],
+      "band": "0.02–0.08 Hz"
+    },
+    { "t": 60, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 7.0 },
+    { "t": 60, "type": "ai_score", "pid": "AI_SCORE_SS5", "value": 5.8 },
+    {
+      "t": 62,
+      "type": "event",
+      "service": [5, 4],
+      "severity": 3,
+      "pid": "AI_SCORE_SS3",
+      "text": "Yüksek şiddet — kolektif sapma doğrulandı; ST[12] sabit limit ihlali yok",
+      "model": "TCN-AE",
+      "confidence": 0.91
+    },
+    {
+      "t": 66,
+      "type": "show_xai",
+      "level": 3,
+      "asset": "xai/collective_gradcam.png",
+      "caption": "Grad-CAM zaman-kanal ısı haritası — kaynak teşhisi",
+      "model": "TCN-AE",
+      "top_channels": ["ch_75", "ch_42", "ch_58"],
+      "band": "0.02–0.08 Hz"
+    }
+  ]
+}
