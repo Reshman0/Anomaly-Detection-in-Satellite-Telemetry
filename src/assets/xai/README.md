@@ -1,58 +1,81 @@
 # XAI görselleri
 
-Bu klasöre **bildiriden alınmış gerçek model çıktıları** konur. Sentetik olarak
-yeniden çizilmiş grafik konulmaz (yönerge §7, §10).
+Bu klasördeki dokuz PNG **üretilmiş görselleştirmelerdir** — bir modelin gerçek
+çıktısı değildir. `tools/xai-figures/generate.mjs` tarafından, demonun kendi
+senaryo tanımlarından türetilirler.
 
-Dosya bulunmadığında XAI paneli boş bir yuva çizer ve beklenen dosya adını
-gösterir — uydurma bir grafik üretmez.
+```bash
+npm run xai:figures
+```
 
-## Yerleştirilmiş görseller
+Dosyaları elle düzenlemeyin; script'i çalıştırın. Üretim tohumludur, aynı girdi
+her zaman aynı görseli verir.
 
-Hepsi `ESA-AD/ewma_model/` altındaki notebook hücre çıktılarından **birebir**
-alındı; hiçbiri yeniden çizilmedi, kırpılmadı, yeniden ölçeklenmedi.
+## Neden üretilmiş görsel
 
-| Dosya | Senaryo | Seviye | Kaynak | Şekil |
-|---|---|---|---|---|
-| `specae_ss5_profiles.png` | Nokta anomalisi | 1 · Artık | `ewma_model.ipynb` h.70 | Level-1: Frequency & Time Error Profiles — `channel_44`, `channel_46` |
-| `specae_ss5_channel_attr.png` | Nokta anomalisi | 2 · Kanal katkısı | `ewma_model.ipynb` h.72 | Level-1: Per-Channel Error Contribution — `ch_44` %56,3 baskın |
-| `specae_ss5_gradcam.png` | Nokta anomalisi | 3 · Grad-CAM | `ewma_model.ipynb` h.91 | Level-3: Grad-CAM (Bottleneck Attention), NORMAL vs ANOMALY |
-| `tcn_ss3_residual.png` | Sürüklenme · Kolektif | 1 · Artık | `ewma_v2_tcn_xai.ipynb` h.42 | L1 kalıntı haritası: TCN-AE Residual, ANOMALY vs NORMAL — `ch_75` baskın |
-| `tcn_ss3_channel_attr.png` | Sürüklenme | 2 · Kanal katkısı | `ewma_v2_tcn_xai.ipynb` h.47 | L2 kanal artığı + FFT spektral köprüsü — `ch_75`, `ch_42`, `ch_74` |
-| `tcn_ss3_gradcam.png` | Sürüklenme · Kolektif | 3 · Grad-CAM | `ewma_v2_tcn_xai.ipynb` h.53 | L3a Grad-CAM (zamansal) + kanal × zaman kalıntı ısı haritası |
-| `collective_channel_attr.png` | Kolektif | 2 · Kanal katkısı | `ewma_v2_tcn_xai.ipynb` h.65 | Alt sistem atfı: Spec-AE %52,4 → alt sistem 5, TCN-AE %62,3 → alt sistem 3 |
+İlk sürümde bildirinin notebook çıktıları doğrudan yerleştirilmişti. İki sorun
+çıktı:
 
-### Neden yedi dosya, dokuz yuva değil
+1. **Kanal ve alt sistem uyuşmazlığı.** Bildiri şekilleri gerçek anomali
+   pencerelerine aitti; demonun senaryolarıyla aynı kanalları, aynı zamanlamayı
+   ve aynı baskınlık sırasını göstermiyorlardı. Ekrandaki yan sütun "sorumlu
+   kanal: ch_44" derken görselde başka bir kanal öne çıkıyordu.
+2. **Yapı tutarsızlığı.** Üç senaryo için elde altı gerçek şekil vardı ve
+   bunlar birbirinden farklı türdeydi; panelin üç adımı senaryolar arasında
+   aynı şeyi anlatmıyordu.
 
-Notebook'larda **altı** gerçek XAI şekil ailesi var: üç Spectrogram-AE, üç
-TCN-AE. Demoda dokuz yuva var çünkü sürüklenme ve kolektif senaryolarının ikisi
-de TCN-AE kullanıyor. Bu iki senaryo, aynı modelin aynı kanıt türünü gösterdiği
-için **1. ve 3. seviyede aynı görseli paylaşır**; 2. seviyede ayrışırlar:
-sürüklenme kanal düzeyinde artığı, kolektif ise iki modelin alt sistem atfını
-gösterir. Uydurma görsel üretmemek için tercih bu yönde yapıldı.
+Şimdi her senaryo, panelin üç adımına birebir karşılık gelen **aynı yapıda** üç
+görsel üretiyor ve her biri o senaryonun gerçekten enjekte ettiği sapmayı
+gösteriyor.
 
-## Etiket tutarlılığı
+## Üretilen dosyalar
 
-Ekrandaki etiketler bu görsellerle **çelişmez.** Kanal listesi ESA-ADB'nin
-resmî `channels.csv` tablosuyla hizalandı:
+| Dosya | Senaryo | Panel adımı | Ne gösteriyor |
+|---|---|---|---|
+| `specae_ss5_residual.png` | Nokta anomalisi | 1 · Nerede saptı | Kanal × zaman sapma haritası, anomali ve normal pencere alt alta |
+| `specae_ss5_channel_attr.png` | Nokta anomalisi | 2 · Hangi kanal | Sapma enerjisinin kanallara yüzde dağılımı |
+| `specae_ss5_gradcam.png` | Nokta anomalisi | 3 · Isı haritası | Sapma haritası + ortalama sapma + modelin dikkat eğrisi |
+| `tcn_ss3_residual.png` | Yavaş sürüklenme | 1 · Nerede saptı | aynı yapı |
+| `tcn_ss3_channel_attr.png` | Yavaş sürüklenme | 2 · Hangi kanal | aynı yapı |
+| `tcn_ss3_gradcam.png` | Yavaş sürüklenme | 3 · Isı haritası | aynı yapı |
+| `collective_residual.png` | Kolektif sapma | 1 · Nerede saptı | aynı yapı |
+| `collective_channel_attr.png` | Kolektif sapma | 2 · Hangi kanal | aynı yapı |
+| `collective_gradcam.png` | Kolektif sapma | 3 · Isı haritası | aynı yapı |
 
-| Konsolda | ESA-ADB alt sistemi | Görsellerdeki karşılığı |
-|---|---|---|
-| `ch_42`, `ch_44`, `ch_46` → SS5 | subsystem_5 | h.72 katkı grafiği ve h.47 "ch_42 (subsystem_5)" |
-| `ch_74`, `ch_75` → SS3 | subsystem_3 | h.47 "ch_75 (subsystem_3)", "ch_74 (subsystem_3)" |
+Her görsel 1120×420 px, konsolun kendi paletinde, ~5–12 kB.
 
-Model–alt sistem eşleşmesi de bildirinin kendi bulgusundan gelir:
-`AI_SCORE_SS5` → Spectrogram-AE (%52,4), `AI_SCORE_SS3` → TCN-AE (%62,3).
+## Veri nereden geliyor
 
-Frekans bandı alanları da şekillerin kendi değerleridir: sürüklenme için
-`ch_75` dom = 0,0098 Hz; kolektif için üç kanalın aralığı 0,002–0,125 Hz.
+Script `src/data/mib.json` ve `src/data/scenario_*.json` dosyalarını okur.
+Enjeksiyon şekilleri (rampa, tekil sıçrama, ilişkili kayma + salınım)
+`src/engine/scenarioRunner.ts` içindeki tanımların aynısıdır. Sonuç olarak:
 
-## Not
+- görseldeki **kanal listesi** MIB'deki kanal listesiyle aynıdır,
+- **baskın kanal** senaryonun enjekte ettiği kanaldır,
+- **zamanlama** senaryonun zaman çizelgesiyle örtüşür,
+- kolektif senaryoda salınım ve enjeksiyonun `t = 78`'de bitişi görselde de
+  görünür.
 
-Adları değiştirmek isterseniz `src/data/scenario_*.json` içindeki `show_xai`
-adımlarının `asset` alanını güncelleyin. PNG'ler `npm run build` sırasında tek
-dosya çıktısına gömülür; çalışma zamanında ağdan çekilmez.
+Yani ekranda gördüğünüz şeritlerle görseldeki hikâye aynıdır.
 
-Panelin görsel alanı tasarım biriminde yaklaşık **528×207 px**; en boy oranı
-~2,55 olan yatay görseller yuvayı tam doldurur. Buradaki şekiller 1,76–2,55
-aralığında, yani desen okunur ama eksen etiketleri küçüktür — yan sütundaki
-başlık, model, katkı ve bant bilgisi bu yüzden metin olarak da veriliyor.
+## Dürüstlük
+
+Her görselin alt kenarında şu satır yazılıdır:
+
+> AzSonra demo · simüle veri · gerçek model çıktısı değildir
+
+Konsolun sağ üstündeki `SİMÜLE VERİ — KAVRAMSAL GÖSTERİM` rozeti de sürekli
+görünür. Bu iki işaret birlikte, görselin bir bildiri çıktısı sanılmasını
+engeller.
+
+**Bildiriden alınmış gerçek çıktılarla değiştirmek isterseniz:** PNG'leri bu
+klasöre aynı adlarla koyun ve bu README'yi kaynak künyesiyle (hangi notebook,
+hangi hücre) güncelleyin. O durumda `npm run xai:figures` çalıştırmayın —
+dosyaların üzerine yazar.
+
+## Panele sığma
+
+Panelin görsel alanı tasarım biriminde yaklaşık **528×207 px**. Üretilen
+görsellerin en-boy oranı 2,67 olduğu için yuvayı neredeyse tam doldurur.
+Farklı boyut isterseniz `tools/xai-figures/generate.mjs` içindeki `W` ve `H`
+sabitlerini değiştirin.

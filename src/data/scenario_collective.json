@@ -95,8 +95,8 @@
       "t": 46,
       "type": "show_xai",
       "level": 1,
-      "asset": "xai/tcn_ss3_residual.png",
-      "caption": "Beklenen ile gelen arasındaki fark, tüm kanallarda",
+      "asset": "xai/collective_residual.png",
+      "caption": "Sapmanın kanallara ve zamana yayılımı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",
@@ -123,7 +123,7 @@
       "type": "show_xai",
       "level": 2,
       "asset": "xai/collective_channel_attr.png",
-      "caption": "Alt sistem atfı — Spectrogram-AE %52,4 / TCN-AE %62,3",
+      "caption": "Sapma enerjisinin kanallara dağılımı — kaynak teşhisi",
       "model": "TCN-AE + Spectrogram-AE",
       "top_channels": [
         "ch_75",
@@ -161,8 +161,8 @@
       "t": 66,
       "type": "show_xai",
       "level": 3,
-      "asset": "xai/tcn_ss3_gradcam.png",
-      "caption": "Modelin dikkatini yoğunlaştırdığı an ve kanal — kaynak teşhisi",
+      "asset": "xai/collective_gradcam.png",
+      "caption": "Modelin dikkatini yoğunlaştırdığı an ve kanallar",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",

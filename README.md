@@ -175,6 +175,7 @@ bile gerek yoktur.
 | `npm test` | 34 birim testini koşar |
 | `npm run build` | `dist/index.html` tek dosyasını üretir |
 | `npm run preview` | Derlenmiş çıktıyı yerelde sunar |
+| `npm run xai:figures` | XAI panel görsellerini yeniden üretir |
 
 ---
 
@@ -245,10 +246,12 @@ uçuş yazılımının limit kontrolü, mor = yerde çalışan yapay zekâ model
 **Model neden alarm verdi.** Üç adımlı sekme: *1 · Nerede saptı*, *2 · Hangi
 kanal*, *3 · Isı haritası*. Senaryo yeni bir kanıt ürettiğinde panel
 **kendiliğinden o adıma geçer**; sunucunun sekmeye tıklaması gerekmez. Elle
-seçilen adım, yeni kanıt gelene kadar korunur. Görseller bildiriden alınmış
-gerçek model çıktılarıdır (künye: [`src/assets/xai/README.md`](src/assets/xai/README.md));
-dosya konulmamışsa panel boş bir yuva ve beklenen dosya yolunu gösterir,
-**sentetik grafik çizmez.**
+seçilen adım, yeni kanıt gelene kadar korunur. Görseller `npm run xai:figures` ile **üretilir** — demonun kendi senaryo
+tanımlarından türetilirler, gerçek bir model çıktısı değildirler ve her birinin
+alt kenarında bunu söyleyen bir satır vardır. Ayrıntı ve bildiriden alınmış
+gerçek çıktılarla değiştirme yolu:
+[`src/assets/xai/README.md`](src/assets/xai/README.md). Dosya yoksa panel boş
+bir yuva ve beklenen dosya yolunu gösterir.
 
 ---
 
@@ -340,10 +343,13 @@ src/
     *.test.ts           limitChecker / earth birim testleri
   components/           arayüz (her panel bir dosya)
   ui/colors.ts          durum renkleri
-  assets/xai/           bildiriden alınan gerçek XAI görselleri + künye
+  assets/xai/           üretilmiş XAI panel görselleri + künye
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
   store.test.ts         XAI seviye ilerlemesi testleri
   App.tsx               1920×1080 tasarım yüzeyi + pencereye ölçekleme
+
+tools/
+  xai-figures/          XAI görsel üreteci (bağımlılıksız, kendi PNG yazıcısı)
 ```
 
 ### Veri akışı
@@ -480,15 +486,24 @@ Yeni senaryo eklediğinizde `src/engine/limitChecker.test.ts` içine ne bekliyor
 onu yazın — sürüklenme sınıfı senaryolar için `serviceCounts.get('12,12') === 0`,
 sıçrama sınıfı için `> 0`.
 
-### XAI görsellerini koymak
+### XAI görsellerini üretmek
 
-`src/assets/xai/` klasörüne bildiriden alınmış PNG'leri bırakın. Beklenen dosya
-adları [o klasördeki README](src/assets/xai/README.md) içinde listelidir. Farklı
-ad kullanacaksanız senaryo dosyalarındaki `show_xai.asset` alanını güncelleyin.
+```bash
+npm run xai:figures
+```
 
-Görseller derleme sırasında tek dosya çıktısına gömülür. **Sentetik olarak
-yeniden çizilmiş grafik koymayın** — panelin boş yuva göstermesi, uydurma bir
-grafik göstermesinden iyidir.
+`tools/xai-figures/generate.mjs` dokuz PNG'yi `src/assets/xai/` altına yazar.
+Script'in hiçbir bağımlılığı yoktur — Node'un kendi `zlib`'i dışında bir şey
+kullanmaz, kendi PNG kodlayıcısı ve bitmap fontu vardır.
+
+Görseller senaryo dosyalarından türetilir: kanal listesi, baskın kanal ve
+zamanlama enjeksiyon tanımlarıyla aynıdır. Senaryoyu değiştirdiğinizde
+script'i yeniden çalıştırın, görseller kendiliğinden uyumlu kalır.
+
+Bunlar **gerçek model çıktısı değildir**; her görselin alt kenarında bunu
+söyleyen bir satır vardır. Bildiriden alınmış gerçek çıktılarla değiştirmek
+isterseniz PNG'leri aynı adlarla koyun, `npm run xai:figures` çalıştırmayın ve
+[o klasördeki README](src/assets/xai/README.md) künyesini güncelleyin.
 
 Panelin görsel alanı tasarım biriminde yaklaşık **528×207 px**; en-boy oranı
 ~2,55 olan yatay görseller yuvayı tam doldurur.
@@ -636,7 +651,7 @@ npm test
 | Önem derecesi ↔ `TM[5,x]` eşlemesi | ✅ birim test |
 | Sürüklenmede limit NOMİNAL, AI alarmda | ✅ birim test, 5 şiddet kademesi |
 | Aynı düğmeye basınca aynı anomali | ✅ birim test, kesirli başlangıç dahil |
-| XAI görselleri bildiriden alınmış gerçek çıktılar | ✅ 7 görsel yerleştirildi, künyeli ([liste](src/assets/xai/README.md)) |
+| XAI görselleri panelin üç adımıyla ve senaryoyla tutarlı | ✅ 9 görsel, `npm run xai:figures` ile üretiliyor; gerçek model çıktısı olmadığı görselin üzerinde yazılı |
 | Ekranda açıklanmamış jargon yok | ✅ ölçüldü: 28 terimden 0'a |
 | Yanlış alarm sayacı gerçek ölçüm | ✅ nominal akışta 0, enjeksiyon sırasında saymaz |
 | Kanal listesi ESA-ADB `channels.csv` ile hizalı | ✅ 5 kanalın tamamı gerçek ve `Target=YES` |

@@ -65,7 +65,7 @@
       "type": "show_xai",
       "level": 1,
       "asset": "xai/tcn_ss3_residual.png",
-      "caption": "Modelin beklediği ile gelen arasındaki fark — anomali / normal",
+      "caption": "Sapmanın hangi kanalda ve hangi anda olduğu",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",
@@ -84,7 +84,7 @@
       "type": "show_xai",
       "level": 2,
       "asset": "xai/tcn_ss3_channel_attr.png",
-      "caption": "Sapmanın kanal bazında görüntüsü ve ritmi — ch_75",
+      "caption": "Sapma enerjisinin kanallara dağılımı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",

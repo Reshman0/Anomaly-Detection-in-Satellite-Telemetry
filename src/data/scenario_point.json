@@ -44,8 +44,8 @@
       "t": 32,
       "type": "show_xai",
       "level": 1,
-      "asset": "xai/specae_ss5_profiles.png",
-      "caption": "Hatanın hangi anda ve hangi ritimde yoğunlaştığı — ch_44",
+      "asset": "xai/specae_ss5_residual.png",
+      "caption": "Sapmanın hangi kanalda ve hangi anda olduğu",
       "model": "Spectrogram-AE",
       "top_channels": [
         "ch_44",
@@ -64,7 +64,7 @@
       "type": "show_xai",
       "level": 2,
       "asset": "xai/specae_ss5_channel_attr.png",
-      "caption": "Kanal katkı dağılımı — alt sistem 5 (ch_44 %56,3)",
+      "caption": "Sapma enerjisinin kanallara dağılımı",
       "model": "Spectrogram-AE",
       "top_channels": [
         "ch_44",
@@ -83,7 +83,7 @@
       "type": "show_xai",
       "level": 3,
       "asset": "xai/specae_ss5_gradcam.png",
-      "caption": "Modelin dikkatini yoğunlaştırdığı yer — normal ile anomali yan yana",
+      "caption": "Modelin dikkatini yoğunlaştırdığı an ve kanal",
       "model": "Spectrogram-AE",
       "top_channels": [
         "ch_44"
