@@ -6,6 +6,12 @@ import { subsystemName } from '../engine/mib';
 import { COLOR, alpha, stateHex, stateTextClass } from '../ui/colors';
 import type { LimitState, MibParameter, Sample } from '../engine/types';
 
+/** `AI_SCORE_SS3` -> `Yapay zeka skoru · alt sistem 3` (ekranda parametre kodu gorunmesin). */
+function aiName(pid: string): string {
+  const m = /^AI_SCORE_SS(\d+)$/.exec(pid);
+  return m ? 'Yapay zekâ · alt sistem ' + m[1] : pid;
+}
+
 interface Props {
   p: MibParameter;
   buf: Sample[];
@@ -150,20 +156,20 @@ export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
       <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between">
         <div className="flex items-center gap-1.5">
           {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
-          <span className="num text-[13px] text-ops-text">{p.pid}</span>
-          <span className="text-3xs text-ops-faint">
-            {p.subsystem} · APID {p.apid}
+          <span className={(p.derived ? 'text-[12px]' : 'num text-[13px]') + ' text-ops-text'}>
+            {p.derived ? aiName(p.pid) : p.pid}
           </span>
+          <span className="text-3xs text-ops-faint">{subsystemName(p.subsystem)}</span>
         </div>
         <div className="flex items-baseline gap-2">
           <div className="flex flex-col">
-            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">ham</span>
+            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">sayaç</span>
             <span className="num text-[12px] text-ops-dim leading-tight">
               {last && last.raw !== null ? String(last.raw).padStart(5, ' ') : '—'}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">müh.</span>
+            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">değer</span>
             <span className={'num text-[14px] leading-tight ' + stateTextClass(state)}>
               {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
               <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
@@ -173,7 +179,11 @@ export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
         <div className="flex items-center justify-between">
           <span className={'text-3xs uppercase tracking-[0.12em] ' + stateTextClass(state)}>{stateLabel(state)}</span>
           <span className="text-3xs text-ops-faint">
-            {p.derived ? 'GND türetilmiş · ' + p.source_model : subsystemName(p.subsystem) + ' · ' + p.sampling_period_s + ' s'}
+            {p.derived
+              ? 'yerde hesaplandı · ' + p.source_model
+              : p.sampling_period_s === 1
+                ? 'saniyede 1 ölçüm'
+                : 'her ' + p.sampling_period_s + ' saniyede 1 ölçüm'}
           </span>
         </div>
       </div>

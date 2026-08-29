@@ -18,7 +18,12 @@
 
 @layer components {
   .panel {
-    @apply bg-ops-panel border border-ops-line;
+    /*
+     * overflow-hidden yapisal guvence: bir panelin icerigi ne olursa olsun
+     * komsu panelin uzerine tasamaz. Tasma varsa kendi panelinde kirpilir,
+     * konsolun tamami bozulmaz.
+     */
+    @apply bg-ops-panel border border-ops-line overflow-hidden;
   }
   .panel-title {
     @apply text-2xs uppercase tracking-[0.14em] text-ops-dim px-2 py-1 border-b border-ops-line bg-ops-sunken;

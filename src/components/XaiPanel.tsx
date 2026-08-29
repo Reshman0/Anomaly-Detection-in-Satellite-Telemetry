@@ -20,9 +20,9 @@ function assetUrl(rel: string): string | null {
 }
 
 const LEVEL_TITLES: Record<1 | 2 | 3, string> = {
-  1: 'Seviye 1 · Artık',
-  2: 'Seviye 2 · Kanal katkısı',
-  3: 'Seviye 3 · Grad-CAM',
+  1: '1 · Nerede saptı',
+  2: '2 · Hangi kanal',
+  3: '3 · Isı haritası',
 };
 
 export default function XaiPanel() {
@@ -38,9 +38,9 @@ export default function XaiPanel() {
   return (
     <section className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
-        <span>XAI paneli · açıklanabilirlik</span>
+        <span>Model neden alarm verdi</span>
         <span className="normal-case tracking-normal text-ops-faint">
-          {evidence.length}/3 seviye hazır
+          {evidence.length}/3 kanıt hazır
         </span>
       </div>
 
@@ -71,9 +71,9 @@ export default function XaiPanel() {
         <div className="flex-1 min-w-0 p-2 flex items-center justify-center bg-ops-sunken">
           {!current ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
-              Bu seviye için kanıt yok.
+              Bu adım için henüz kanıt yok.
               <br />
-              Bir senaryo çalıştırın; model çıktıları zaman çizelgesine göre yüklenir.
+              Bir senaryo çalıştırın; model çıktıları sırayla yüklenir.
             </div>
           ) : url ? (
             <img src={url} alt={current.caption} className="max-w-full max-h-full object-contain" />
@@ -82,7 +82,7 @@ export default function XaiPanel() {
               <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Görsel yuvası boş</div>
               <div className="num text-[11px] text-ops-dim text-center break-all">src/assets/{current.asset}</div>
               <div className="text-3xs text-ops-faint text-center leading-snug max-w-[280px]">
-                Bildiriden alınmış gerçek {current.model} çıktısını bu yola koyun. Yerine sentetik grafik çizilmez.
+                Bildiriden alınmış gerçek {current.model} çıktısı buraya konur. Yerine uydurma grafik çizilmez.
               </div>
             </div>
           )}
@@ -92,7 +92,7 @@ export default function XaiPanel() {
           {current ? (
             <>
               <div>
-                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Başlık</div>
+                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Ne gösteriyor</div>
                 <div className="text-[11px] text-ops-text leading-snug mt-[2px]">{current.caption}</div>
               </div>
               <div>
@@ -100,7 +100,7 @@ export default function XaiPanel() {
                 <div className="num text-[12px] text-ops-ai mt-[2px]">{current.model}</div>
               </div>
               <div>
-                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">En yüksek katkı</div>
+                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sorumlu kanal</div>
                 <div className="flex flex-wrap gap-1 mt-[3px]">
                   {current.top_channels.map((c, i) => (
                     <span
@@ -117,7 +117,7 @@ export default function XaiPanel() {
               </div>
               {current.band && (
                 <div>
-                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Frekans bandı</div>
+                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sapmanın ritmi</div>
                   <div className="num text-[12px] text-ops-text mt-[2px]">{current.band}</div>
                 </div>
               )}

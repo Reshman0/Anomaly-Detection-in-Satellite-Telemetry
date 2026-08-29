@@ -3,9 +3,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import land from '../data/land_110m.json';
 import { useConsole } from '../store';
+import { POLAR_RATIO, footprintRingLatLon, geodeticToEcefUnit } from '../engine/earth';
 import {
   GROUND_STATION,
-  NORAD_ID,
   ORBIT_PERIOD_S,
   TLE_NAME,
   groundTrack,
@@ -15,46 +15,48 @@ import {
 } from '../engine/orbit';
 import { COLOR } from '../ui/colors';
 
-const EARTH_R_KM = 6371;
+/*
+ * Yuzeye giydirilen katmanlarin elipsoit yuzeyinden yuksekligi (km).
+ * Z-fighting'i onler; olcek sahne biriminde degil km cinsinden verilir ki
+ * elipsoidin her enleminde ayni fiziksel pay kalsin.
+ */
+const GRID_H_KM = 3;
+const TRACK_H_KM = 10;
+const LAND_H_KM = 13;
+const CONE_H_KM = 19;
+const GS_H_KM = 25;
+
 const D2R = Math.PI / 180;
 
-function toVec(latDeg: number, lonDeg: number, r: number): THREE.Vector3 {
-  const lat = latDeg * D2R;
-  const lon = lonDeg * D2R;
-  return new THREE.Vector3(Math.cos(lat) * Math.cos(lon), Math.sin(lat), Math.cos(lat) * Math.sin(lon)).multiplyScalar(r);
+/** Dunya modeli `engine/earth.ts` icindedir; burada yalnizca sahneye baglanir. */
+function toEcef(latDeg: number, lonDeg: number, hKm = 0): THREE.Vector3 {
+  const v = geodeticToEcefUnit(latDeg, lonDeg, hKm);
+  return new THREE.Vector3(v.x, v.y, v.z);
 }
 
-/** Kure yuzeyinde bir merkez etrafinda acisal yaricapli cember. */
-function circleOnSphere(latDeg: number, lonDeg: number, radiusDeg: number, r: number, segments = 96): THREE.Vector3[] {
-  const centre = toVec(latDeg, lonDeg, 1);
-  const up = Math.abs(centre.y) > 0.95 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
-  const e1 = new THREE.Vector3().crossVectors(up, centre).normalize();
-  const e2 = new THREE.Vector3().crossVectors(centre, e1).normalize();
-  const a = radiusDeg * D2R;
-  const pts: THREE.Vector3[] = [];
-  for (let i = 0; i <= segments; i++) {
-    const th = (i / segments) * Math.PI * 2;
-    const v = centre
-      .clone()
-      .multiplyScalar(Math.cos(a))
-      .add(e1.clone().multiplyScalar(Math.sin(a) * Math.cos(th)))
-      .add(e2.clone().multiplyScalar(Math.sin(a) * Math.sin(th)));
-    pts.push(v.multiplyScalar(r));
-  }
-  return pts;
+/** Gorus konisinin yer izdusumu, elipsoide oturtulmus halde. */
+function footprintRing(
+  latDeg: number,
+  lonDeg: number,
+  radiusDeg: number,
+  hKm: number,
+): THREE.Vector3[] {
+  return footprintRingLatLon(latDeg, lonDeg, radiusDeg).map((p) =>
+    toEcef(p.latDeg, p.lonDeg, hKm),
+  );
 }
 
 function buildLand(): THREE.LineSegments {
   const positions: number[] = [];
   for (const ring of (land as { rings: number[][] }).rings) {
     for (let i = 0; i + 3 < ring.length; i += 2) {
-      const a = toVec(ring[i + 1], ring[i], 1.002);
-      const b = toVec(ring[i + 3], ring[i + 2], 1.002);
+      const a = toEcef(ring[i + 1], ring[i], LAND_H_KM);
+      const b = toEcef(ring[i + 3], ring[i + 2], LAND_H_KM);
       positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
     }
     // halkayi kapat
-    const a = toVec(ring[ring.length - 1], ring[ring.length - 2], 1.002);
-    const b = toVec(ring[1], ring[0], 1.002);
+    const a = toEcef(ring[ring.length - 1], ring[ring.length - 2], LAND_H_KM);
+    const b = toEcef(ring[1], ring[0], LAND_H_KM);
     positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
   }
   const geo = new THREE.BufferGeometry();
@@ -67,12 +69,12 @@ function buildGraticule(): THREE.LineSegments {
   const push = (a: THREE.Vector3, b: THREE.Vector3) => positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
   for (let lat = -60; lat <= 60; lat += 30) {
     for (let lon = -180; lon < 180; lon += 5) {
-      push(toVec(lat, lon, 1.0005), toVec(lat, lon + 5, 1.0005));
+      push(toEcef(lat, lon, GRID_H_KM), toEcef(lat, lon + 5, GRID_H_KM));
     }
   }
   for (let lon = -180; lon < 180; lon += 30) {
     for (let lat = -90; lat < 90; lat += 5) {
-      push(toVec(lat, lon, 1.0005), toVec(lat + 5, lon, 1.0005));
+      push(toEcef(lat, lon, GRID_H_KM), toEcef(lat + 5, lon, GRID_H_KM));
     }
   }
   const geo = new THREE.BufferGeometry();
@@ -94,21 +96,46 @@ export default function GlobeView() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(new THREE.Color(COLOR.sunken), 1);
     el.appendChild(renderer.domElement);
+    /*
+     * Canvas'in CSS boyutu ACIKCA yuzde olarak verilir. Verilmezse canvas
+     * ekranda arka tampon boyutu kadar yer kaplar; arka tampon da
+     * genislik x pixelRatio oldugu icin %125 olcekli bir ekranda (dpr 1.25)
+     * kure panelinden %25 tasar ve komsu panellerin uzerine boyar.
+     * setSize(w, h, false) arka tamponu ayarlar, stile dokunmaz — CSS boyutu
+     * bu yuzden burada sabitlenir ve pixelRatio ne olursa olsun panele oturur.
+     */
     renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
 
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), new THREE.MeshBasicMaterial({ color: 0x121e27 })));
-    // Kure siluetini ayirmak icin ince bir kenar halkasi (ic yuzu cizilen buyuk kure).
-    scene.add(
-      new THREE.Mesh(
-        new THREE.SphereGeometry(1.014, 64, 48),
-        new THREE.MeshBasicMaterial({ color: 0x33566a, side: THREE.BackSide }),
-      ),
+    /*
+     * Govde WGS84 elipsoidi: birim kure y ekseninde kutup/ekvator oraniyla
+     * ezilir. Basiklik %0.335 — goze carpmaz ama limb (kenar) profili ve
+     * uzerine giydirilen her nokta artik gercek Dunya seklinde.
+     */
+    const globe = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 96, 64),
+      new THREE.MeshBasicMaterial({ color: 0x121e27 }),
     );
+    globe.scale.set(1, POLAR_RATIO, 1);
+    scene.add(globe);
+    // Kure siluetini ayirmak icin ince bir kenar halkasi (ic yuzu cizilen buyuk elipsoit).
+    const rim = new THREE.Mesh(
+      new THREE.SphereGeometry(1.014, 96, 64),
+      new THREE.MeshBasicMaterial({ color: 0x33566a, side: THREE.BackSide }),
+    );
+    rim.scale.set(1, POLAR_RATIO, 1);
+    scene.add(rim);
     scene.add(buildGraticule());
     scene.add(buildLand());
 
     // Yer istasyonu
-    const gsPos = toVec(GROUND_STATION.lat_deg, GROUND_STATION.lon_deg, 1.004);
+    // Istasyonun MIB'deki gercek yuksekligi (alt_km) + isaretcinin giydirme payi.
+    const gsPos = toEcef(
+      GROUND_STATION.lat_deg,
+      GROUND_STATION.lon_deg,
+      GROUND_STATION.alt_km + GS_H_KM,
+    );
     const gsDot = new THREE.Mesh(
       new THREE.SphereGeometry(0.011, 12, 12),
       new THREE.MeshBasicMaterial({ color: COLOR.nominal }),
@@ -134,7 +161,9 @@ export default function GlobeView() {
     const los = new THREE.Line(new THREE.BufferGeometry(), losMat);
     scene.add(los);
 
-    camera.position.copy(toVec(GROUND_STATION.lat_deg * 0.7, GROUND_STATION.lon_deg, 3.1));
+    camera.position.copy(
+      toEcef(GROUND_STATION.lat_deg * 0.7, GROUND_STATION.lon_deg).setLength(3.1),
+    );
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
@@ -162,6 +191,9 @@ export default function GlobeView() {
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w === 0 || h === 0) return;
+      // Pencere farkli olcekteki bir ekrana tasinirsa dpr degisir; her
+      // olcumde yeniden okunur (mount aninda bir kez okumak yetmez).
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -183,18 +215,18 @@ export default function GlobeView() {
       const la = lookAnglesAt(utcMs);
       if (sp && la) {
         const visible = la.elevationDeg >= GROUND_STATION.min_elevation_deg;
-        const r = 1 + sp.altKm / EARTH_R_KM;
-        const satPos = toVec(sp.latDeg, sp.lonDeg, r);
+        // altKm, eciToGeodetic'ten gelir: WGS84 elipsoidi uzerindeki yukseklik.
+        const satPos = toEcef(sp.latDeg, sp.lonDeg, sp.altKm);
         sat.position.copy(satPos);
         satMat.color.set(visible ? COLOR.nominal : COLOR.dim);
 
         cone.geometry.dispose();
         cone.geometry = new THREE.BufferGeometry().setFromPoints(
-          circleOnSphere(
+          footprintRing(
             GROUND_STATION.lat_deg,
             GROUND_STATION.lon_deg,
             visibilityConeRadiusDeg(sp.altKm),
-            1.003,
+            CONE_H_KM,
           ),
         );
 
@@ -207,7 +239,9 @@ export default function GlobeView() {
         // Yorunge izi pahali; birkac saniyede bir yeniden hesapla.
         if (Math.abs(utcMs - lastTrackMs) > ORBIT_PERIOD_S * 100) {
           lastTrackMs = utcMs;
-          const pts = groundTrack(utcMs, ORBIT_PERIOD_S * 0.75, 40).map((q) => toVec(q.latDeg, q.lonDeg, 1.0015));
+          const pts = groundTrack(utcMs, ORBIT_PERIOD_S * 0.75, 40).map((q) =>
+            toEcef(q.latDeg, q.lonDeg, TRACK_H_KM),
+          );
           // Boylam sarmasinda kesintiyi onlemek icin uzun atlamalari at.
           const clean: THREE.Vector3[] = [];
           for (let i = 0; i < pts.length; i++) {
@@ -220,17 +254,17 @@ export default function GlobeView() {
 
         if (readout.current) {
           readout.current.textContent =
-            'ALT ' +
+            'Yükseklik ' +
             sp.altKm.toFixed(1) +
-            ' km   LAT ' +
+            ' km   Enlem ' +
             sp.latDeg.toFixed(2) +
-            '°   LON ' +
+            '°   Boylam ' +
             sp.lonDeg.toFixed(2) +
-            '°   AZ ' +
+            '°   Yön ' +
             ((la.azimuthDeg + 360) % 360).toFixed(1) +
-            '°   EL ' +
+            '°   Açı ' +
             la.elevationDeg.toFixed(1) +
-            '°   RANGE ' +
+            '°   Uzaklık ' +
             la.rangeKm.toFixed(0) +
             ' km';
         }
@@ -253,9 +287,9 @@ export default function GlobeView() {
   return (
     <section className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
-        <span>Dünya · SGP4 yörünge yayılımı</span>
+        <span>Uydunun anlık konumu</span>
         <span className="normal-case tracking-normal text-ops-faint num">
-          {TLE_NAME} · NORAD {NORAD_ID} · T {(ORBIT_PERIOD_S / 60).toFixed(1)} dk
+          {TLE_NAME} · dünya turu {(ORBIT_PERIOD_S / 60).toFixed(0)} dakika
         </span>
       </div>
       <div className="relative flex-1 min-h-0">
@@ -266,11 +300,11 @@ export default function GlobeView() {
         />
         <div className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/80 px-1.5 py-1 pointer-events-none leading-relaxed">
           <div>
-            <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
-            {GROUND_STATION.min_elevation_deg}°
+            <span className="text-ops-nominal">●</span> {GROUND_STATION.name} yer istasyonu ·
+            uydunun görülebildiği alan
           </div>
           <div>
-            <span className="text-ops-dim">▬</span> yörünge izi · sürükle döndür, tekerlek yakınlaştır
+            <span className="text-ops-dim">▬</span> uydunun izlediği yol · sürükle döndür, tekerlek yakınlaştır
           </div>
         </div>
       </div>

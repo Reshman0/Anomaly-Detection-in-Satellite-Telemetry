@@ -1,7 +1,7 @@
 {
   "mission": "AZS-DEMO",
   "_model": "ECSS-E-ST-70-31C izleme-kontrol veri tanimi mantiginin basitlestirilmis uygulamasi.",
-  "_naming": "Parametre adlari ESA-ADB'nin anonimlestirilmis kanal adlandirmasini izler (ch_NN). ESA-ADB anonimlestirilmis oldugu icin muhendislik birimi ve fiziksel isim yoktur.",
+  "_naming": "Parametre adlari ve alt sistem atamalari ESA-ADB'nin resmi channels.csv tablosundan alinmistir (Channel -> Subsystem). ESA-ADB anonimlestirilmis oldugu icin muhendislik birimi, fiziksel isim ve alt sistem islevi yoktur; bu yuzden birim '—' ve alt sistem adlari 'Alt sistem N' seklindedir.",
   "_period_note": "sim.diurnal_period_s = 5894 s: TLE ortalama hareketinden (14.65886112 rev/gun) turetilen yorunge periyodu; LEO telemetrisindeki baskin yavas cevrim tutulma cevrimidir.",
   "_sim_note": "sim blogu ECSS modelinin parcasi DEGILDIR; yalnizca bu demonun nominal seri uretecini besler.",
   "epoch": "2026-09-21T08:10:00Z",
@@ -15,120 +15,225 @@
     "min_elevation_deg": 5.0
   },
   "subsystems": [
-    { "id": "SS1", "name": "Guc", "name_tr": "Güç", "apid": 42 },
-    { "id": "SS3", "name": "Yonelim Kontrolu", "name_tr": "Yönelim Kontrolü", "apid": 43 },
-    { "id": "SS5", "name": "Termal", "name_tr": "Termal", "apid": 44 },
-    { "id": "GND", "name": "Yer Turetilmis", "name_tr": "Yer Türetilmiş", "apid": 200 }
+    {
+      "id": "SS3",
+      "name": "Alt sistem 3",
+      "name_tr": "Alt sistem 3",
+      "apid": 43
+    },
+    {
+      "id": "SS5",
+      "name": "Alt sistem 5",
+      "name_tr": "Alt sistem 5",
+      "apid": 44
+    },
+    {
+      "id": "GND",
+      "name": "Yer Turetilmis",
+      "name_tr": "Yer Türetilmiş",
+      "apid": 200
+    }
   ],
   "parameters": [
     {
-      "pid": "ch_11",
-      "description": "Alt sistem 1 kanali 11",
-      "subsystem": "SS1",
-      "apid": 42,
-      "sid": 1,
-      "raw_type": "u16",
-      "eng_unit": "—",
-      "calibration": { "type": "linear", "a": 0.0012, "b": -9.6 },
-      "sampling_period_s": 1,
-      "limits": { "soft_low": -3.0, "soft_high": 3.0, "hard_low": -5.0, "hard_high": 5.0 },
-      "derived": false,
-      "sim": { "mean": 0.0, "sd": 0.26, "ar1": 0.86, "diurnal_amp": 0.55, "diurnal_period_s": 5894, "phase": 0.0 }
-    },
-    {
-      "pid": "ch_12",
-      "description": "Alt sistem 1 kanali 12",
-      "subsystem": "SS1",
-      "apid": 42,
-      "sid": 1,
-      "raw_type": "u16",
-      "eng_unit": "—",
-      "calibration": { "type": "linear", "a": 0.0018, "b": -14.4 },
-      "sampling_period_s": 1,
-      "limits": { "soft_low": -3.0, "soft_high": 3.0, "hard_low": -5.0, "hard_high": 5.0 },
-      "derived": false,
-      "sim": { "mean": 0.0, "sd": 0.22, "ar1": 0.9, "diurnal_amp": 0.42, "diurnal_period_s": 5894, "phase": 1.9 }
-    },
-    {
       "pid": "ch_42",
-      "description": "Alt sistem 3 hedef kanali",
-      "subsystem": "SS3",
-      "apid": 43,
-      "sid": 1,
-      "raw_type": "u16",
-      "eng_unit": "—",
-      "calibration": { "type": "linear", "a": 0.0015, "b": -12.0 },
-      "sampling_period_s": 1,
-      "limits": { "soft_low": -3.0, "soft_high": 3.0, "hard_low": -5.0, "hard_high": 5.0 },
-      "derived": false,
-      "sim": { "mean": 0.0, "sd": 0.24, "ar1": 0.88, "diurnal_amp": 0.38, "diurnal_period_s": 5894, "phase": 0.7 }
-    },
-    {
-      "pid": "ch_75",
-      "description": "Alt sistem 3 yardimci kanali",
-      "subsystem": "SS3",
-      "apid": 43,
-      "sid": 1,
-      "raw_type": "u16",
-      "eng_unit": "—",
-      "calibration": { "type": "linear", "a": 0.0016, "b": -12.8 },
-      "sampling_period_s": 1,
-      "limits": { "soft_low": -3.0, "soft_high": 3.0, "hard_low": -5.0, "hard_high": 5.0 },
-      "derived": false,
-      "sim": { "mean": 0.0, "sd": 0.29, "ar1": 0.84, "diurnal_amp": 0.31, "diurnal_period_s": 5894, "phase": 2.6 }
-    },
-    {
-      "pid": "ch_58",
-      "description": "Alt sistem 5 kanali 58",
+      "description": "ESA-ADB alt sistem 5 kanali 42",
       "subsystem": "SS5",
       "apid": 44,
       "sid": 1,
       "raw_type": "u16",
       "eng_unit": "—",
-      "calibration": { "type": "linear", "a": 0.0014, "b": -11.2 },
-      "sampling_period_s": 4,
-      "limits": { "soft_low": -3.0, "soft_high": 3.0, "hard_low": -5.0, "hard_high": 5.0 },
+      "calibration": {
+        "type": "linear",
+        "a": 0.0015,
+        "b": -12.0
+      },
+      "sampling_period_s": 1,
+      "limits": {
+        "soft_low": -3.0,
+        "soft_high": 3.0,
+        "hard_low": -5.0,
+        "hard_high": 5.0
+      },
       "derived": false,
-      "sim": { "mean": 0.0, "sd": 0.18, "ar1": 0.93, "diurnal_amp": 0.66, "diurnal_period_s": 5894, "phase": 4.1 }
+      "sim": {
+        "mean": 0.0,
+        "sd": 0.24,
+        "ar1": 0.88,
+        "diurnal_amp": 0.38,
+        "diurnal_period_s": 5894,
+        "phase": 0.7
+      }
     },
     {
-      "pid": "AI_SCORE_SS1",
-      "description": "Spectrogram-AE rekonstruksiyon anomali skoru",
-      "subsystem": "GND",
-      "apid": 200,
+      "pid": "ch_44",
+      "description": "ESA-ADB alt sistem 5 kanali 44",
+      "subsystem": "SS5",
+      "apid": 44,
       "sid": 1,
-      "eng_unit": "σ",
+      "raw_type": "u16",
+      "eng_unit": "—",
+      "calibration": {
+        "type": "linear",
+        "a": 0.0012,
+        "b": -9.6
+      },
       "sampling_period_s": 1,
-      "limits": { "soft_high": 3.0, "hard_high": 5.0 },
-      "derived": true,
-      "source_model": "Spectrogram-AE",
-      "sim": { "mean": 0.72, "sd": 0.16, "ar1": 0.8, "diurnal_amp": 0.1, "diurnal_period_s": 5894, "phase": 0.3, "floor": 0.0 }
+      "limits": {
+        "soft_low": -3.0,
+        "soft_high": 3.0,
+        "hard_low": -5.0,
+        "hard_high": 5.0
+      },
+      "derived": false,
+      "sim": {
+        "mean": 0.0,
+        "sd": 0.26,
+        "ar1": 0.86,
+        "diurnal_amp": 0.55,
+        "diurnal_period_s": 5894,
+        "phase": 0.0
+      }
+    },
+    {
+      "pid": "ch_46",
+      "description": "ESA-ADB alt sistem 5 kanali 46",
+      "subsystem": "SS5",
+      "apid": 44,
+      "sid": 1,
+      "raw_type": "u16",
+      "eng_unit": "—",
+      "calibration": {
+        "type": "linear",
+        "a": 0.0018,
+        "b": -14.4
+      },
+      "sampling_period_s": 1,
+      "limits": {
+        "soft_low": -3.0,
+        "soft_high": 3.0,
+        "hard_low": -5.0,
+        "hard_high": 5.0
+      },
+      "derived": false,
+      "sim": {
+        "mean": 0.0,
+        "sd": 0.22,
+        "ar1": 0.9,
+        "diurnal_amp": 0.42,
+        "diurnal_period_s": 5894,
+        "phase": 1.9
+      }
+    },
+    {
+      "pid": "ch_74",
+      "description": "ESA-ADB alt sistem 3 kanali 74",
+      "subsystem": "SS3",
+      "apid": 43,
+      "sid": 1,
+      "raw_type": "u16",
+      "eng_unit": "—",
+      "calibration": {
+        "type": "linear",
+        "a": 0.0014,
+        "b": -11.2
+      },
+      "sampling_period_s": 4,
+      "limits": {
+        "soft_low": -3.0,
+        "soft_high": 3.0,
+        "hard_low": -5.0,
+        "hard_high": 5.0
+      },
+      "derived": false,
+      "sim": {
+        "mean": 0.0,
+        "sd": 0.18,
+        "ar1": 0.93,
+        "diurnal_amp": 0.66,
+        "diurnal_period_s": 5894,
+        "phase": 4.1
+      }
+    },
+    {
+      "pid": "ch_75",
+      "description": "ESA-ADB alt sistem 3 kanali 75",
+      "subsystem": "SS3",
+      "apid": 43,
+      "sid": 1,
+      "raw_type": "u16",
+      "eng_unit": "—",
+      "calibration": {
+        "type": "linear",
+        "a": 0.0016,
+        "b": -12.8
+      },
+      "sampling_period_s": 1,
+      "limits": {
+        "soft_low": -3.0,
+        "soft_high": 3.0,
+        "hard_low": -5.0,
+        "hard_high": 5.0
+      },
+      "derived": false,
+      "sim": {
+        "mean": 0.0,
+        "sd": 0.29,
+        "ar1": 0.84,
+        "diurnal_amp": 0.31,
+        "diurnal_period_s": 5894,
+        "phase": 2.6
+      }
     },
     {
       "pid": "AI_SCORE_SS3",
-      "description": "TCN-AE rekonstruksiyon anomali skoru",
+      "description": "TCN-AE rekonstruksiyon anomali skoru (alt sistem 3)",
       "subsystem": "GND",
       "apid": 200,
       "sid": 1,
-      "eng_unit": "σ",
+      "eng_unit": "",
       "sampling_period_s": 1,
-      "limits": { "soft_high": 3.0, "hard_high": 5.0 },
+      "limits": {
+        "soft_high": 3.0,
+        "hard_high": 5.0
+      },
       "derived": true,
       "source_model": "TCN-AE",
-      "sim": { "mean": 0.81, "sd": 0.18, "ar1": 0.8, "diurnal_amp": 0.12, "diurnal_period_s": 5894, "phase": 1.2, "floor": 0.0 }
+      "sim": {
+        "mean": 0.81,
+        "sd": 0.18,
+        "ar1": 0.8,
+        "diurnal_amp": 0.12,
+        "diurnal_period_s": 5894,
+        "phase": 1.2,
+        "floor": 0.0
+      }
     },
     {
       "pid": "AI_SCORE_SS5",
-      "description": "TCN-AE rekonstruksiyon anomali skoru",
+      "description": "Spectrogram-AE rekonstruksiyon anomali skoru (alt sistem 5)",
       "subsystem": "GND",
       "apid": 200,
       "sid": 1,
-      "eng_unit": "σ",
+      "eng_unit": "",
       "sampling_period_s": 1,
-      "limits": { "soft_high": 3.0, "hard_high": 5.0 },
+      "limits": {
+        "soft_high": 3.0,
+        "hard_high": 5.0
+      },
       "derived": true,
-      "source_model": "TCN-AE",
-      "sim": { "mean": 0.64, "sd": 0.15, "ar1": 0.82, "diurnal_amp": 0.09, "diurnal_period_s": 5894, "phase": 3.3, "floor": 0.0 }
+      "source_model": "Spectrogram-AE",
+      "sim": {
+        "mean": 0.64,
+        "sd": 0.15,
+        "ar1": 0.82,
+        "diurnal_amp": 0.09,
+        "diurnal_period_s": 5894,
+        "phase": 3.3,
+        "floor": 0.0
+      }
     }
-  ]
+  ],
+  "_channel_source": "ESA-ADB Mission 1 channels.csv: subsystem_3 = ch_70..76, subsystem_5 = ch_41..46. Konsolda gosterilenlerin tamami Target=YES kanallardir.",
+  "_model_attribution": "Model-alt sistem eslesmesi bildirinin XAI bulgusundan gelir: Spectrogram-AE artik enerjisinin %52,4'unu alt sistem 5'e, TCN-AE %62,3'unu alt sistem 3'e atfeder."
 }

@@ -11,6 +11,8 @@ interface ConsoleState {
   severityIndex: number;
   selectedAlarmId: number | null;
   xaiLevel: 1 | 2 | 3;
+  /** Motorun XAI sayacinin en son gorulen degeri; sekme ilerletmeyi tetikler. */
+  lastXaiSeq: number;
 
   tick: (realDtMs: number) => void;
   setSpeed: (s: Speed) => void;
@@ -28,10 +30,19 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   severityIndex: DEFAULT_SEVERITY_INDEX,
   selectedAlarmId: null,
   xaiLevel: 1,
+  lastXaiSeq: 0,
 
   tick: (realDtMs) => {
-    get().sim.advance(realDtMs);
-    set((s) => ({ version: s.version + 1 }));
+    const { sim } = get();
+    sim.advance(realDtMs);
+    set((s) => {
+      // Senaryo yeni bir XAI kaniti urettiyse panel o seviyeye gecer; boylece
+      // uc seviye sunum sirasinda kendiliginden sirayla acilir (README §5).
+      if (sim.xaiSeq !== s.lastXaiSeq) {
+        return { version: s.version + 1, lastXaiSeq: sim.xaiSeq, xaiLevel: sim.xaiLatestLevel };
+      }
+      return { version: s.version + 1 };
+    });
   },
 
   setSpeed: (speed) => {
@@ -50,7 +61,8 @@ export const useConsole = create<ConsoleState>((set, get) => ({
     // baslarken hiz 1x'e alinir (yonerge §10, "90 saniyede tamamlanir").
     sim.clock.setSpeed(1);
     sim.startScenario(scenario);
-    set({ speed: 1, xaiLevel: 1, selectedAlarmId: null });
+    // Kanitlar sifirlandi: panel 1. seviyeye doner ve sayac yeniden hizalanir.
+    set({ speed: 1, xaiLevel: 1, selectedAlarmId: null, lastXaiSeq: sim.xaiSeq });
   },
 
   backToNominal: () => {
@@ -63,6 +75,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
 }));
 
 // Gelistirme sirasinda konsoldan durum incelemek icin (yalnizca dev derlemesi).
-if (import.meta.env.DEV) {
+// `typeof window` kontrolu: store birim testlerinde tarayici olmadan yuklenir.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__azs = useConsole;
 }

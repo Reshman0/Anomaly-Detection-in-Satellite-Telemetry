@@ -38,9 +38,10 @@ AI Tespiti         : ALARM          ← model sapmayı çoktan yakaladı
 Bu kare ekranda göründüğünde projenin gerekçesi anlatılmış olur.
 
 **Bağlam:** ESA-ADB (ESA Anomaly Dataset) ve OPS-SAT üzerinde çalışan AzSonra
-ekibinin bildirisine dayanır. Kanal adları (`ch_42`, `ch_75`) ESA-ADB'nin
-anonimleştirilmiş adlandırmasından gelir; bu yüzden mühendislik birimi yoktur
-(`—`) ve `TEMP_BATTERY_1` gibi uydurma isimler kullanılmaz.
+ekibinin bildirisine dayanır. Kanal adları ve alt sistem atamaları ESA-ADB'nin
+resmî `channels.csv` tablosundan alınmıştır; veri seti anonimleştirilmiş olduğu
+için mühendislik birimi yoktur (`—`), alt sistemler işleviyle değil numarasıyla
+anılır ve `TEMP_BATTERY_1` gibi uydurma isimler kullanılmaz.
 
 ---
 
@@ -48,7 +49,7 @@ anonimleştirilmiş adlandırmasından gelir; bu yüzden mühendislik birimi yok
 
 | Yapar | Yapmaz |
 |---|---|
-| Gerçek CCSDS 133.0-B bit alanları üretir ve ekranda gösterir | PyTorch/ONNX yüklemez, çıkarım yapmaz |
+| Gerçek CCSDS 133.0-B paketleri üretir (bit alanları test edilir) | PyTorch/ONNX yüklemez, çıkarım yapmaz |
 | MIB limitleriyle **gerçekten** limit kontrolü hesaplar | RF, SLE bağlantısı, çerçeve kodlaması kurmaz |
 | SGP4 ile gerçek yörünge yayılımı yapar | Ağdan TLE, doku veya font çekmez |
 | Senaryoları tohumlu ve tekrarlanabilir oynatır | Playback/geri sarma, çoklu operatör, hesap yönetimi sunmaz |
@@ -59,43 +60,95 @@ görünür.** Kaldırmayın.
 
 ---
 
-## 3. Hızlı başlangıç
+## 3. Kurulum ve çalıştırma
 
-Node 20+ gerekir (geliştirme sırasında Node 22.14 kullanıldı).
+Bu bölüm **sıfırdan** kurulum içindir; depoyu ilk kez alan biri baştan sona
+takip edebilir.
 
-Bağımlılıkları kurun:
+### 3.1 Ön koşullar
+
+| Gereken | Sürüm | Kontrol komutu |
+|---|---|---|
+| **Node.js** | 20 veya üzeri | `node -v` |
+| **npm** | 10 veya üzeri (Node ile gelir) | `npm -v` |
+| **Git** | herhangi bir güncel sürüm | `git --version` |
+| **Tarayıcı** | WebGL destekli (Chrome, Edge, Firefox) | `chrome://gpu` |
+
+Geliştirme sırasında Node 22.18 ve npm 10.9 kullanıldı.
+
+Node kurulu değilse [nodejs.org](https://nodejs.org) üzerinden LTS sürümünü
+kurun. Kurulum sırasında **internet bağlantısı gerekir** — projenin
+"internetsiz çalışır" özelliği çalışma zamanı içindir, kurulum için değil.
+
+### 3.2 Depoyu alın
+
+```bash
+git clone https://github.com/Reshman0/Anomaly-Detection-in-Satellite-Telemetry.git
+```
+
+```bash
+cd Anomaly-Detection-in-Satellite-Telemetry
+```
+
+Çalışılacak dala geçin (dal adı sizde farklıysa onu yazın):
+
+```bash
+git checkout feat/sade-konsol-ve-gercek-xai
+```
+
+Hangi dalların olduğunu görmek için:
+
+```bash
+git branch -a
+```
+
+### 3.3 Bağımlılıkları kurun
 
 ```bash
 npm install
 ```
 
-Geliştirme sunucusu (http://localhost:5173):
+Bu komut `node_modules/` klasörünü oluşturur (birkaç yüz MB) ve birkaç dakika
+sürebilir. `node_modules` depoya dahil değildir, her makinede yeniden kurulur.
 
-```bash
-npm run dev
-```
+### 3.4 Kurulumu doğrulayın
 
-Testler:
+Devam etmeden önce testleri çalıştırın:
 
 ```bash
 npm test
 ```
 
-Demo için dağıtım derlemesi:
+**34 testin 34'ü geçmelidir.** Geçmiyorsa aşağı inmeyin; §11'deki sorun giderme
+adımlarına bakın.
+
+### 3.5 Geliştirme sunucusunu başlatın
+
+```bash
+npm run dev
+```
+
+Terminalde çıkan adresi tarayıcıda açın — varsayılan olarak
+<http://localhost:5173>. Konsol açılır açılmaz **10 dakikalık geçmişle dolu**
+gelir; boş grafik görmezsiniz.
+
+Durdurmak için terminalde `Ctrl` + `C`.
+
+### 3.6 Demo için tek dosya derleyin
 
 ```bash
 npm run build
 ```
 
-Derlemeyi yerelde denemek:
+Derlemeyi yerelde denemek isterseniz:
 
 ```bash
 npm run preview
 ```
 
-### Dağıtım çıktısı
+### 3.7 Demo makinesine götürme
 
-`npm run build` **tek bir `dist/index.html` dosyası** üretir (~788 kB). Tüm
+`npm run build` **tek bir `dist/index.html` dosyası** üretir (~2,1 MB). Tüm
 JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri ve XAI görselleri bu
 dosyanın içine gömülüdür.
 
@@ -107,7 +160,21 @@ dosyanın içine gömülüdür.
   yoktur.
 
 Demo makinesine götürmek için **sadece `dist/index.html` dosyasını kopyalamak
-yeterlidir.** Bir USB bellek yeter; `node_modules` gerekmez.
+yeterlidir.** Bir USB bellek yeter; `node_modules` gerekmez, Node kurulu olmasına
+bile gerek yoktur.
+
+> `dist/` klasörü `.gitignore` içindedir, yani depoda **derlenmiş dosya
+> bulunmaz.** Demo dosyasını her makinede `npm run build` ile üretirsiniz.
+
+### 3.8 Komutların tamamı
+
+| Komut | Ne yapar |
+|---|---|
+| `npm install` | Bağımlılıkları kurar (bir kez) |
+| `npm run dev` | Geliştirme sunucusu, sıcak yeniden yükleme ile |
+| `npm test` | 34 birim testini koşar |
+| `npm run build` | `dist/index.html` tek dosyasını üretir |
+| `npm run preview` | Derlenmiş çıktıyı yerelde sunar |
 
 ---
 
@@ -115,52 +182,73 @@ yeterlidir.** Bir USB bellek yeter; `node_modules` gerekmez.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ÜST ŞERİT  Görev · UTC · OBT · Hız · SLE RAF · İstasyon · AOS/LOS · TLE  │
+│ ÜST ŞERİT  Görev · UTC · Uydu saati · Hız · Bağlantı · İstasyon · Geçiş  │
 ├───────────────────────┬──────────────────────────────────────────────────┤
-│                       │  TELEMETRİ ŞERİTLERİ                             │
-│   DÜNYA / KÜRE        │  ch_11 ch_12 ch_42 ch_75 ch_58                   │
-│   SGP4, yörünge izi,  │  ◆ AI_SCORE_SS1 / SS3 / SS5                      │
-│   görüş konisi        ├──────────────────────────────────────────────────┤
-│                       │  PAKET DENETLEYİCİ  (hex + bit alanları)         │
+│                       │  UYDUDAN GELEN ÖLÇÜMLER                          │
+│   UYDUNUN ANLIK       │  ch_42 ch_44 ch_46 ch_74 ch_75                   │
+│   KONUMU              │  ◆ Yapay zekâ · alt sistem 3 / alt sistem 5      │
+│   (WGS84 küre)        ├──────────────────────────────────────────────────┤
+│                       │  AŞAĞI İNEN VERİ PAKETİ  (ham baytlar)           │
 │                       ├──────────────────────────────────────────────────┤
-│                       │  DURUM   ST[12]: NOMİNAL │ AI: ALARM ← KONTRAST  │
+│                       │  DURUM  Uçuş yazılımı: NOMİNAL │ Yapay zekâ: ALARM│
+│                       │         Yanlış alarm: 0                          │
 ├───────────────────────┼───────────────────────────┬──────────────────────┤
-│  SENARYO KONSOLU      │  ALARM KUYRUĞU            │  XAI PANELİ          │
+│  SENARYO KONSOLU      │  ALARM KUYRUĞU            │  MODEL NEDEN ALARM   │
+│                       │                           │  VERDİ               │
 └───────────────────────┴───────────────────────────┴──────────────────────┘
 ```
 
-**Üst şerit.** Görev adı, UTC ve OBT (aralarında `-0.734 s` sabit ofset — zaman
-korelasyonu izlenimi), hız çarpanı, `SLE RAF` durumu (uydu görüş alanındayken
-`ACTIVE`, dışındayken `READY`), yer istasyonu, AOS/LOS geri sayımı, anlık
-yükselti açısı ve kullanılan TLE'nin yaşı.
+> **Dil tercihi.** Konsol kısa süreli, karma bir izleyiciye gösterilmek üzere
+> tasarlandı. Bu yüzden ekranda **standart kısaltması bırakılmadı**: `ST[12]`,
+> `TM[3,25]`, `APID`, `SLE RAF`, `OBT`, `AOS/LOS`, `Grad-CAM` gibi terimlerin
+> tamamı düz Türkçeye çevrildi ya da kaldırıldı. Standart uyumu kaybolmadı —
+> paketler hâlâ gerçek CCSDS/PUS yapısıyla üretiliyor ve birim testleriyle
+> doğrulanıyor (§8, §9); yalnızca **ekranda** gösterilmiyor.
 
-**Küre.** `satellite.js` ile gerçek SGP4. Sürükleyerek döndürülür, tekerlekle
-yakınlaştırılır. Yörünge izi, yer istasyonu görüş konisi ve görüş anında
-istasyon–uydu vektörü çizilir. Terminator, bulut katmanı, atmosfer parıltısı
-**bilerek yoktur.**
+**Üst şerit.** Görev adı, UTC, uydu saati (aralarında `-0,734 s` sabit ofset —
+zaman korelasyonu izlenimi), hız çarpanı, uydu bağlantısı (`VERİ AKIYOR` /
+`BEKLEMEDE`), yer istasyonu, sonraki geçişe kalan süre, anlık yükselti açısı ve
+yörünge verisinin yaşı.
 
-**Telemetri şeritleri.** Her satırda parametre adı, **ham değer ve mühendislik
-değeri yan yana**, limit bandı arka planda gölge olarak. `◆` işaretli satırlar
-yer türetilmiş parametrelerdir; on-board ham karşılıkları olmadığı için ham
+**Uydunun anlık konumu.** `satellite.js` ile gerçek SGP4 yayılımı, WGS84
+elipsoidi üzerine çizilir (§8). Sürükleyerek döndürülür, tekerlekle
+yakınlaştırılır. Uydunun izlediği yol, yer istasyonunun uyduyu görebildiği alan
+ve görüş anında istasyon–uydu vektörü çizilir. Terminator, bulut katmanı,
+atmosfer parıltısı **bilerek yoktur.**
+
+**Uydudan gelen ölçümler.** Başlıkta *"ESA veri setindeki 76 kanaldan
+çalışmamızda kullanılan 5'i"* yazar — izleyici gördüğünün bir alt küme olduğunu
+bilir. Her satırda parametre adı, **sayaç değeri ve gerçek değer yan yana**,
+limit bandı arka planda gölge olarak. `◆` işaretli satırlar yerde hesaplanan
+yapay zekâ skorlarıdır; uydudan inen ham karşılıkları olmadığı için sayaç
 sütununda `—` görünür.
 
-**Paket denetleyici.** Son üretilen paketin oktet dizisi ve çözülmüş bit
-alanları. Renk kodu: gri = birincil başlık, yeşil = PUS ikincil başlığı,
-mor = kaynak veri alanı, amber = Packet Error Control.
+**Aşağı inen veri paketi.** Son üretilen paketin ham bayt dizisi, alt sistem
+adı, sıra numarası, boyu ve bütünlük doğrulaması. Bit alanı ızgarası **ekrandan
+kaldırıldı** — kısa sürede okunamıyordu ve jargonla doluydu. Alanların tamamı
+arka planda üretilmeye ve test edilmeye devam ediyor.
 
-**Durum bandı.** Solda ST[12] sabit limit durumu, sağda AI tespiti. İkisi
-ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi belirir.
+**Durum bandı.** Solda uçuş yazılımının sabit limit kontrolü, sağda yapay zekâ
+tespiti. İkisi ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi
+belirir. Altında **yanlış alarm sayacı** vardır: hiçbir anomali enjekte
+edilmemişken bir yapay zekâ skorunun eşiği aşması sayılır — sabit değer değil,
+ölçümdür. Yanında bildirinin dürüstlük notu yazılıdır (300 s alan bilgisi
+kuralı).
 
 **Senaryo konsolu.** Üç senaryo düğmesi, beş kademeli şiddet kaydırıcısı ve
 nominal akışa dönüş.
 
-**Alarm kuyruğu.** Servis etiketi, UTC + OBT damgası, APID, sorumlu parametre,
-alt sistem, model adı ve güven skoru. Sol kenar rengi kaynağı söyler:
-yeşil/amber/kırmızı = `ST[12] LİMİT`, mor = `AI TÜRETİLMİŞ`.
+**Alarm kuyruğu.** Şiddet sözcüğü, zaman damgası, sorumlu parametre, alt sistem,
+model adı ve güven skoru. Sol kenar rengi kaynağı söyler: yeşil/amber/kırmızı =
+uçuş yazılımının limit kontrolü, mor = yerde çalışan yapay zekâ modeli.
 
-**XAI paneli.** Üç seviyeli sekme (artık → kanal katkısı → Grad-CAM). Görseller
-bildiriden alınmış gerçek çıktılardır; dosya konulmamışsa panel boş bir yuva ve
-beklenen dosya yolunu gösterir, **sentetik grafik çizmez.**
+**Model neden alarm verdi.** Üç adımlı sekme: *1 · Nerede saptı*, *2 · Hangi
+kanal*, *3 · Isı haritası*. Senaryo yeni bir kanıt ürettiğinde panel
+**kendiliğinden o adıma geçer**; sunucunun sekmeye tıklaması gerekmez. Elle
+seçilen adım, yeni kanıt gelene kadar korunur. Görseller bildiriden alınmış
+gerçek model çıktılarıdır (künye: [`src/assets/xai/README.md`](src/assets/xai/README.md));
+dosya konulmamışsa panel boş bir yuva ve beklenen dosya yolunu gösterir,
+**sentetik grafik çizmez.**
 
 ---
 
@@ -172,22 +260,23 @@ argüman kurarlar.
 
 ### 1. Nokta anomalisi · Spectrogram-AE · ~35 s
 
-`ch_11` kanalında kısa bir sıçrama. Sıçrama sert limiti aşar, `limitChecker`
-gerçekten hesap yaptığı için `TM[12,12] Check Transition Report` üretilir ve
-alarm kuyruğuna **yeşil/kırmızı kenarlı** bir ST[12] kartı düşer.
+`ch_44` kanalında kısa bir sıçrama. Sıçrama sert limiti aşar; `limitChecker`
+gerçekten hesap yaptığı için uçuş yazılımı da alarm üretir ve alarm kuyruğuna
+**yeşil/kırmızı kenarlı** bir limit kartı düşer.
 
 > **Söylenecek:** "Klasik limit kontrolü bunu zaten yakalıyor. Burada bir
 > sorunumuz yok."
 
-Bu senaryonun işlevi, sonraki ikisinde ST[12]'nin sessiz kalmasının bir hata
-değil **bulgu** olduğunu kanıtlamaktır.
+Bu senaryonun işlevi, sonraki ikisinde limit kontrolünün sessiz kalmasının bir
+hata değil **bulgu** olduğunu kanıtlamaktır.
 
 ### 2. Yavaş sürüklenme · TCN-AE · ~72 s — **demonun kritik anı**
 
-`ch_42` kademeli olarak kayar ama limit bandının içinde kalır. Şerit gözle
-görülür şekilde sürüklenirken durum bandının solu `NOMİNAL` kalır; sağdaki AI
-skoru 3σ'yı, sonra 5σ'yı aşar ve `TM[5,1] → TM[5,3] → TM[5,4]` sırasıyla mor
-kartlar düşer. XAI paneli üç seviyeyi sırayla yükler.
+`ch_75` kademeli olarak kayar ama limit bandının içinde kalır. Şerit gözle
+görülür şekilde sürüklenirken durum bandının solu `NOMİNAL` kalır; sağdaki yapay
+zekâ skoru önce uyarı, sonra alarm eşiğini aşar ve üç mor kart sırayla düşer:
+*izlemede* → *anomali adayı* → *yüksek şiddet*. Sağdaki panel üç kanıt adımını
+kendiliğinden sırayla açar.
 
 > **Söylenecek:** "Uçuş yazılımı hâlâ hiçbir şey görmüyor — çünkü teknik olarak
 > haklı, parametre limitin içinde. Model ise sapmayı 30 saniye önce yakaladı ve
@@ -198,9 +287,12 @@ gerekçesi bu tek karededir.**
 
 ### 3. Kolektif sapma · TCN-AE · ~62 s
 
-`ch_42`, `ch_75` ve `ch_58` birbiriyle ilişkili biçimde kayar. Hiçbiri tek
-başına limit aşmaz; anomali yalnızca çok değişkenli yapıda görünür. XAI paneli
-`ch_75`'i baskın katkı olarak işaretler.
+`ch_75`, `ch_42` ve `ch_74` birbiriyle ilişkili biçimde kayar — ikisi alt
+sistem 3'ten, biri alt sistem 5'ten. Hiçbiri tek başına limit aşmaz; anomali
+yalnızca çok değişkenli yapıda görünür. XAI paneli `ch_75`'i baskın katkı
+olarak işaretler ve **iki modelin atfını yan yana koyar:** Spectrogram-AE
+sapmanın %52,4'ünü alt sistem 5'e, TCN-AE %62,3'ünü alt sistem 3'e veriyor —
+bildirinin kendi bulgusu.
 
 > **Söylenecek:** "Burada tek tek bakınca hiçbir kanal anormal değil. Anormal
 > olan aralarındaki ilişki — ve model kaynağı da teşhis ediyor."
@@ -213,8 +305,11 @@ başına limit aşmaz; anomali yalnızca çok değişkenli yapıda görünür. X
 - Aynı düğmeye tekrar basmak **birebir aynı** anomaliyi üretir. Üretim tohumlu
   ve senaryo başlangıcı örneklem ızgarasına oturtulmuştur.
 - `600×` hız çarpanı küre içindir: İMECE'nin ~98 dakikalık yörüngesi ~10
-  saniyede tamamlanır, AOS/LOS dinamiği görünür hale gelir. Telemetriyi bu
+  saniyede tamamlanır, geçiş dinamiği görünür hale gelir. Telemetriyi bu
   hızda izlemeye çalışmayın.
+- **Yanlış alarm sayacı** durum bandının altındadır ve nominal akış boyunca
+  `0` kalır. Sunumda buna işaret etmek hikâyenin "üstelik yanlış alarm
+  üretmeden" maddesini kapatır.
 - Uygulama açılırken şeritler **10 dakikalık geçmişle dolu gelir**; boş grafikle
   açılmaz.
 
@@ -239,12 +334,16 @@ src/
     telemetrySource.ts  nominal seri üretimi + enjeksiyon
     limitChecker.ts     ST[12] sabit limit kontrolü  ← gerçekten hesaplar
     scenarioRunner.ts   senaryo zaman çizelgesi, şiddet ölçeklemesi
-    orbit.ts            SGP4, AOS/LOS, görüş konisi
+    earth.ts            WGS84 elipsoidi, jeodezik→ECEF, görüş konisi halkası
+    orbit.ts            SGP4 yayılımı, geçiş anları, görüş konisi
     simulation.ts       hepsini birleştiren düzenleyici
+    *.test.ts           limitChecker / earth birim testleri
   components/           arayüz (her panel bir dosya)
   ui/colors.ts          durum renkleri
-  assets/xai/           bildiriden alınan gerçek XAI görselleri
+  assets/xai/           bildiriden alınan gerçek XAI görselleri + künye
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
+  store.test.ts         XAI seviye ilerlemesi testleri
+  App.tsx               1920×1080 tasarım yüzeyi + pencereye ölçekleme
 ```
 
 ### Veri akışı
@@ -267,7 +366,7 @@ olmadan uçtan uca koşturur.
 
 ### Neden AI skoru ayrı bir kutu değil
 
-`AI_SCORE_SS1/SS3/SS5`, `mib.json` içinde tanımlı, **limitleri olan**,
+`AI_SCORE_SS3` ve `AI_SCORE_SS5`, `mib.json` içinde tanımlı, **limitleri olan**,
 `derived: true` ve `subsystem: "GND"` olan parametrelerdir. Arayüzde diğer
 parametrelerle aynı şeridi ve aynı limit rengi mantığını kullanırlar. Farkları
 yalnızca kaynaklarıdır: `◆` işareti, ham değer yerine `—`, mor vurgu.
@@ -293,9 +392,9 @@ gerekmez.
 
 ```jsonc
 {
-  "pid": "ch_31",                     // ESA-ADB kanal adı
-  "description": "Alt sistem 5 kanalı 31",
-  "subsystem": "SS5",                 // subsystems dizisinde tanımlı olmalı
+  "pid": "ch_43",                     // ESA-ADB channels.csv'de gerçekten var
+  "description": "ESA-ADB alt sistem 5 kanalı 43",
+  "subsystem": "SS5",                 // channels.csv'deki Subsystem ile eşleşmeli
   "apid": 44,
   "sid": 1,                           // housekeeping structure ID
   "raw_type": "u16",
@@ -391,8 +490,14 @@ Görseller derleme sırasında tek dosya çıktısına gömülür. **Sentetik ol
 yeniden çizilmiş grafik koymayın** — panelin boş yuva göstermesi, uydurma bir
 grafik göstermesinden iyidir.
 
-Panelin görsel alanı yaklaşık 520×170 px'dir; yatay (geniş) görseller en iyi
-oturur.
+Panelin görsel alanı tasarım biriminde yaklaşık **528×207 px**; en-boy oranı
+~2,55 olan yatay görseller yuvayı tam doldurur.
+
+Şu an yerleştirilmiş yedi görselin künyesi (hangi notebook, hangi hücre) o
+klasördeki README'dedir. Kolektif senaryo, 1. ve 3. adımda sürüklenme
+senaryosuyla **aynı görseli paylaşır**: notebook'larda altı gerçek XAI şekli
+var, demoda dokuz yuva; iki senaryo da TCN-AE kullandığı için uydurma görsel
+üretmek yerine paylaşım tercih edildi.
 
 ### Uyduyu veya yer istasyonunu değiştirmek
 
@@ -480,9 +585,10 @@ for (let i = 0; i < 130; i++) __azs.getState().tick(1000);
 | Packet Error Control (CRC-16-CCITT, poly `0x1021`, init `0xFFFF`) | ECSS-E-ST-70-41C |
 | MIB parametre tanımı, kalibrasyon eğrisi, limitler | ECSS-E-ST-70-31C |
 | SLE RAF durum göstergesi | CCSDS 911.1 |
-| Kanal adları (`ch_42`, `ch_75`) | ESA-ADB (anonimleştirilmiş) |
+| Kanal adları ve alt sistem ataması | ESA-ADB Mission 1 `channels.csv` |
 | Önem derecesi 0–3 ↔ `TM[5,1..4]` | ESA-ADB ↔ ECSS eşlemesi |
 | Kıta çizgileri | Natural Earth 110m, kamu malı |
+| Dünya modeli — elipsoit, jeodezik→ECEF | WGS84 (NIMA TR8350.2) |
 
 Yalnızca **ST[03], ST[05], ST[12]** kullanılır; başka servis numarası yoktur.
 
@@ -499,20 +605,23 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-23 test, tek dosyada: `src/engine/limitChecker.test.ts`.
+34 test, üç dosyada: `src/engine/limitChecker.test.ts`,
+`src/engine/earth.test.ts` ve `src/store.test.ts`.
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
-| Sürüklenmede `ch_42` **beş şiddet kademesinin hepsinde** NOMİNAL kalır, `AI_SCORE_SS3` sert eşiği aşar | demonun ana iddiası |
+| Sürüklenmede `ch_75` **beş şiddet kademesinin hepsinde** NOMİNAL kalır, `AI_SCORE_SS3` alarm eşiğini aşar | demonun ana iddiası |
 | Kolektif sapmada üç kanal da tek tek NOMİNAL kalır | ikinci senaryonun iddiası |
-| Nokta anomalisinde `ch_11` sert limiti aşar ve `TM[12,12]` üretilir | limit kontrolünün gerçekten çalıştığı |
+| Nokta anomalisinde `ch_44` sert limiti aşar ve `TM[12,12]` üretilir | limit kontrolünün gerçekten çalıştığı |
 | Aynı senaryo aynı seriyi üretir | tekrarlanabilirlik |
 | Senaryo **kesirli** bir görev saatinde başlatılsa da aynı sonucu verir | canlı uygulamada düğmeye basma anı ondalıklıdır |
 | Birincil başlık bit yerleşimi ve `Packet Data Length = uzunluk − 1` | CCSDS uyumu |
 | PEC gerçekten CRC-16-CCITT | ECSS uyumu |
 | Sekans sayacı APID başına artar, 16383'te sarar | kabul kriteri |
 | Yalnızca ST[03]/ST[05]/ST[12] kullanılır | kabul kriteri |
-| Senaryo dosyalarındaki `service` ↔ `severity` tutarlılığı | yanlış `TM[5,x]` etiketini önler |
+| Senaryo dosyalarındaki `service` ↔ `severity` tutarlılığı | yanlış olay raporu etiketini önler |
+| WGS84 yarıçapları, jeodezik↔jeosentrik enlem farkı, görüş konisi halkası | Dünya modelinin kusursuz küreye geri dönmesini engeller |
+| XAI seviyeleri kanıt geldikçe sırayla açılır, elle seçim ezilmez | sunumda panelin 1. adımda kalmasını önler |
 
 ---
 
@@ -523,14 +632,19 @@ npm test
 | İnternetsiz makinede açılıyor, ağ isteği yok | ✅ tek dosya çıktı, sistem fontları, doğrulandı |
 | Parametreler `mib.json`'dan geliyor, bileşende sabit değer yok | ✅ |
 | Sekans sayacı APID başına artıyor, 16383'te sarıyor | ✅ birim test |
-| Sadece ST[03], ST[05], ST[12] | ✅ birim test |
+| Üretilen paketlerde sadece ST[03], ST[05], ST[12] | ✅ birim test |
 | Önem derecesi ↔ `TM[5,x]` eşlemesi | ✅ birim test |
 | Sürüklenmede limit NOMİNAL, AI alarmda | ✅ birim test, 5 şiddet kademesi |
 | Aynı düğmeye basınca aynı anomali | ✅ birim test, kesirli başlangıç dahil |
-| XAI görselleri bildiriden alınmış gerçek çıktılar | ⚠️ **görseller henüz konulmadı** — yuvalar hazır |
-| Ham ve mühendislik değer yan yana | ✅ |
+| XAI görselleri bildiriden alınmış gerçek çıktılar | ✅ 7 görsel yerleştirildi, künyeli ([liste](src/assets/xai/README.md)) |
+| Ekranda açıklanmamış jargon yok | ✅ ölçüldü: 28 terimden 0'a |
+| Yanlış alarm sayacı gerçek ölçüm | ✅ nominal akışta 0, enjeksiyon sırasında saymaz |
+| Kanal listesi ESA-ADB `channels.csv` ile hizalı | ✅ 5 kanalın tamamı gerçek ve `Target=YES` |
+| Dünya modeli WGS84 | ✅ birim test (`earth.test.ts`) |
+| Sayaç ve gerçek değer yan yana | ✅ |
 | `SİMÜLE VERİ` rozeti sürekli görünür | ✅ sağ üst köşe |
 | 1920×1080'de kaydırma çubuğu yok | ✅ ölçüldü: 1920×1080 tam |
+| Her çözünürlükte panel taşması / üst üste binme yok | ✅ 1366×768, 1919×872, 1920×1080, 2560×1440 ölçüldü |
 | Senaryo 90 saniyede tamamlanıyor | ✅ 1× hızda (bkz. sapma 1) |
 
 ### Belgelenen sapmalar
@@ -542,19 +656,67 @@ senaryo başlatıldığında hız otomatik olarak 1×'e alınıyor — böylece 
 gerçekten 90 saniyede, izlenebilir hızda tamamlanıyor. 600× çarpanı küre
 içindir.
 
-**2. Sürüklenme büyüklüğü.** Yönergedeki örnek `magnitude: 4.5` değeri `ch_42`
+**2. Sürüklenme büyüklüğü.** Yönergedeki örnek `magnitude: 4.5` değeri `ch_75`
 yumuşak limitini (±3.0) aşardı ve §6.3'ün "limit NOMİNAL kalmalı" kısıtını
 bozardı. §6.3 kısıtı kazandı: taban büyüklük 1.3, enjeksiyona ayrıca
 `max_abs_eng` kelepçesi kondu, birim testi tüm şiddet kademelerinde doğruluyor.
 
-**3. Kanal adları.** `ch_42` ve `ch_75` yönergede geçtiği gibi bırakıldı.
-Konsolun dolu görünmesi için ESA-ADB adlandırma şemasına uygun `ch_11`, `ch_12`,
-`ch_58` eklendi. Bildirinizde gerçekten geçen kanallarla değiştirmek isterseniz
-tek dokunulacak yer `src/data/mib.json`'dır.
+**3. Kanal adları — çözüldü.** İlk sürümde konsolu doldurmak için `ch_11`,
+`ch_12`, `ch_58` uydurulmuştu ve `ch_42` yanlış alt sisteme atanmıştı. Kanal
+listesi artık ESA-ADB'nin resmî `channels.csv` tablosuyla birebir hizalı:
+
+| Kanal | Alt sistem | ESA-ADB `Target` |
+|---|---|---|
+| `ch_42`, `ch_44`, `ch_46` | subsystem_5 | YES |
+| `ch_74`, `ch_75` | subsystem_3 | YES |
+
+Gösterilen beş kanalın tamamı gerçek ve hepsi `Target=YES`, yani ESA-ADB'nin
+değerlendirmeye aldığı kanallar. Alt sistem adları da veri setindeki gibi
+anonim bırakıldı (`Alt sistem 3` / `Alt sistem 5`); ESA-ADB alt sistem işlevini
+açıklamadığı için "Güç / Yönelim Kontrolü / Termal" gibi uydurma adlar
+kullanılmıyor.
 
 ---
 
 ## 11. Sorun giderme
+
+### Kurulum sırasında
+
+**`npm install` hata veriyor.** Önce Node sürümünü kontrol edin (`node -v`);
+20'nin altındaysa yükseltin. Sorun sürerse önbelleği ve klasörü temizleyip
+yeniden deneyin:
+
+```bash
+npm cache clean --force
+```
+
+```bash
+rm -rf node_modules package-lock.json && npm install
+```
+
+> Windows PowerShell'de silme komutu farklıdır:
+> `Remove-Item -Recurse -Force node_modules, package-lock.json`
+
+**`npm test` başarısız.** Kurulum eksik ya da yarım kalmış olabilir; `npm
+install`'ı tekrar çalıştırın. Testler hâlâ kırmızıysa çıktıdaki dosya adına
+bakın: `limitChecker` senaryoların limit davranışını, `earth` Dünya modelini,
+`store` XAI seviye ilerlemesini doğrular.
+
+**`npm run dev` "port 5173 is in use" diyor.** Başka bir Vite süreci açık.
+Kapatın ya da farklı port verin:
+
+```bash
+npm run dev -- --port 5174
+```
+
+**Sayfa boş, konsolda `does not provide an export named 'default'` yazıyor.**
+Vite bir dosyayı yazılırken yakalayıp boş halde önbelleğe almış olabilir.
+Dosyayı kaydedip sunucuyu yeniden başlatmak yeterlidir.
+
+**`npm run build` çalıştı ama `dist/` yok.** `.gitignore` içinde olduğu için
+depoda görünmez ama derleme sonrası diskte oluşur; `ls dist` ile bakın.
+
+### Çalışma sırasında
 
 **Ekran donmuş görünüyor / saat ilerlemiyor.** Sekme arka planda ya da pencere
 gizli. Tarayıcılar bu durumda `requestAnimationFrame`'i durdurur. Pencereyi öne
@@ -571,9 +733,11 @@ kullanın.
 **XAI paneli boş yuva gösteriyor.** Beklenen PNG `src/assets/xai/` altında yok.
 Tasarım gereği böyle; dosyayı koyup yeniden derleyin.
 
-**1920×1080 dışında bir çözünürlükte açtım, düzen bozuk.** Konsol 1920×1080 için
-tasarlandı ve kaydırma yoktur. Daha küçük ekranlarda tarayıcı yakınlaştırmasını
-düşürün (`Ctrl` + `-`).
+**1920×1080 dışında bir çözünürlükte açtım.** Sorun değil. Konsol 1920×1080'lik
+sabit bir tasarım yüzeyine çizilir ve bu yüzey pencereye sığacak şekilde tek
+parça olarak ölçeklenir; en-boy oranı korunur, artan yer siyah bantla kapanır.
+Küçük ekranda her şey orantılı olarak küçülür, büyük ekranda büyür — düzen
+bozulmaz, panel sıkışmaz. Tarayıcı yakınlaştırmasıyla oynamanız gerekmez.
 
 **Küre siyah.** WebGL kapalı ya da GPU hızlandırma yok. Tarayıcıda
 `chrome://gpu` ile kontrol edin. Küre olmadan da demo ayakta durur.

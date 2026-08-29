@@ -43,6 +43,28 @@ export class Simulation {
   alarms: Alarm[] = [];
   packets: BuiltPacket[] = [];
   xai: XaiEvidence[] = [];
+  /**
+   * En son yuklenen XAI seviyesi ve onun sira numarasi.
+   *
+   * Motor arayuzu bilmez; yalnizca "yeni bir kanit geldi" sinyalini birakir.
+   * Store bu sayaci izleyip gosterilen sekmeyi ilerletir — boylece senaryo
+   * kanitlari uretirken panel seviyeleri sirayla kendiliginden acilir.
+   * Sayac senaryolar arasinda sifirlanmaz; yalnizca degisimi anlamlidir.
+   */
+  xaiSeq = 0;
+  xaiLatestLevel: 1 | 2 | 3 = 1;
+
+  /**
+   * Yanlis alarm sayaci — iddia degil, olcum.
+   *
+   * Hicbir anomali enjekte edilmemisken (nominal akis) bir AI skoru kendi
+   * yumusak esigini asarsa bu bir yanlis alarmdir. Nominal akista gecen sure
+   * de sayilir ki sayac "ne kadar sure boyunca temiz kaldi" bilgisini tasisin.
+   */
+  falseAlarms = 0;
+  nominalSeconds = 0;
+  /** Yanlis alarmi kenar tetiklemeli saymak icin son durum. */
+  private aiWasOverThreshold = new Map<string, boolean>();
   lastTransition: CheckTransition | null = null;
   severityIndex = DEFAULT_SEVERITY_INDEX;
 
@@ -94,6 +116,9 @@ export class Simulation {
 
   resetAll(): void {
     this.runner = null;
+    this.falseAlarms = 0;
+    this.nominalSeconds = 0;
+    this.aiWasOverThreshold.clear();
     this.alarms = [];
     this.packets = [];
     this.xai = [];
@@ -171,6 +196,23 @@ export class Simulation {
         userDataFields: fields,
       });
       if (!prefilling) this.pushPacket(pkt);
+    }
+
+    // --- Yanlis alarm olcumu: yalnizca enjeksiyon yokken ---
+    if (!prefilling) {
+      const injecting = runner !== null;
+      if (!injecting) this.nominalSeconds += BASE_PERIOD_S;
+      for (const { pid, sample } of samples) {
+        const p = param(pid);
+        if (!p.derived) continue;
+        const esik = p.limits.soft_high;
+        if (esik === undefined) continue;
+        const over = sample.eng > esik;
+        const wasOver = this.aiWasOverThreshold.get(pid) ?? false;
+        // Yalnizca yeni bir esik gecisi ve yalnizca nominal akista sayilir.
+        if (over && !wasOver && !injecting) this.falseAlarms++;
+        this.aiWasOverThreshold.set(pid, over);
+      }
     }
 
     // --- ST[12] On-board monitoring: gercek limit kontrolu ---
@@ -268,6 +310,8 @@ export class Simulation {
             level: step.level,
           };
           this.xai = [...this.xai.filter((x) => x.level !== ev.level), ev].sort((a, b) => a.level - b.level);
+          this.xaiLatestLevel = ev.level;
+          this.xaiSeq++;
         }
       }
     }

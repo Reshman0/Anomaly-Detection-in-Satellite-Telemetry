@@ -53,8 +53,8 @@ describe('§6.3 — yavaş sürüklenme: ST[12] NOMİNAL kalır, AI skoru alarma
       const { worst, peakEng, sim } = runScenario('drift', idx);
 
       // Sabit limit kontrolü hedef kanalda hiç tetiklenmemeli.
-      expect(worst.get('ch_42')).toBe('NOMINAL');
-      expect(Math.abs(peakEng.get('ch_42')!)).toBeLessThan(param('ch_42').limits.soft_high!);
+      expect(worst.get('ch_75')).toBe('NOMINAL');
+      expect(Math.abs(peakEng.get('ch_75')!)).toBeLessThan(param('ch_75').limits.soft_high!);
 
       // AI türetilmiş parametre sert eşiği aşmalı.
       expect(worst.get('AI_SCORE_SS3')).toBe('HARD_HIGH');
@@ -74,7 +74,7 @@ describe('§6.3 — kolektif sapma: kanallar tek tek limit içinde kalır', () =
   SEVERITY_STEPS.forEach((_mul, idx) => {
     it('şiddet kademesi ' + (idx + 1), () => {
       const { worst, sim } = runScenario('collective', idx);
-      for (const pid of ['ch_42', 'ch_75', 'ch_58']) {
+      for (const pid of ['ch_75', 'ch_42', 'ch_74']) {
         expect(worst.get(pid)).toBe('NOMINAL');
       }
       expect(worst.get('AI_SCORE_SS3')).toBe('HARD_HIGH');
@@ -85,9 +85,9 @@ describe('§6.3 — kolektif sapma: kanallar tek tek limit içinde kalır', () =
 
 describe('nokta anomalisi: limit kontrolü gerçekten çalışır', () => {
   SEVERITY_STEPS.forEach((_mul, idx) => {
-    it('şiddet kademesi ' + (idx + 1) + ': ch_11 sert limiti aşar ve TM[12,12] üretilir', () => {
+    it('şiddet kademesi ' + (idx + 1) + ': ch_44 sert limiti aşar ve TM[12,12] üretilir', () => {
       const { worst, sim } = runScenario('point', idx);
-      expect(worst.get('ch_11')).toBe('HARD_HIGH');
+      expect(worst.get('ch_44')).toBe('HARD_HIGH');
       expect(sim.serviceCounts.get('12,12') ?? 0).toBeGreaterThan(0);
       const limitAlarms = sim.alarms.filter((a) => a.source === 'ST12_LIMIT');
       expect(limitAlarms.length).toBeGreaterThan(0);
@@ -99,8 +99,8 @@ describe('§10 — determinizm', () => {
   it('aynı senaryo aynı şiddette aynı seriyi üretir', () => {
     const a = runScenario('drift', 2);
     const b = runScenario('drift', 2);
-    const bufA = a.sim.buffers.get('ch_42')!.map((s) => s.eng);
-    const bufB = b.sim.buffers.get('ch_42')!.map((s) => s.eng);
+    const bufA = a.sim.buffers.get('ch_75')!.map((s) => s.eng);
+    const bufB = b.sim.buffers.get('ch_75')!.map((s) => s.eng);
     expect(bufA).toEqual(bufB);
   });
 
@@ -110,7 +110,7 @@ describe('§10 — determinizm', () => {
     for (const id of ['point', 'drift', 'collective']) {
       const clean = runScenario(id, 2);
       const shifted = runScenario(id, 2, 3170);
-      for (const pid of ['ch_11', 'ch_42', 'ch_75', 'ch_58', 'AI_SCORE_SS1', 'AI_SCORE_SS3']) {
+      for (const pid of ['ch_44', 'ch_42', 'ch_75', 'ch_74', 'AI_SCORE_SS5', 'AI_SCORE_SS3']) {
         expect(shifted.worst.get(pid), id + '/' + pid).toBe(clean.worst.get(pid));
       }
       expect(shifted.sim.serviceCounts.get('12,12') ?? 0).toBe(clean.sim.serviceCounts.get('12,12') ?? 0);

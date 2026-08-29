@@ -2,21 +2,41 @@
   "id": "point",
   "name": "Nokta anomalisi",
   "button": "Nokta anomalisi enjekte et",
-  "description": "SS1 alt sisteminde kısa süreli sıçrama. Sabit limit bandını aştığı için ST[12] izleme de tepki verir — bu senaryo limit kontrolünün gerçekten çalıştığını gösterir.",
+  "description": "Alt sistem 5'te kısa süreli sıçrama. Değer izin verilen bandı aştığı için uçuş yazılımının klasik limit kontrolü de tepki verir — bu senaryo limit kontrolünün gerçekten çalıştığını gösterir.",
   "model": "Spectrogram-AE",
   "duration_s": 90,
   "_note": "Buradaki ST[12] gecis raporlari senaryo dosyasindan gelmez; limitChecker MIB limitleriyle akan degeri karsilastirarak uretir.",
+  "_channel_note": "ch_44 ESA-ADB channels.csv'de subsystem_5 / Target=YES. Bildirinin Level-1 kanal katki grafiginde baskin kanal (%56,3) ch_44'tur.",
   "timeline": [
-    { "t": 29, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 3.6 },
-    { "t": 30, "type": "inject_point", "pid": "ch_11", "magnitude": 7.4, "width_s": 3 },
-    { "t": 31, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 6.4 },
+    {
+      "t": 29,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 3.6
+    },
+    {
+      "t": 30,
+      "type": "inject_point",
+      "pid": "ch_44",
+      "magnitude": 8.6,
+      "width_s": 3
+    },
+    {
+      "t": 31,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 6.4
+    },
     {
       "t": 32,
       "type": "event",
-      "service": [5, 4],
+      "service": [
+        5,
+        4
+      ],
       "severity": 3,
-      "pid": "AI_SCORE_SS1",
-      "text": "Nokta anomalisi — SS1, ch_11 tekil sıçrama",
+      "pid": "AI_SCORE_SS5",
+      "text": "Nokta anomalisi — alt sistem 5, ch_44 tekil sıçrama",
       "model": "Spectrogram-AE",
       "confidence": 0.94
     },
@@ -24,43 +44,65 @@
       "t": 32,
       "type": "show_xai",
       "level": 1,
-      "asset": "xai/specae_ss1_spectrogram.png",
-      "caption": "Spectrogram-AE rekonstrüksiyon artığı — ch_11",
+      "asset": "xai/specae_ss5_profiles.png",
+      "caption": "Hatanın hangi anda ve hangi ritimde yoğunlaştığı — ch_44",
       "model": "Spectrogram-AE",
-      "top_channels": ["ch_11"],
-      "band": "0.15–0.45 Hz"
+      "top_channels": [
+        "ch_44",
+        "ch_46"
+      ],
+      "band": "STFT Band-0 · nfft 64/128/256"
     },
-    { "t": 36, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 2.4 },
+    {
+      "t": 36,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 2.4
+    },
     {
       "t": 40,
       "type": "show_xai",
       "level": 2,
-      "asset": "xai/specae_ss1_channel_attr.png",
-      "caption": "Kanal katkı dağılımı — SS1",
+      "asset": "xai/specae_ss5_channel_attr.png",
+      "caption": "Kanal katkı dağılımı — alt sistem 5 (ch_44 %56,3)",
       "model": "Spectrogram-AE",
-      "top_channels": ["ch_11", "ch_12"],
-      "band": "0.15–0.45 Hz"
+      "top_channels": [
+        "ch_44",
+        "ch_42"
+      ],
+      "band": "STFT Band-0 · nfft 64/128/256"
     },
-    { "t": 44, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 1.1 },
+    {
+      "t": 44,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 1.1
+    },
     {
       "t": 52,
       "type": "show_xai",
       "level": 3,
-      "asset": "xai/specae_ss1_gradcam.png",
-      "caption": "Grad-CAM zaman-frekans ısı haritası — ch_11",
+      "asset": "xai/specae_ss5_gradcam.png",
+      "caption": "Modelin dikkatini yoğunlaştırdığı yer — normal ile anomali yan yana",
       "model": "Spectrogram-AE",
-      "top_channels": ["ch_11"],
-      "band": "0.15–0.45 Hz"
+      "top_channels": [
+        "ch_44"
+      ],
+      "band": "STFT Band-0 · nfft 64/128/256"
     },
     {
       "t": 62,
       "type": "event",
-      "service": [5, 1],
+      "service": [
+        5,
+        1
+      ],
       "severity": 0,
-      "pid": "AI_SCORE_SS1",
-      "text": "SS1 nominale döndü — anomali skoru eşiğin altında",
+      "pid": "AI_SCORE_SS5",
+      "text": "Alt sistem 5 nominale döndü — anomali skoru eşiğin altında",
       "model": "Spectrogram-AE",
       "confidence": 0.88
     }
-  ]
+  ],
+  "_magnitude_note": "magnitude 8.6: en dusuk siddet kademesinde (x0.7) bile ch_44 sert limitini (5.0) asmali — limitChecker.test.ts bunu dogrular."
 }

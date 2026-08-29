@@ -1,7 +1,7 @@
 import { useConsole } from '../store';
 import { MIB } from '../engine/mib';
 import { SPEED_OPTIONS, fmtCountdown, fmtDate, fmtTime, fmtTimeMs } from '../engine/missionClock';
-import { GROUND_STATION, NORAD_ID, TLE_EPOCH_MS, TLE_NAME, elevationAt, isVisible, nextPassEvent } from '../engine/orbit';
+import { GROUND_STATION, TLE_EPOCH_MS, TLE_NAME, elevationAt, isVisible, nextPassEvent } from '../engine/orbit';
 import { useMemo, useRef } from 'react';
 
 function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
@@ -46,7 +46,7 @@ export default function TopBar() {
         <span className="text-ops-faint ml-2 text-[11px]">{fmtDate(utcMs)}</span>
       </Field>
 
-      <Field label={'OBT (ofset ' + MIB.obt_offset_s.toFixed(3) + ' s)'}>
+      <Field label={'Uydu saati (' + MIB.obt_offset_s.toFixed(3) + ' s)'}>
         <span className="text-ops-dim">{fmtTimeMs(obtMs)}</span>
       </Field>
 
@@ -70,9 +70,8 @@ export default function TopBar() {
         </div>
       </div>
 
-      <Field label="SLE RAF · CCSDS 911.1">
-        <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>{visible ? 'ACTIVE' : 'READY'}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">RCF: READY</span>
+      <Field label="Uydu bağlantısı">
+        <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>{visible ? 'VERİ AKIYOR' : 'BEKLEMEDE'}</span>
       </Field>
 
       <Field label="İstasyon">
@@ -82,7 +81,7 @@ export default function TopBar() {
         </span>
       </Field>
 
-      <Field label={pass ? (pass.kind === 'AOS' ? 'AOS geri sayım' : 'LOS geri sayım') : 'AOS/LOS'}>
+      <Field label={pass ? (pass.kind === 'AOS' ? 'Görüşe girmesine' : 'Görüşten çıkmasına') : 'Görüş penceresi'}>
         {pass ? (
           <>
             <span className={pass.kind === 'LOS' ? 'text-ops-nominal' : 'text-ops-text'}>
@@ -102,9 +101,9 @@ export default function TopBar() {
         <span className="text-ops-faint ml-2 text-[11px]">≥ {GROUND_STATION.min_elevation_deg.toFixed(0)}°</span>
       </Field>
 
-      <Field label={'Uydu · NORAD ' + NORAD_ID}>
+      <Field label="Uydu">
         <span className="text-ops-text">{TLE_NAME}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">son yayınlanmış TLE, {tleAge} gün</span>
+        <span className="text-ops-faint ml-2 text-[11px]">yörünge verisi {tleAge} günlük</span>
       </Field>
 
       <div className="flex-1 border-r border-ops-line" />

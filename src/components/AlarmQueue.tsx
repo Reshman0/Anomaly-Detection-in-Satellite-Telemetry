@@ -1,19 +1,25 @@
 import { useConsole } from '../store';
-import { apidLabel, subsystemName } from '../engine/mib';
+import { subsystemName } from '../engine/mib';
 import { stateLabel } from '../engine/limitChecker';
 import type { Alarm } from '../engine/types';
 
 const SEVERITY_TEXT = ['bilgilendirici', 'düşük', 'orta', 'yüksek'];
 
+/** `AI_SCORE_SS3` -> `alt sistem 3`: kartta parametre kodu gorunmesin. */
+function friendlyPid(pid: string): string {
+  const m = /^AI_SCORE_SS(\d+)$/.exec(pid);
+  return m ? 'alt sistem ' + m[1] : pid;
+}
+
 function accent(a: Alarm): { border: string; label: string; text: string } {
   if (a.source === 'AI_DERIVED') {
-    return { border: 'border-l-ops-ai', label: 'text-ops-ai', text: 'AI TÜRETİLMİŞ' };
+    return { border: 'border-l-ops-ai', label: 'text-ops-ai', text: 'YAPAY ZEKÂ' };
   }
   const hard = a.severity >= 3;
   return {
     border: hard ? 'border-l-ops-hard' : a.severity >= 1 ? 'border-l-ops-soft' : 'border-l-ops-nominal',
     label: hard ? 'text-ops-hard' : a.severity >= 1 ? 'text-ops-soft' : 'text-ops-nominal',
-    text: 'ST[12] LİMİT',
+    text: 'LİMİT AŞIMI',
   };
 }
 
@@ -49,25 +55,19 @@ export default function AlarmQueue() {
               }
             >
               <div className="flex items-center gap-2">
-                <span className={'num text-[12px] ' + ac.label}>
-                  TM[{a.service[0]},{a.service[1]}]
+                <span className={'text-[12px] ' + ac.label}>
+                  {SEVERITY_TEXT[a.severity] ?? '—'}
                 </span>
                 <span className="num text-[11px] text-ops-text">{a.utc}</span>
-                <span className="num text-3xs text-ops-faint">OBT {a.obt}</span>
                 <span className={'ml-auto text-3xs tracking-[0.1em] ' + ac.label}>{ac.text}</span>
               </div>
               <div className="text-[11px] text-ops-text mt-[3px] leading-snug">{a.text}</div>
               <div className="flex flex-wrap items-center gap-x-2 text-3xs text-ops-faint mt-[3px]">
-                <span className="num">APID {a.apid}</span>
-                <span>{apidLabel(a.apid)}</span>
-                <span className="num">{a.pid}</span>
+                <span className={a.source === 'AI_DERIVED' ? '' : 'num'}>{friendlyPid(a.pid)}</span>
                 <span>{subsystemName(a.subsystem)}</span>
-                <span>
-                  şiddet {a.severity} · {SEVERITY_TEXT[a.severity] ?? '—'}
-                </span>
-                {a.model && <span className="text-ops-ai/80">model {a.model}</span>}
+                {a.model && <span className="text-ops-ai/80">{a.model}</span>}
                 {a.confidence !== undefined && (
-                  <span className="text-ops-ai/80 num">güven {(a.confidence * 100).toFixed(0)}%</span>
+                  <span className="text-ops-ai/80 num">güven %{(a.confidence * 100).toFixed(0)}</span>
                 )}
                 {a.transition && (
                   <span className="num">
@@ -80,8 +80,8 @@ export default function AlarmQueue() {
         })}
       </div>
       <div className="px-2 py-1 border-t border-ops-line text-3xs text-ops-faint leading-snug">
-        ST[12] kartları uçuş yazılımının limit kontrolünden; AI türetilmiş kartlar yer segmentinde üretilen ST[05]
-        eşdeğer bildirimlerdir (APID 200 indirilmez).
+        Renkli kenar kaynağı gösterir: yeşil/sarı/kırmızı = uçuş yazılımının limit kontrolü,
+        mor = yerde çalışan yapay zekâ modeli.
       </div>
     </section>
   );

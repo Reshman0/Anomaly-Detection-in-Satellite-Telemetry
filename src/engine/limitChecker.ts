@@ -60,18 +60,23 @@ export function ecssStatus(s: LimitState): string {
   }
 }
 
+/**
+ * Ekranda gorunen durum metni. Kisa sureli bir gosterimde "yumusak/sert limit"
+ * ayrimi izleyiciye bir sey anlatmadigi icin uyari/asim olarak yazilir; ok yonu
+ * sapmanin yukari mi asagi mi oldugunu tasir.
+ */
 export function stateLabel(s: LimitState): string {
   switch (s) {
     case 'NOMINAL':
       return 'NOMİNAL';
     case 'SOFT_LOW':
-      return 'YUMUŞAK ALT';
+      return 'UYARI ↓';
     case 'SOFT_HIGH':
-      return 'YUMUŞAK ÜST';
+      return 'UYARI ↑';
     case 'HARD_LOW':
-      return 'SERT ALT';
+      return 'LİMİT AŞILDI ↓';
     case 'HARD_HIGH':
-      return 'SERT ÜST';
+      return 'LİMİT AŞILDI ↑';
   }
 }
 
