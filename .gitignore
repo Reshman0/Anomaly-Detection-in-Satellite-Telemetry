@@ -2,4 +2,3 @@ node_modules
 dist
 .vite
 tsconfig.tsbuildinfo
-graphify-out
