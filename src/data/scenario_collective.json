@@ -2,8 +2,8 @@
   "id": "collective",
   "name": "Kolektif sapma",
   "button": "Kolektif sapma enjekte et",
-  "description": "Alt sistem 3 ve 5 kanalları birbiriyle ilişkili şekilde kayar. Hiçbiri tek başına limit aşmaz; anomali yalnızca çok değişkenli yapıda görünür. İki model de sapmayı görür ama farklı alt sisteme atfeder.",
-  "model": "TCN-AE + Spectrogram-AE",
+  "description": "Alt sistem 3 ve 5'teki kanallar birlikte kayıyor. Tek tek bakınca hiçbiri limiti aşmıyor, sapma ancak kanalları birbiriyle karşılaştırınca ortaya çıkıyor. İki model de yakalıyor ama sorumluyu farklı alt sistemde arıyor.",
+  "model": "TCN-AE + Spec-AE",
   "duration_s": 90,
   "_attribution_note": "XAI L2 gorseli bildirinin Spec-AE / TCN-AE alt sistem atfi karsilastirmasidir: Spec-AE %52,4 -> alt sistem 5, TCN-AE %62,3 -> alt sistem 3.",
   "timeline": [
@@ -62,7 +62,7 @@
       ],
       "severity": 1,
       "pid": "AI_SCORE_SS3",
-      "text": "İlişkili sapma — alt sistem 3 ve 5 kanalları birlikte kayıyor",
+      "text": "Alt sistem 3 ve 5 kanalları birlikte kayıyor",
       "model": "TCN-AE",
       "confidence": 0.72
     },
@@ -87,7 +87,7 @@
       ],
       "severity": 2,
       "pid": "AI_SCORE_SS3",
-      "text": "Anomali adayı — kolektif sapma, ch_75 baskın katkı",
+      "text": "Kolektif sapma, en büyük pay ch_75'te",
       "model": "TCN-AE",
       "confidence": 0.84
     },
@@ -96,7 +96,7 @@
       "type": "show_xai",
       "level": 1,
       "asset": "xai/collective_residual.png",
-      "caption": "Sapmanın kanallara ve zamana yayılımı",
+      "caption": "Sapma hangi kanallara, ne zaman yayıldı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",
@@ -114,7 +114,7 @@
       ],
       "severity": 1,
       "pid": "AI_SCORE_SS5",
-      "text": "Alt sistem 5 skoru da yükseliyor — Spectrogram-AE bağımsız doğrulama",
+      "text": "Alt sistem 5 skoru da yükseliyor, Spectrogram-AE ayrıca doğruluyor",
       "model": "Spectrogram-AE",
       "confidence": 0.69
     },
@@ -123,8 +123,8 @@
       "type": "show_xai",
       "level": 2,
       "asset": "xai/collective_channel_attr.png",
-      "caption": "Sapma enerjisinin kanallara dağılımı — kaynak teşhisi",
-      "model": "TCN-AE + Spectrogram-AE",
+      "caption": "Hangi kanal ne kadar pay aldı, kaynak nerede",
+      "model": "TCN-AE + Spec-AE",
       "top_channels": [
         "ch_75",
         "ch_42",
@@ -153,7 +153,7 @@
       ],
       "severity": 3,
       "pid": "AI_SCORE_SS3",
-      "text": "Yüksek şiddet — kolektif sapma doğrulandı; klasik limit kontrolü hâlâ sessiz",
+      "text": "Kolektif sapma doğrulandı. Klasik limit kontrolü hâlâ sessiz.",
       "model": "TCN-AE",
       "confidence": 0.91
     },
@@ -162,7 +162,7 @@
       "type": "show_xai",
       "level": 3,
       "asset": "xai/collective_gradcam.png",
-      "caption": "Modelin dikkatini yoğunlaştırdığı an ve kanallar",
+      "caption": "Model nereye ve ne zaman baktı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",

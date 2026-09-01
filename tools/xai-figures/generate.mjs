@@ -45,6 +45,13 @@ const FAINT = [74, 91, 102];
 const AI = [161, 132, 245];
 const NOMINAL = [47, 191, 135];
 
+/*
+ * Cizim 1120x420 tasarim biriminde yapilir; cikti OLCEK kati cozunurlukte
+ * yazilir. Panelde kucuk gorunurler (kuculterek gostermek keskindir), ama
+ * gorsele tiklandiginda ekranin ortasinda buyutulmus halleri acilir — orada
+ * dogal boyutta gosterilip yukari olceklenmedikleri icin net kalirlar.
+ */
+const OLCEK = 2;
 const W = 1120;
 const H = 420;
 
@@ -136,11 +143,6 @@ function header(cv, title, subtitle) {
   cv.rect(0, 36, W, 1, LINE);
 }
 
-function footer(cv) {
-  cv.rect(0, H - 20, W, 1, LINE);
-  cv.text(18, H - 13, 'AzSonra demo · simüle veri · gerçek model çıktısı değildir', FAINT, 1);
-}
-
 /** Kanal x zaman isi haritasi cizer, kanal etiketleriyle. */
 function heatmap(cv, grid, x, y, w, h, vmax, opts = {}) {
   const rows = grid.length;
@@ -181,7 +183,7 @@ function timeAxis(cv, x, y, w, dur) {
 // ---------- Sekil 1: nerede saptı ----------
 
 function figResidual(sc, field, nominal, targets) {
-  const cv = new Canvas(W, H, BG);
+  const cv = new Canvas(W, H, BG, OLCEK);
   header(cv, 'NEREDE SAPTI  ·  ' + sc.name.toUpperCase(), sc.model);
 
   const vmax = Math.max(...field.grid.flat()) || 1;
@@ -205,14 +207,13 @@ function figResidual(sc, field, nominal, targets) {
     [...new Set(targets)].join(' / ') +
     ' kanalında yoğunlaşıyor; normal pencerede karşılığı yok.';
   cv.text(left, H - 34, say, DIM, 1);
-  footer(cv);
   return cv;
 }
 
 // ---------- Sekil 2: hangi kanal ----------
 
 function figChannelAttr(sc, field, targets) {
-  const cv = new Canvas(W, H, BG);
+  const cv = new Canvas(W, H, BG, OLCEK);
   header(cv, 'HANGI KANAL  ·  ' + sc.name.toUpperCase(), sc.model);
 
   // Kanal basina toplam sapma enerjisi -> yuzde katki
@@ -243,14 +244,13 @@ function figChannelAttr(sc, field, targets) {
   cv.text(left - 20, 52, 'PENCERE BOYUNCA TOPLAM SAPMA ENERJİSİNİN KANALLARA DAĞILIMI', DIM, 1);
   const dom = CHANNELS[pct.indexOf(maxPct)];
   cv.text(left - 20, H - 34, 'Baskın kanal: ' + dom + '  (' + maxPct.toFixed(1) + '%)', TEXT, 1);
-  footer(cv);
   return cv;
 }
 
 // ---------- Sekil 3: isi haritasi ----------
 
 function figGradcam(sc, field, targets) {
-  const cv = new Canvas(W, H, BG);
+  const cv = new Canvas(W, H, BG, OLCEK);
   header(cv, 'ISI HARITASI  ·  ' + sc.name.toUpperCase(), sc.model);
 
   const vmax = Math.max(...field.grid.flat()) || 1;
@@ -289,8 +289,9 @@ function figGradcam(sc, field, targets) {
   for (let k = 0; k < 3; k++) {
     for (let t = 1; t < dur - 1; t++) att[t] = (att[t - 1] + att[t] + att[t + 1]) / 3;
   }
-  const attY = curveY + curveH + 30;
-  const attH = 64;
+  const attY = curveY + curveH + 26;
+  // 54: zaman ekseni etiketi (y+18) alt bilgi seridine degmesin diye kisildi.
+  const attH = 54;
   cv.text(left, attY - 12, 'MODELİN DİKKATİ', DIM, 1);
   cv.frame(left - 1, attY - 1, plotW + 2, attH + 2, LINE);
   for (let i = 0; i < plotW; i++) {
@@ -308,7 +309,6 @@ function figGradcam(sc, field, targets) {
     py = ny;
   }
   timeAxis(cv, left, attY + attH + 4, plotW, dur);
-  footer(cv);
   return cv;
 }
 

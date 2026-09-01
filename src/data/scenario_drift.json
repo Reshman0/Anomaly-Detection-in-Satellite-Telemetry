@@ -2,7 +2,7 @@
   "id": "drift",
   "name": "Yavaş sürüklenme",
   "button": "Yavaş sürüklenme enjekte et",
-  "description": "Alt sistem 3'te kademeli kayma. Sapma izin verilen bandın içinde kalır; uçuş yazılımı hiçbir şey görmezken yapay zekâ skoru alarma geçer.",
+  "description": "Alt sistem 3'te yavaş bir kayma. Değer bandın içinde kaldığı için uçuş yazılımı hiçbir şey görmez, alarmı sadece yapay zekâ skoru verir.",
   "model": "TCN-AE",
   "duration_s": 90,
   "_limit_constraint": "inject_drift.max_abs_eng, ch_75 yumusak limitinin (3.0) altinda tutulur — yonerge §6.3. limitChecker.test.ts bunu tum siddet kademelerinde dogrular.",
@@ -37,7 +37,7 @@
       ],
       "severity": 0,
       "pid": "AI_SCORE_SS3",
-      "text": "Yapay zekâ izlemede — alt sistem 3'te beklenmedik sapma büyüyor",
+      "text": "Alt sistem 3'te beklenmedik bir sapma büyüyor",
       "model": "TCN-AE",
       "confidence": 0.61
     },
@@ -56,7 +56,7 @@
       ],
       "severity": 2,
       "pid": "AI_SCORE_SS3",
-      "text": "Anomali adayı — alt sistem 3, ch_75 kademeli sapma",
+      "text": "ch_75 kademeli kayıyor, anomali adayı",
       "model": "TCN-AE",
       "confidence": 0.87
     },
@@ -65,7 +65,7 @@
       "type": "show_xai",
       "level": 1,
       "asset": "xai/tcn_ss3_residual.png",
-      "caption": "Sapmanın hangi kanalda ve hangi anda olduğu",
+      "caption": "Sapma hangi kanalda, ne zaman başladı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",
@@ -84,7 +84,7 @@
       "type": "show_xai",
       "level": 2,
       "asset": "xai/tcn_ss3_channel_attr.png",
-      "caption": "Sapma enerjisinin kanallara dağılımı",
+      "caption": "Hangi kanal ne kadar pay aldı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",
@@ -107,7 +107,7 @@
       ],
       "severity": 3,
       "pid": "AI_SCORE_SS3",
-      "text": "Yüksek şiddet — alt sistem 3 sapması doğrulandı; klasik limit kontrolü hâlâ sessiz",
+      "text": "Alt sistem 3 sapması doğrulandı. Klasik limit kontrolü hâlâ sessiz.",
       "model": "TCN-AE",
       "confidence": 0.93
     },
@@ -116,7 +116,7 @@
       "type": "show_xai",
       "level": 3,
       "asset": "xai/tcn_ss3_gradcam.png",
-      "caption": "Modelin dikkatini yoğunlaştırdığı an ve kanal",
+      "caption": "Model nereye ve ne zaman baktı",
       "model": "TCN-AE",
       "top_channels": [
         "ch_75",

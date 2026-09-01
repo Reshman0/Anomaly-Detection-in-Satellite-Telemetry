@@ -39,7 +39,7 @@ export default function AlarmQueue() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {alarms.length === 0 && (
-          <div className="px-2 py-3 text-[11px] text-ops-faint">Alarm yok — tüm parametreler nominal.</div>
+          <div className="px-2 py-3 text-[13px] text-ops-faint">Henüz alarm yok, bütün parametreler nominal.</div>
         )}
         {alarms.map((a) => {
           const ac = accent(a);
@@ -55,13 +55,13 @@ export default function AlarmQueue() {
               }
             >
               <div className="flex items-center gap-2">
-                <span className={'text-[12px] ' + ac.label}>
+                <span className={'text-[14px] font-semibold ' + ac.label}>
                   {SEVERITY_TEXT[a.severity] ?? '—'}
                 </span>
                 <span className="num text-[11px] text-ops-text">{a.utc}</span>
                 <span className={'ml-auto text-3xs tracking-[0.1em] ' + ac.label}>{ac.text}</span>
               </div>
-              <div className="text-[11px] text-ops-text mt-[3px] leading-snug">{a.text}</div>
+              <div className="text-[13px] text-ops-text mt-1 leading-snug">{a.text}</div>
               <div className="flex flex-wrap items-center gap-x-2 text-3xs text-ops-faint mt-[3px]">
                 <span className={a.source === 'AI_DERIVED' ? '' : 'num'}>{friendlyPid(a.pid)}</span>
                 <span>{subsystemName(a.subsystem)}</span>
@@ -80,8 +80,8 @@ export default function AlarmQueue() {
         })}
       </div>
       <div className="px-2 py-1 border-t border-ops-line text-3xs text-ops-faint leading-snug">
-        Renkli kenar kaynağı gösterir: yeşil/sarı/kırmızı = uçuş yazılımının limit kontrolü,
-        mor = yerde çalışan yapay zekâ modeli.
+        Soldaki renk kaynağı söyler. Yeşil, sarı ve kırmızı uçuş yazılımının limit
+        kontrolünden, mor yerde çalışan yapay zekâ modelinden geliyor.
       </div>
     </section>
   );

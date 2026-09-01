@@ -2,7 +2,7 @@
   "id": "point",
   "name": "Nokta anomalisi",
   "button": "Nokta anomalisi enjekte et",
-  "description": "Alt sistem 5'te kısa süreli sıçrama. Değer izin verilen bandı aştığı için uçuş yazılımının klasik limit kontrolü de tepki verir — bu senaryo limit kontrolünün gerçekten çalıştığını gösterir.",
+  "description": "Alt sistem 5'te kısa bir sıçrama. Değer bandı aştığı için uçuş yazılımı da alarm verir. Klasik limit kontrolünün işini yaptığı tek senaryo bu.",
   "model": "Spectrogram-AE",
   "duration_s": 90,
   "_note": "Buradaki ST[12] gecis raporlari senaryo dosyasindan gelmez; limitChecker MIB limitleriyle akan degeri karsilastirarak uretir.",
@@ -36,7 +36,7 @@
       ],
       "severity": 3,
       "pid": "AI_SCORE_SS5",
-      "text": "Nokta anomalisi — alt sistem 5, ch_44 tekil sıçrama",
+      "text": "ch_44 kanalında tekil sıçrama, alt sistem 5",
       "model": "Spectrogram-AE",
       "confidence": 0.94
     },
@@ -45,7 +45,7 @@
       "type": "show_xai",
       "level": 1,
       "asset": "xai/specae_ss5_residual.png",
-      "caption": "Sapmanın hangi kanalda ve hangi anda olduğu",
+      "caption": "Sapma hangi kanalda, ne zaman başladı",
       "model": "Spectrogram-AE",
       "top_channels": [
         "ch_44",
@@ -64,7 +64,7 @@
       "type": "show_xai",
       "level": 2,
       "asset": "xai/specae_ss5_channel_attr.png",
-      "caption": "Sapma enerjisinin kanallara dağılımı",
+      "caption": "Hangi kanal ne kadar pay aldı",
       "model": "Spectrogram-AE",
       "top_channels": [
         "ch_44",
@@ -83,7 +83,7 @@
       "type": "show_xai",
       "level": 3,
       "asset": "xai/specae_ss5_gradcam.png",
-      "caption": "Modelin dikkatini yoğunlaştırdığı an ve kanal",
+      "caption": "Model nereye ve ne zaman baktı",
       "model": "Spectrogram-AE",
       "top_channels": [
         "ch_44"
@@ -99,7 +99,7 @@
       ],
       "severity": 0,
       "pid": "AI_SCORE_SS5",
-      "text": "Alt sistem 5 nominale döndü — anomali skoru eşiğin altında",
+      "text": "Alt sistem 5 nominale döndü, skor eşiğin altında",
       "model": "Spectrogram-AE",
       "confidence": 0.88
     }

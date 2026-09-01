@@ -3,21 +3,22 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // LIFT UP sunum sablonundan turetilen palet — src/ui/colors.ts ile ayni.
       colors: {
         ops: {
-          bg: '#0E1419',
-          panel: '#141C23',
-          sunken: '#0B1014',
-          line: '#1E2A33',
-          line2: '#2A3A45',
-          text: '#C8D6DF',
-          dim: '#788B98',
-          faint: '#4A5B66',
-          nominal: '#2FBF87',
-          soft: '#D9A02B',
-          hard: '#E24A5F',
-          ai: '#A184F5',
-          aiDim: '#6B54B0',
+          bg: '#071A2E',
+          panel: '#0D2842',
+          sunken: '#05121F',
+          line: '#17385A',
+          line2: '#255081',
+          text: '#D9DEE5',
+          dim: '#ADB4C9',
+          faint: '#5C6B80',
+          nominal: '#449E4A',
+          soft: '#D6A361',
+          hard: '#C23735',
+          ai: '#9B7ACF',
+          aiDim: '#3E2A56',
         },
       },
       fontFamily: {

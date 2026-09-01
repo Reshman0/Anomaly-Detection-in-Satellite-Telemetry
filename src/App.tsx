@@ -8,6 +8,8 @@ import StatusBand from './components/StatusBand';
 import ScenarioConsole from './components/ScenarioConsole';
 import AlarmQueue from './components/AlarmQueue';
 import XaiPanel from './components/XaiPanel';
+import GorselBuyutec from './components/GorselBuyutec';
+import DuraklatmaBandi from './components/DuraklatmaBandi';
 
 /** Arayuz tazeleme araligi (ms). Gorev saati bundan bagimsiz ilerler. */
 const UI_INTERVAL_MS = 66;
@@ -23,8 +25,16 @@ const MAX_DT_MS = 500;
  * panel sikismasi, kirpilma ya da ust uste binme olusmaz ve gelistirme
  * ekraninda gorunen sey projeksiyonda gorunecek seyin aynisidir.
  */
-const STAGE_W = 1920;
-const STAGE_H = 1080;
+/*
+ * Tasarim yuzeyi 1920x1080'den 1600x900'e kucultuldu.
+ *
+ * Yuzey pencereye olceklendigi icin YUZEYI KUCULTMEK EKRANDAKI HER SEYI
+ * BUYUTUR: ayni ekranda tum ogeler %20 daha buyuk gorunur. Sahnede arka
+ * siralardan okunabilirlik icin en etkili tek degisiklik budur; her bilesenin
+ * punto ayarini tek tek degistirmeye gerek kalmaz.
+ */
+const STAGE_W = 1600;
+const STAGE_H = 900;
 
 /**
  * Pencereye sigan tek tip olcek carpani (en-boy orani korunur).
@@ -83,6 +93,7 @@ export default function App() {
   return (
     <div className="fixed inset-0 bg-ops-bg overflow-hidden">
       <div
+        id="yuzey"
         className="absolute left-1/2 top-1/2 flex flex-col bg-ops-bg gap-px"
         style={{
           width: STAGE_W,
@@ -99,14 +110,20 @@ export default function App() {
             <StatusBand />
           </div>
         </main>
-        {/* 256 px: senaryo konsolunun sasma kaydiricisi + nominale donus satiri
-            tasarim yuzeyine tam sigsin diye 236'dan yukseltildi. */}
-        <div className="h-[256px] shrink-0 grid grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,720px)] gap-px">
+        {/* 244 px: yuzey 900'e indi ve ogeler buyudu; senaryo konsolunun
+            aciklamalari + sasma kaydiricisi + nominale donus satiri bu
+            yukseklige sigar. Olculdu, kirpilma yok. Sutun genisligi de
+            aciklamalarin uc satira sarmamasi icin 280'e cikarildi. */}
+        <div className="h-[252px] shrink-0 grid grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,600px)] gap-px">
           <ScenarioConsole />
           <AlarmQueue />
           <XaiPanel />
         </div>
+        <DuraklatmaBandi />
       </div>
+      {/* Olceklenen yuzeyin DISINDA: gorselin dogal cozunurlukte, bulaniklasmadan
+          gosterilebilmesi icin transform'dan etkilenmemesi gerekir. */}
+      <GorselBuyutec />
     </div>
   );
 }

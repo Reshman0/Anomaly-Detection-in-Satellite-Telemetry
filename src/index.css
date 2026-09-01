@@ -26,7 +26,8 @@
     @apply bg-ops-panel border border-ops-line overflow-hidden;
   }
   .panel-title {
-    @apply text-2xs uppercase tracking-[0.14em] text-ops-dim px-2 py-1 border-b border-ops-line bg-ops-sunken;
+    /* Sahnede arka siralardan okunabilmesi icin buyutuldu ve kalinlastirildi. */
+    @apply text-[13px] font-semibold uppercase tracking-[0.12em] text-ops-dim px-2 py-[3px] border-b border-ops-line bg-ops-sunken;
   }
   .num {
     @apply font-mono tabular-nums;

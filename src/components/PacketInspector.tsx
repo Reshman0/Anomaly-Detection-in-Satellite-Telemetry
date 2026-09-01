@@ -25,7 +25,7 @@ export default function PacketInspector() {
         </span>
       </div>
       {pkt ? (
-        <div className="px-2 py-1.5">
+        <div className="px-2 py-1">
           <div className="flex items-baseline gap-3 mb-1">
             <span className="text-[12px] text-ops-nominal">{apidLabel(pkt.apid)}</span>
             <span className="text-[11px] text-ops-dim">
@@ -36,12 +36,13 @@ export default function PacketInspector() {
             </span>
             <span className="text-[11px] text-ops-nominal">bütünlük doğrulandı ✓</span>
           </div>
-          <div className="num text-[11px] text-ops-dim leading-[1.35] break-all h-[44px] overflow-hidden">
+          {/* Yukseklik telemetri seritlerine yer acmak icin kisildi: bu panel
+              sahnede okunmaz, varligi yeterlidir. */}
+          <div className="num text-[11px] text-ops-dim leading-[1.35] break-all h-[18px] overflow-hidden">
             {pkt.hex}
           </div>
-          <div className="text-3xs text-ops-faint mt-1 leading-snug">
-            Uydunun gönderdiği ham baytlar. Paket yapısı ve bütünlük kodu uluslararası
-            uydu haberleşme standardına (CCSDS) göre üretilir.
+          <div className="text-3xs text-ops-faint mt-1 leading-snug truncate">
+            Uydudan inen ham baytlar. Paket yapısı CCSDS standardına göre.
           </div>
         </div>
       ) : (

@@ -151,46 +151,69 @@ export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
   const last = buf[buf.length - 1];
   const [lo, hi] = range(p);
 
+  const ornekleme =
+    p.sampling_period_s === 1 ? 'saniyede 1 ölçüm' : p.sampling_period_s + ' saniyede 1 ölçüm';
+
   return (
-    <div className="flex items-stretch flex-1 min-h-[54px] border-b border-ops-line">
-      <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between">
-        <div className="flex items-center gap-1.5">
-          {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
-          <span className={(p.derived ? 'text-[12px]' : 'num text-[13px]') + ' text-ops-text'}>
+    /*
+      Satirlar kalan yuksekligi PAYLASIR: sabit bir min-height verilirse yedi
+      serit panele sigmaz, panel kirpar ve son satirlar (yapay zeka skorlari)
+      yarim gorunur. min-h-0 + overflow-hidden bunu onler.
+    */
+    <div className="flex items-stretch flex-1 min-h-0 overflow-hidden border-b border-ops-line">
+      {/*
+        Etiket sutunu IKI satirdir. Uc satirlik duzen (ad / sayac+deger / durum)
+        yedi seritte dikey olarak sigmiyordu; etiketler deger sayilarinin soluna
+        alinarak bir satir kazanildi. Sayilar kucultulmedi.
+      */}
+      <div className="w-[268px] shrink-0 px-2 py-[3px] border-r border-ops-line flex flex-col justify-center gap-[3px] min-w-0">
+        {/* 1. satir: kimlik + kaynak */}
+        <div className="flex items-center gap-1.5 min-w-0 leading-[14px]">
+          {p.derived && <span className="text-ops-ai text-[11px] leading-none shrink-0">◆</span>}
+          <span
+            className={(p.derived ? 'text-[12px]' : 'num text-[13px]') + ' text-ops-text truncate'}
+          >
             {p.derived ? aiName(p.pid) : p.pid}
           </span>
-          <span className="text-3xs text-ops-faint">{subsystemName(p.subsystem)}</span>
+          {/* Turetilmis satirda alt sistem adi zaten baslikta gecer; tekrar
+              edilirse etiket sarar ve satiri tasirir. */}
+          {!p.derived && (
+            <span className="text-3xs text-ops-faint shrink-0">{subsystemName(p.subsystem)}</span>
+          )}
+          <span className="ml-auto text-3xs text-ops-faint shrink-0 truncate">
+            {p.derived ? p.source_model : ornekleme}
+          </span>
         </div>
-        <div className="flex items-baseline gap-2">
-          <div className="flex flex-col">
-            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">sayaç</span>
-            <span className="num text-[12px] text-ops-dim leading-tight">
-              {last && last.raw !== null ? String(last.raw).padStart(5, ' ') : '—'}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">değer</span>
-            <span className={'num text-[14px] leading-tight ' + stateTextClass(state)}>
-              {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
-              <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className={'text-3xs uppercase tracking-[0.12em] ' + stateTextClass(state)}>{stateLabel(state)}</span>
-          <span className="text-3xs text-ops-faint">
-            {p.derived
-              ? 'yerde hesaplandı · ' + p.source_model
-              : p.sampling_period_s === 1
-                ? 'saniyede 1 ölçüm'
-                : 'her ' + p.sampling_period_s + ' saniyede 1 ölçüm'}
+
+        {/* 2. satir: sayac + deger + durum */}
+        <div className="flex items-baseline gap-1.5 min-w-0 leading-none">
+          <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0">sayaç</span>
+          <span className="num text-[12px] text-ops-dim shrink-0">
+            {last && last.raw !== null ? last.raw : '—'}
+          </span>
+          <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0 ml-1">
+            değer
+          </span>
+          <span className={'num text-[15px] shrink-0 ' + stateTextClass(state)}>
+            {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
+            <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
+          </span>
+          <span
+            className={
+              'ml-auto text-3xs uppercase tracking-[0.1em] shrink-0 ' + stateTextClass(state)
+            }
+          >
+            {stateLabel(state)}
           </span>
         </div>
       </div>
+
       <div className="relative flex-1 min-w-0">
         <canvas ref={ref} className="absolute inset-0 w-full h-full" />
         <span className="absolute right-1 top-0 num text-3xs text-ops-faint">{hi.toFixed(1)}</span>
-        <span className="absolute right-1 bottom-0 num text-3xs text-ops-faint">{lo.toFixed(1)}</span>
+        <span className="absolute right-1 bottom-0 num text-3xs text-ops-faint">
+          {lo.toFixed(1)}
+        </span>
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ export default function XaiPanel() {
   const sim = useConsole((s) => s.sim);
   const level = useConsole((s) => s.xaiLevel);
   const setLevel = useConsole((s) => s.setXaiLevel);
+  const gorselAc = useConsole((s) => s.gorselAc);
   useConsole((s) => s.version);
 
   const evidence = sim.xai;
@@ -52,7 +53,7 @@ export default function XaiPanel() {
               key={l}
               onClick={() => setLevel(l)}
               className={
-                'flex-1 text-[11px] py-1 border-r border-ops-line last:border-r-0 transition-colors ' +
+                'flex-1 text-[14px] font-semibold py-1.5 border-r border-ops-line last:border-r-0 transition-colors ' +
                 (level === l
                   ? 'text-ops-ai bg-ops-ai/10'
                   : ready
@@ -71,18 +72,29 @@ export default function XaiPanel() {
         <div className="flex-1 min-w-0 p-2 flex items-center justify-center bg-ops-sunken">
           {!current ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
-              Bu adım için henüz kanıt yok.
+              Bu adımda henüz bir şey yok.
               <br />
-              Bir senaryo çalıştırın; model çıktıları sırayla yüklenir.
+              Bir senaryo başlatın, model çıktıları sırayla gelir.
             </div>
           ) : url ? (
-            <img src={url} alt={current.caption} className="max-w-full max-h-full object-contain" />
+            /* Tiklayinca ekranin ortasinda buyutulmus hali acilir. */
+            <button
+              onClick={() => gorselAc(url, current.caption)}
+              title="Büyütmek için tıklayın"
+              className="max-w-full max-h-full flex items-center justify-center cursor-zoom-in group"
+            >
+              <img
+                src={url}
+                alt={current.caption}
+                className="max-w-full max-h-full object-contain transition-opacity group-hover:opacity-80"
+              />
+            </button>
           ) : (
             <div className="w-full h-full border border-dashed border-ops-line2 flex flex-col items-center justify-center gap-1 px-3">
               <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Görsel yuvası boş</div>
               <div className="num text-[11px] text-ops-dim text-center break-all">src/assets/{current.asset}</div>
               <div className="text-3xs text-ops-faint text-center leading-snug max-w-[280px]">
-                Bildiriden alınmış gerçek {current.model} çıktısı buraya konur. Yerine uydurma grafik çizilmez.
+                Buraya bildiriden alınan gerçek {current.model} çıktısı gelir. Yerine uydurma bir grafik koymuyoruz.
               </div>
             </div>
           )}
@@ -93,7 +105,7 @@ export default function XaiPanel() {
             <>
               <div>
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Ne gösteriyor</div>
-                <div className="text-[11px] text-ops-text leading-snug mt-[2px]">{current.caption}</div>
+                <div className="text-[13px] text-ops-text leading-snug mt-1">{current.caption}</div>
               </div>
               <div>
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Model</div>
@@ -117,14 +129,14 @@ export default function XaiPanel() {
               </div>
               {current.band && (
                 <div>
-                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sapmanın ritmi</div>
+                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sapmanın sıklığı</div>
                   <div className="num text-[12px] text-ops-text mt-[2px]">{current.band}</div>
                 </div>
               )}
             </>
           ) : (
             <div className="text-3xs text-ops-faint leading-relaxed">
-              Kanıt yüklendiğinde model adı, en yüksek katkılı kanallar ve frekans bandı burada listelenir.
+              Kanıt gelince model adını, öne çıkan kanalları ve frekans bandını burada göreceksiniz.
             </div>
           )}
         </div>

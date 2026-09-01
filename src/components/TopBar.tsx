@@ -7,8 +7,10 @@ import { useMemo, useRef } from 'react';
 function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
   return (
     <div className={'flex flex-col justify-center px-3 border-r border-ops-line ' + (w ?? '')}>
-      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none">{label}</div>
-      <div className="num text-[13px] leading-tight mt-[3px]">{children}</div>
+      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none whitespace-nowrap">
+        {label}
+      </div>
+      <div className="num text-[13px] leading-tight mt-[3px] whitespace-nowrap">{children}</div>
     </div>
   );
 }
@@ -16,6 +18,8 @@ function Field({ label, children, w }: { label: string; children: React.ReactNod
 export default function TopBar() {
   const speed = useConsole((s) => s.speed);
   const setSpeed = useConsole((s) => s.setSpeed);
+  // Duraklatilmisken secili hiz vurgusu sonuk gorunur: akis gercekten akmiyor.
+  const durduruldu = useConsole((s) => s.durduruldu);
   const sim = useConsole((s) => s.sim);
   useConsole((s) => s.version);
 
@@ -41,25 +45,31 @@ export default function TopBar() {
         <div className="num text-[15px] leading-tight mt-[2px] text-ops-text">{MIB.mission}</div>
       </div>
 
-      <Field label="UTC">
-        <span className="text-ops-text">{fmtTimeMs(utcMs)}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">{fmtDate(utcMs)}</span>
+      {/*
+        Saat ve tarih ayni satirda sigmiyordu: tarih alt satira sariyor ve
+        seritten tasiyordu. Iki satira ayrildi. Genislik 161 px'e sabitlendi
+        cunku seritte esneme payi 1 px; alan daralsa sagindaki yedi alanin
+        tamami sola kayardi.
+      */}
+      <Field label="UTC" w="w-[161px] shrink-0">
+        <div className="text-ops-text leading-none">{fmtTimeMs(utcMs)}</div>
+        <div className="text-ops-faint text-[11px] leading-none mt-[4px]">{fmtDate(utcMs)}</div>
       </Field>
 
-      <Field label={'Uydu saati (' + MIB.obt_offset_s.toFixed(3) + ' s)'}>
+      <Field label={'Uydu saati (' + MIB.obt_offset_s.toFixed(3) + ' s)'} w="w-[168px] shrink-0">
         <span className="text-ops-dim">{fmtTimeMs(obtMs)}</span>
       </Field>
 
       <div className="flex flex-col justify-center px-3 border-r border-ops-line">
-        <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none">Hız</div>
-        <div className="flex gap-[3px] mt-[3px]">
+        <div className="text-2xs uppercase tracking-[0.16em] text-ops-faint leading-none">Hız</div>
+        <div className="flex gap-1 mt-1.5">
           {SPEED_OPTIONS.map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}
               className={
-                'num text-[11px] px-[7px] py-[1px] border transition-colors ' +
-                (speed === s
+                'num text-[15px] px-3 py-[3px] border transition-colors ' +
+                (speed === s && !durduruldu
                   ? 'border-ops-nominal text-ops-nominal bg-ops-nominal/10'
                   : 'border-ops-line2 text-ops-dim hover:text-ops-text')
               }
@@ -70,8 +80,15 @@ export default function TopBar() {
         </div>
       </div>
 
-      <Field label="Uydu bağlantısı">
-        <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>{visible ? 'VERİ AKIYOR' : 'BEKLEMEDE'}</span>
+      {/*
+        Akis, sistem uyari verdiginde kendiliginden durur. Bu dugme hem durumu
+        gorunur kilar hem de devam ettirir; sunucu anlatmayi bitirdiginde tek
+        tiklamayla akis surer.
+      */}
+      <Field label="Uydu bağlantısı" w="w-[132px] shrink-0">
+        <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>
+          {visible ? 'VERİ AKIYOR' : 'BEKLEMEDE'}
+        </span>
       </Field>
 
       <Field label="İstasyon">
@@ -81,7 +98,10 @@ export default function TopBar() {
         </span>
       </Field>
 
-      <Field label={pass ? (pass.kind === 'AOS' ? 'Görüşe girmesine' : 'Görüşten çıkmasına') : 'Görüş penceresi'}>
+      <Field
+        label={pass ? (pass.kind === 'AOS' ? 'Görüşe girmesine' : 'Görüşten çıkmasına') : 'Görüş penceresi'}
+        w="w-[168px] shrink-0"
+      >
         {pass ? (
           <>
             <span className={pass.kind === 'LOS' ? 'text-ops-nominal' : 'text-ops-text'}>
@@ -94,7 +114,7 @@ export default function TopBar() {
         )}
       </Field>
 
-      <Field label="Yükselti / min">
+      <Field label="Yükselti / min" w="w-[124px] shrink-0">
         <span className={elevation >= GROUND_STATION.min_elevation_deg ? 'text-ops-nominal' : 'text-ops-dim'}>
           {elevation.toFixed(1)}°
         </span>
@@ -103,16 +123,12 @@ export default function TopBar() {
 
       <Field label="Uydu">
         <span className="text-ops-text">{TLE_NAME}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">yörünge verisi {tleAge} günlük</span>
+        <span className="text-ops-faint ml-2 text-[11px] whitespace-nowrap">
+          yörünge verisi {tleAge} gün
+        </span>
       </Field>
 
-      <div className="flex-1 border-r border-ops-line" />
-
-      <div className="flex items-center px-3">
-        <div className="border border-ops-soft/60 text-ops-soft text-[10px] tracking-[0.14em] uppercase px-2 py-[3px] leading-none">
-          Simüle veri — kavramsal gösterim
-        </div>
-      </div>
+      <div className="flex-1" />
     </header>
   );
 }

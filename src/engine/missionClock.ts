@@ -55,14 +55,15 @@ export function fmtTimeMs(ms: number): string {
   return fmtTime(ms) + '.' + String(d.getUTCMilliseconds()).padStart(3, '0');
 }
 
+/** Gun-ay-yil. Serit dar oldugu icin saatin altinda ikinci satirda gosterilir. */
 export function fmtDate(ms: number): string {
   const d = new Date(ms);
   return (
-    d.getUTCFullYear() +
+    String(d.getUTCDate()).padStart(2, '0') +
     '-' +
     String(d.getUTCMonth() + 1).padStart(2, '0') +
     '-' +
-    String(d.getUTCDate()).padStart(2, '0')
+    d.getUTCFullYear()
   );
 }
 

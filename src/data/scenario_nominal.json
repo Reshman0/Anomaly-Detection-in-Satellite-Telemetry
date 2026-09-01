@@ -2,7 +2,7 @@
   "id": "nominal",
   "name": "Nominal akış",
   "button": "Nominal akışa dön",
-  "description": "Enjeksiyon yok. Tüm parametreler MIB nominal profillerinde akar; ST[12] ve AI türetilmiş parametreler NOMİNAL kalır.",
+  "description": "Enjeksiyon yok. Bütün parametreler kendi normal profilinde akar, hem uçuş yazılımı hem yapay zekâ nominal der.",
   "model": "—",
   "duration_s": 0,
   "timeline": []

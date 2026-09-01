@@ -135,29 +135,48 @@ const GLYPH_W = 5;
 const GLYPH_H = 8;
 
 export class Canvas {
-  constructor(w, h, bg = [11, 16, 20]) {
+  /**
+   * @param w,h  Tasarim birimi cinsinden olculer (1x).
+   * @param olcek Cikti cozunurlugu carpani. Cizim kodu hep 1x biriminde
+   *        calisir; buyutulmus gorunum icin 2x uretmek yeterlidir, tum
+   *        koordinatlari tek tek olceklemek gerekmez.
+   */
+  constructor(w, h, bg = [11, 16, 20], olcek = 1) {
     this.w = w;
     this.h = h;
-    this.px = Buffer.alloc(w * h * 3);
-    for (let i = 0; i < w * h; i++) {
+    this.s = Math.max(1, Math.round(olcek));
+    this.pw = w * this.s;
+    this.ph = h * this.s;
+    this.px = Buffer.alloc(this.pw * this.ph * 3);
+    for (let i = 0; i < this.pw * this.ph; i++) {
       this.px[i * 3] = bg[0];
       this.px[i * 3 + 1] = bg[1];
       this.px[i * 3 + 2] = bg[2];
     }
   }
 
-  set(x, y, c) {
-    x |= 0;
-    y |= 0;
-    if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
-    const i = (y * this.w + x) * 3;
+  /** Gercek piksel yazar (olcek uygulanmaz). */
+  _pset(x, y, c) {
+    if (x < 0 || y < 0 || x >= this.pw || y >= this.ph) return;
+    const i = (y * this.pw + x) * 3;
     this.px[i] = c[0];
     this.px[i + 1] = c[1];
     this.px[i + 2] = c[2];
   }
 
+  /** Tasarim birimi cinsinden tek nokta — olcek kadar blok doldurur. */
+  set(x, y, c) {
+    x = Math.round(x) * this.s;
+    y = Math.round(y) * this.s;
+    for (let j = 0; j < this.s; j++) for (let i = 0; i < this.s; i++) this._pset(x + i, y + j, c);
+  }
+
   rect(x, y, w, h, c) {
-    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.set(x + i, y + j, c);
+    const x0 = Math.round(x) * this.s;
+    const y0 = Math.round(y) * this.s;
+    const w0 = Math.round(w) * this.s;
+    const h0 = Math.round(h) * this.s;
+    for (let j = 0; j < h0; j++) for (let i = 0; i < w0; i++) this._pset(x0 + i, y0 + j, c);
   }
 
   /** Cerceve (dolgusuz dikdortgen). */
@@ -223,14 +242,14 @@ export class Canvas {
   }
 
   toPng() {
-    const raw = Buffer.alloc((this.w * 3 + 1) * this.h);
-    for (let y = 0; y < this.h; y++) {
-      raw[y * (this.w * 3 + 1)] = 0; // filter: none
-      this.px.copy(raw, y * (this.w * 3 + 1) + 1, y * this.w * 3, (y + 1) * this.w * 3);
+    const raw = Buffer.alloc((this.pw * 3 + 1) * this.ph);
+    for (let y = 0; y < this.ph; y++) {
+      raw[y * (this.pw * 3 + 1)] = 0; // filter: none
+      this.px.copy(raw, y * (this.pw * 3 + 1) + 1, y * this.pw * 3, (y + 1) * this.pw * 3);
     }
     const ihdr = Buffer.alloc(13);
-    ihdr.writeUInt32BE(this.w, 0);
-    ihdr.writeUInt32BE(this.h, 4);
+    ihdr.writeUInt32BE(this.pw, 0);
+    ihdr.writeUInt32BE(this.ph, 4);
     ihdr[8] = 8; // bit depth
     ihdr[9] = 2; // truecolor
     return Buffer.concat([

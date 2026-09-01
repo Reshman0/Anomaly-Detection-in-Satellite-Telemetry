@@ -17,6 +17,19 @@ function xaiSteps(sc: Scenario): Array<{ t: number; level: 1 | 2 | 3 }> {
     .sort((a, b) => a.t - b.t);
 }
 
+/**
+ * Bir gorev saniyesi ilerletir ve akis kendiliginden duraklatildiysa devam
+ * ettirir — sunucunun sahnede yaptigi sey. Duraklatma davranisinin kendisi
+ * asagida ayrica test edilir.
+ */
+function ilerlet(n: number): void {
+  const g = useConsole.getState;
+  for (let i = 0; i < n; i++) {
+    g().tick(1000);
+    if (g().durduruldu) g().devamEt();
+  }
+}
+
 /** Her test kendi Simulation'i ile baslasin; store tekil bir nesne. */
 beforeEach(() => {
   useConsole.setState({
@@ -26,6 +39,8 @@ beforeEach(() => {
     selectedAlarmId: null,
     xaiLevel: 1,
     lastXaiSeq: 0,
+    durduruldu: false,
+    duraklatmaYapildi: false,
   });
 });
 
@@ -42,7 +57,7 @@ describe('XAI seviye ilerlemesi', () => {
     const gorulen: Array<{ t: number; level: number }> = [];
     let onceki = g().xaiLevel;
     for (let t = 1; t <= sc.duration_s; t++) {
-      g().tick(1000);
+      ilerlet(1);
       if (g().xaiLevel !== onceki) {
         onceki = g().xaiLevel;
         gorulen.push({ t, level: onceki });
@@ -70,7 +85,7 @@ describe('XAI seviye ilerlemesi', () => {
       useConsole.setState({ sim: new Simulation(), xaiLevel: 1, lastXaiSeq: 0 });
       const g = useConsole.getState;
       g().runScenario(sc);
-      for (let t = 0; t < sc.duration_s; t++) g().tick(1000);
+      ilerlet(sc.duration_s);
 
       const sonSeviye = adimlar[adimlar.length - 1].level;
       expect(g().xaiLevel, sc.id + ' son seviye').toBe(sonSeviye);
@@ -82,12 +97,12 @@ describe('XAI seviye ilerlemesi', () => {
     const sc = scenario('drift');
     const g = useConsole.getState;
     g().runScenario(sc);
-    for (let t = 0; t < sc.duration_s; t++) g().tick(1000);
+    ilerlet(sc.duration_s);
     expect(g().xaiLevel).toBe(3);
 
     // Sunucu geri donup 1. seviyeyi anlatiyor: yeni kanit yok, secim korunur.
     g().setXaiLevel(1);
-    for (let i = 0; i < 30; i++) g().tick(1000);
+    ilerlet(30);
     expect(g().xaiLevel).toBe(1);
   });
 
@@ -95,7 +110,7 @@ describe('XAI seviye ilerlemesi', () => {
     const sc = scenario('drift');
     const g = useConsole.getState;
     g().runScenario(sc);
-    for (let t = 0; t < sc.duration_s; t++) g().tick(1000);
+    ilerlet(sc.duration_s);
     expect(g().xaiLevel).toBe(3);
 
     g().runScenario(sc);
@@ -103,7 +118,7 @@ describe('XAI seviye ilerlemesi', () => {
     expect(g().sim.xai).toHaveLength(0);
     // Sayac hizalandi: bir sonraki tik sahte bir ilerleme uretmemeli.
     expect(g().lastXaiSeq).toBe(g().sim.xaiSeq);
-    g().tick(1000);
+    ilerlet(1);
     expect(g().xaiLevel).toBe(1);
   });
 
@@ -111,9 +126,100 @@ describe('XAI seviye ilerlemesi', () => {
     const g = useConsole.getState;
     g().backToNominal();
     const once = g().xaiLevel;
-    for (let i = 0; i < 60; i++) g().tick(1000);
+    ilerlet(60);
     expect(g().xaiLevel).toBe(once);
     expect(g().sim.xai).toHaveLength(0);
     expect(NOMINAL_SCENARIO.timeline).toHaveLength(0);
+  });
+});
+
+describe('akış, son kanıt (ısı haritası) çıktıktan sonra duruyor', () => {
+  it.each(['point', 'drift', 'collective'])(
+    '%s: duraklama anında üç kanıt adımının tamamı yüklü',
+    (id) => {
+      const g = useConsole.getState;
+      const sc = scenario(id);
+      const beklenen = xaiSteps(sc).length;
+      expect(beklenen, id + ' kanıt adımı sayısı').toBe(3);
+
+      g().runScenario(sc);
+      let durakladi: { kanit: number; seviye: number } | null = null;
+      for (let t = 0; t < sc.duration_s + 40 && !durakladi; t++) {
+        g().tick(1000);
+        if (g().durduruldu) durakladi = { kanit: g().sim.xai.length, seviye: g().xaiLevel };
+      }
+
+      expect(durakladi, id + ' duraklamalı').not.toBeNull();
+      // Asil kosul: son kanit da dusmus olmali.
+      expect(durakladi!.kanit, id + ' yüklü kanıt').toBe(beklenen);
+      // Panel son adimi (isi haritasi) gosteriyor olmali.
+      expect(durakladi!.seviye, id + ' panel adımı').toBe(3);
+    },
+  );
+
+  it('son kanıttan önce duraklamaz', () => {
+    const g = useConsole.getState;
+    const sc = scenario('drift');
+    g().runScenario(sc);
+    for (let t = 0; t < sc.duration_s + 40; t++) {
+      g().tick(1000);
+      if (g().durduruldu) break;
+      // Duraklamamissa, henuz tum kanit gelmemis olmali.
+      expect(g().sim.xai.length).toBeLessThan(3);
+    }
+    expect(g().durduruldu).toBe(true);
+  });
+
+  it('senaryo başına yalnızca bir kez duraklar', () => {
+    const g = useConsole.getState;
+    const sc = scenario('drift');
+    g().runScenario(sc);
+    let sayi = 0;
+    for (let t = 0; t < sc.duration_s + 60; t++) {
+      g().tick(1000);
+      if (g().durduruldu) {
+        sayi++;
+        g().devamEt();
+      }
+    }
+    expect(sayi).toBe(1);
+  });
+
+  it('duraklamış akış ilerlemez, devam edilince sürer', () => {
+    const g = useConsole.getState;
+    const sc = scenario('drift');
+    g().runScenario(sc);
+    for (let t = 0; t < sc.duration_s + 40 && !g().durduruldu; t++) g().tick(1000);
+    expect(g().durduruldu).toBe(true);
+
+    const t0 = g().sim.clock.missionT;
+    g().tick(1000);
+    expect(g().sim.clock.missionT, 'duraklamışken saat durmalı').toBe(t0);
+
+    g().devamEt();
+    g().tick(1000);
+    expect(g().sim.clock.missionT, 'devam edince saat ilerlemeli').toBeGreaterThan(t0);
+  });
+
+  it('hız düğmesi de devam ettirir', () => {
+    const g = useConsole.getState;
+    const sc = scenario('drift');
+    g().runScenario(sc);
+    for (let t = 0; t < sc.duration_s + 40 && !g().durduruldu; t++) g().tick(1000);
+    expect(g().durduruldu).toBe(true);
+    g().setSpeed(60);
+    expect(g().durduruldu).toBe(false);
+    expect(g().speed).toBe(60);
+  });
+
+  it('nominale dönünce duraklama temizlenir', () => {
+    const g = useConsole.getState;
+    const sc = scenario('drift');
+    g().runScenario(sc);
+    for (let t = 0; t < sc.duration_s + 40 && !g().durduruldu; t++) g().tick(1000);
+    expect(g().durduruldu).toBe(true);
+    g().backToNominal();
+    expect(g().durduruldu).toBe(false);
+    expect(g().duraklatmaYapildi).toBe(false);
   });
 });

@@ -49,13 +49,13 @@ export default function StatusBand() {
       <div className="panel-title">Durum</div>
       <div className="grid grid-cols-2">
         <div className="px-3 py-2 border-r border-ops-line">
-          <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">
+          <div className="text-[12px] uppercase tracking-[0.14em] text-ops-faint">
             Uçuş yazılımı · sabit limit kontrolü
           </div>
-          <div className={'num text-[26px] leading-tight mt-1 ' + stateTextClass(limitState)}>
+          <div className={'num text-[34px] font-semibold leading-tight mt-1 ' + stateTextClass(limitState)}>
             {stateLabel(limitState)}
           </div>
-          <div className="text-[11px] text-ops-dim mt-0.5 h-[15px] truncate">
+          <div className="text-[13px] leading-[17px] text-ops-dim mt-1 h-[17px] truncate">
             {offenders.length > 0
               ? offenders.map((p) => p.pid + ' · ' + stateLabel(states.get(p.pid)!)).join(' · ')
               : onboard.length + ' parametre limit içinde'}
@@ -63,22 +63,27 @@ export default function StatusBand() {
         </div>
 
         <div className={'px-3 py-2 ' + (contrast ? 'bg-ops-ai/[0.07]' : '')}>
-          <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">
+          <div className="text-[12px] uppercase tracking-[0.14em] text-ops-faint">
             Yapay zekâ tespiti
           </div>
           <div
             className={
-              'num text-[26px] leading-tight mt-1 ' + (aiState === 'NOMINAL' ? 'text-ops-nominal' : 'text-ops-ai')
+              'num text-[34px] font-semibold leading-tight mt-1 ' +
+              (aiState === 'NOMINAL' ? 'text-ops-nominal' : 'text-ops-ai')
             }
           >
             {aiLabel(aiState)}
-            {contrast && <span className="text-ops-ai text-[12px] ml-3 tracking-[0.16em] align-middle">← KONTRAST</span>}
+            {contrast && (
+              <span className="text-ops-ai text-[15px] font-semibold ml-3 tracking-[0.14em] align-middle">
+                ← KONTRAST
+              </span>
+            )}
           </div>
-          <div className="text-[11px] text-ops-dim mt-0.5 h-[15px] truncate">
+          <div className="text-[13px] leading-[17px] text-ops-dim mt-1 h-[17px] truncate">
             {aiOffenders.length > 0
               ? aiOffenders.map((p) => friendlyPid(p.pid) + ' · ' + stateLabel(states.get(p.pid)!)).join(' · ')
               : peak
-                ? 'en yüksek sapma ' + peak.v.toFixed(2) + ' — alarm eşiği 3,00'
+                ? 'en yüksek sapma ' + peak.v.toFixed(2).replace('.', ',') + ' · alarm eşiği 3,00'
                 : '—'}
           </div>
         </div>
@@ -91,18 +96,18 @@ export default function StatusBand() {
         alarm sonucunun 300 s'lik alan bilgisi kuraliyla elde edildigini
         gizlemez (brief §1.7 durustluk notu).
       */}
-      <div className="border-t border-ops-line px-3 py-1.5 flex items-baseline gap-3">
+      <div className="border-t border-ops-line px-3 py-1 flex items-baseline gap-3">
         <span className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Yanlış alarm</span>
-        <span className={'num text-[18px] leading-none ' + (falseAlarms === 0 ? 'text-ops-nominal' : 'text-ops-soft')}>
+        <span className={'num text-[16px] leading-none ' + (falseAlarms === 0 ? 'text-ops-nominal' : 'text-ops-soft')}>
           {falseAlarms}
         </span>
         <span className="text-[11px] text-ops-dim">
           {nominalSpan} nominal akış boyunca
         </span>
         <span className="flex-1" />
-        <span className="text-3xs text-ops-faint text-right leading-snug max-w-[52%]">
-          Bildiride Mission 1 / alt sistem 5 için raporlanan sıfır yanlış alarm, alarm
-          sonrası 300 saniyelik alan bilgisi kuralı uygulandıktan sonra elde edilmiştir.
+        <span className="text-3xs text-ops-faint text-right leading-tight max-w-[52%]">
+          Bildirideki sıfır yanlış alarm sonucu, alarmdan sonra 300 saniyelik alan bilgisi
+          kuralını uyguladıktan sonra çıktı.
         </span>
       </div>
     </section>

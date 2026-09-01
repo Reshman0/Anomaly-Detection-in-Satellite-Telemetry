@@ -20,8 +20,8 @@ export default function TelemetryPanel() {
       <div className="panel-title flex items-center justify-between">
         <span>Uydudan gelen ölçümler</span>
         <span className="normal-case tracking-normal text-ops-faint">
-          ESA veri setindeki {TOTAL_CHANNELS} kanaldan çalışmamızda kullanılan {shownChannels}'i ·
-          son {WINDOW_S / 60} dk · ◆ yerde hesaplanan
+          {TOTAL_CHANNELS} kanallık ESA veri setinden bizim kullandığımız {shownChannels} kanal ·
+          son {WINDOW_S / 60} dk · ◆ yerde hesaplanıyor
         </span>
       </div>
       {/* Seritler kalan yuksekligi esit paylasir: mib.json'a parametre eklendiginde

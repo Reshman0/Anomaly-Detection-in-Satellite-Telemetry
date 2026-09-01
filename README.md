@@ -10,8 +10,13 @@ demosu. TUSAŞ LIFT UP finali (21 Eylül 2026) için hazırlandı.
 > yoktur. Anomali skorları, açıklanabilirlik çıktıları ve alarmlar önceden
 > yazılmış senaryo dosyalarından okunur.
 >
-> Buna karşılık ekrandaki **her etiket, her alan adı, her servis numarası ve
-> her sayı gerçek standartlara dayanır.** Demonun inandırıcılığı buradan gelir.
+> Buna karşılık ekrandaki **her etiket ve her sayı gerçek bir kaynağa dayanır:**
+> kanal tablosu ESA-ADB'nin resmî `channels.csv` dosyasından, paketler gerçek
+> CCSDS/PUS yapısından, Dünya modeli WGS84'ten. Demonun inandırıcılığı buradan
+> gelir.
+
+**Sahnede sunacaksanız [§5 Demoyu sunma](#5-demoyu-sunma) bölümüne bakın** —
+akışın nasıl yönetildiği ve alarm anında neden kendiliğinden durduğu oradadır.
 
 ---
 
@@ -55,8 +60,9 @@ anılır ve `TEMP_BATTERY_1` gibi uydurma isimler kullanılmaz.
 | Senaryoları tohumlu ve tekrarlanabilir oynatır | Playback/geri sarma, çoklu operatör, hesap yönetimi sunmaz |
 | Tek dosya, internetsiz çalışır | Backend, veritabanı, WebSocket kullanmaz |
 
-Ekranın bir köşesinde `SİMÜLE VERİ — KAVRAMSAL GÖSTERİM` rozeti **sürekli
-görünür.** Kaldırmayın.
+Konsolun üzerinde bu uyarıyı taşıyan bir rozet yoktur; üst şerit dar ve rozet
+orayı sıkıştırıyordu. Uyarı bu README'nin başında durur, sunumu yapan kişinin
+sözlü olarak söylemesi beklenir.
 
 ---
 
@@ -119,7 +125,7 @@ Devam etmeden önce testleri çalıştırın:
 npm test
 ```
 
-**34 testin 34'ü geçmelidir.** Geçmiyorsa aşağı inmeyin; §11'deki sorun giderme
+**42 testin 42'si geçmelidir.** Geçmiyorsa aşağı inmeyin; §11'deki sorun giderme
 adımlarına bakın.
 
 ### 3.5 Geliştirme sunucusunu başlatın
@@ -148,7 +154,7 @@ npm run preview
 
 ### 3.7 Demo makinesine götürme
 
-`npm run build` **tek bir `dist/index.html` dosyası** üretir (~2,1 MB). Tüm
+`npm run build` **tek bir `dist/index.html` dosyası** üretir (~1,1 MB). Tüm
 JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri ve XAI görselleri bu
 dosyanın içine gömülüdür.
 
@@ -172,7 +178,7 @@ bile gerek yoktur.
 |---|---|
 | `npm install` | Bağımlılıkları kurar (bir kez) |
 | `npm run dev` | Geliştirme sunucusu, sıcak yeniden yükleme ile |
-| `npm test` | 34 birim testini koşar |
+| `npm test` | 42 birim testini koşar |
 | `npm run build` | `dist/index.html` tek dosyasını üretir |
 | `npm run preview` | Derlenmiş çıktıyı yerelde sunar |
 | `npm run xai:figures` | XAI panel görsellerini yeniden üretir |
@@ -229,6 +235,11 @@ adı, sıra numarası, boyu ve bütünlük doğrulaması. Bit alanı ızgarası 
 kaldırıldı** — kısa sürede okunamıyordu ve jargonla doluydu. Alanların tamamı
 arka planda üretilmeye ve test edilmeye devam ediyor.
 
+**Duraklatma bandı.** Akış durduğunda ekranın ortasında, durum bandının hemen
+üstünde büyük mor bir `AKIŞ DURAKLATILDI · devam etmek için tıklayın` bandı
+belirir. Üst şeride konmadı: şerit dokuz alanla dolu ve böyle bir düğme onu
+~60 px genişletiyordu (şeritte o sırada rozet de vardı).
+
 **Durum bandı.** Solda uçuş yazılımının sabit limit kontrolü, sağda yapay zekâ
 tespiti. İkisi ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi
 belirir. Altında **yanlış alarm sayacı** vardır: hiçbir anomali enjekte
@@ -237,7 +248,14 @@ edilmemişken bir yapay zekâ skorunun eşiği aşması sayılır — sabit değ
 kuralı).
 
 **Senaryo konsolu.** Üç senaryo düğmesi, beş kademeli şiddet kaydırıcısı ve
-nominal akışa dönüş.
+nominal akışa dönüş. Düğmede yalnızca senaryonun adı yazar; **fare düğmenin
+üzerine gelince açıklama yanda, büyük puntoyla bir kartta belirir**, fare
+çekilince kaybolur. Açıklamalar düğmenin içindeyken dar sütuna sığmıyor ve
+`...` ile kırpılıyordu.
+
+Kart çizildikten sonra yüksekliği ölçülüp tasarım yüzeyinin içine kelepçelenir:
+en alttaki düğmenin uzun açıklaması aksi hâlde yüzeyin altından taşıyordu
+(ölçüldü: kolektif senaryoda 42 px).
 
 **Alarm kuyruğu.** Şiddet sözcüğü, zaman damgası, sorumlu parametre, alt sistem,
 model adı ve güven skoru. Sol kenar rengi kaynağı söyler: yeşil/amber/kırmızı =
@@ -253,9 +271,61 @@ gerçek çıktılarla değiştirme yolu:
 [`src/assets/xai/README.md`](src/assets/xai/README.md). Dosya yoksa panel boş
 bir yuva ve beklenen dosya yolunu gösterir.
 
+**Görsele tıklayınca ekranın ortasında büyütülmüş hâli açılır**; sağ üstteki
+`✕`, `Esc` ya da dışarı tıklamak kapatır. Şekiller 2240×840 (2×) üretildiği
+için büyütülmüş görünümde bile küçültülerek gösterilirler — yani yukarı
+ölçeklenip bulanıklaşmazlar. Büyütme katmanı, ölçeklenen tasarım yüzeyinin
+**dışında** çizilir; içinde olsaydı CSS `transform` görseli de ölçekler ve
+netliği bozardı.
+
 ---
 
 ## 5. Demoyu sunma
+
+### 5.1 Akış nasıl yönetilir
+
+Konsol **elle sürülür.** Anomaliyi siz enjekte edersiniz, hızı siz seçersiniz,
+ne zaman devam edileceğine siz karar verirsiniz.
+
+Tek otomatik davranış şudur: **modelin gerekçesi tamamen ekrana geldikten
+sonra akış kendiliğinden durur.** Üst şeritte mor bir `DURAKLATILDI` düğmesi
+belirir; anlatmayı bitirdiğinizde ona ya da bir hız düğmesine tıklayarak akışı
+sürdürürsünüz.
+
+Senaryo üç kanıt adımı üretir — *nerede saptı → hangi kanal → ısı haritası*.
+Duraklatma bunların **sonuncusu** düştüğü anda gerçekleşir. Böylece donan
+karede açıklamanın tamamı hazır olur; sunucu üç adımı tek nefeste gezebilir.
+
+Ara adımlarda durulmaz: her kanıtta durmak sunumu kesik kesik yapardı.
+**Senaryo koşusu başına yalnızca bir kez** durulur.
+
+| Davranış | Ayrıntı |
+|---|---|
+| Ne zaman durur | Üçüncü ve son XAI kanıtı (ısı haritası) ekrana geldiği anda |
+| Kaç kez durur | Senaryo başına **bir** kez |
+| Nasıl devam edilir | Ekranın ortasındaki `AKIŞ DURAKLATILDI` bandı **veya** herhangi bir hız düğmesi (`1×` / `60×` / `600×`) |
+| Duraklamışken | Görev saati de durur — şeritler, paket akışı, küre, hepsi donar |
+
+Ölçülen davranış — her üç senaryoda da tek duraklama, üç kanıt yüklü, panel
+3. adımda:
+
+| Senaryo | Duraklama | Yüklü kanıt | Panelin gösterdiği | Durum bandı |
+|---|---|---|---|---|
+| Nokta anomalisi | 1 | L1 + L2 + L3 | 3 · Isı haritası | NOMİNAL / NOMİNAL |
+| Yavaş sürüklenme | 1 | L1 + L2 + L3 | 3 · Isı haritası | **NOMİNAL / ALARM ← KONTRAST** |
+| Kolektif sapma | 1 | L1 + L2 + L3 | 3 · Isı haritası | **NOMİNAL / ALARM ← KONTRAST** |
+
+> **Nokta anomalisi hakkında bir not.** Sıçrama anlıktır: üçüncü kanıt düştüğü
+> ana kadar hem limit hem de yapay zekâ skoru nominale dönmüş olur, bu yüzden
+> donan karede durum bandı `NOMİNAL / NOMİNAL` görünür. Alarm kartları kuyrukta,
+> ısı haritası panelde durur — ama kontrast karesi bu senaryoda donmuş hâlde
+> yakalanmaz. Bu senaryonun işlevi zaten kontrastı kurmak değil, klasik limit
+> kontrolünün **gerçekten çalıştığını** göstermektir; kontrast diğer iki
+> senaryoda kurulur. Sıçrama anında donmasını isterseniz `src/store.ts`
+> içindeki duraklatma koşulunu bu senaryo için kademe yükselişine bağlamak
+> yeterli.
+
+### 5.2 Senaryolar
 
 Senaryo düğmesine basıldığında hız otomatik olarak `1×`'e düşer ve senaryo
 **90 saniyede** tamamlanır. Üç senaryoyu bu sırayla oynatın — birlikte tek bir
@@ -393,8 +463,15 @@ dosyasındadır.
 ### Yeni telemetri parametresi eklemek
 
 `src/data/mib.json` içindeki `parameters` dizisine bir nesne ekleyin. Şeritler
-kalan yüksekliği paylaştığı için düzen kendini ayarlar, ayrıca bir şey yapmanız
-gerekmez.
+kalan yüksekliği paylaşır, düzen kendini ayarlar.
+
+> **Dikkat — şerit yükseklik bütçesi.** Panelde şeritler kalan yüksekliği eşit
+> böler ve etiket sütunu **iki satırlıktır** (kimlik / sayaç + değer + durum).
+> Şu anki 7 şerit ~46 px'lik satırlara oturuyor ve etiket içeriği 38 px; pay
+> dar. Şerit ekler ya da etiket sütununa üçüncü bir satır koyarsanız içerik
+> satıra sığmaz ve panel kırpar — en alttaki yapay zekâ şeritleri yarım
+> görünür. Böyle bir değişiklikten sonra şunu ölçün: satır yüksekliklerinin
+> toplamı, şeritleri saran kapsayıcının yüksekliğini aşmamalı.
 
 ```jsonc
 {
@@ -542,17 +619,24 @@ Görev epoğu ve OBT ofseti `mib.json` içindedir (`epoch`, `obt_offset_s`).
 
 ### Renkler ve tipografi
 
+Palet, **LIFT UP sunum şablonunun kendi renklerinden** türetildi
+(`2025-2026 LIFT UP SUNUM SABLONU.pptx`), böylece konsol ile slaytlar aynı
+aileden görünür. Şablonun çalışan renkleri: lacivert zemin `#082549` / `#1A2433`,
+LIFT UP kırmızısı `#C23735` / `#DD140D`, altın `#D6A361`, yeşil `#449E4A`,
+açık griler `#D9DEE5` / `#ADB4C9` / `#4A5560`, mor `#3E2A56`.
+
 Palet iki yerde tanımlıdır ve **senkron tutulmalıdır**:
 `tailwind.config.js` (arayüz sınıfları) ve `src/ui/colors.ts` (canvas ve
 three.js çizimleri).
 
-| Rol | Renk | Kullanım |
+| Rol | Renk | Kaynağı |
 |---|---|---|
-| Nominal | soğuk yeşil `#2FBF87` | limit içinde |
-| Yumuşak limit | amber `#D9A02B` | yumuşak bant ihlali |
-| Sert limit | kırmızı `#E24A5F` | sert bant ihlali |
-| **AI tespiti** | mor `#A184F5` | AI kaynaklı alarm, türetilmiş parametre |
-| Zemin | `#0E1419` | saf siyah değil — projektörde bantlaşmasın |
+| Nominal | yeşil `#449E4A` | şablondan birebir |
+| Uyarı | altın `#D6A361` | şablondan birebir |
+| Limit aşımı | kırmızı `#C23735` | şablondan birebir |
+| **Yapay zekâ tespiti** | mor `#9B7ACF` | şablonun `#3E2A56` moru, koyu zeminde okunacak parlaklığa açıldı |
+| Metin / soluk / silik | `#D9DEE5` `#ADB4C9` `#5C6B80` | şablondan |
+| Zemin / panel | `#071A2E` `#0D2842` | şablonun laciverdinden koyultuldu |
 
 Mor ayrımı demonun ana mesajını taşır; başka bir role vermeyin.
 
@@ -620,7 +704,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-34 test, üç dosyada: `src/engine/limitChecker.test.ts`,
+42 test, üç dosyada: `src/engine/limitChecker.test.ts`,
 `src/engine/earth.test.ts` ve `src/store.test.ts`.
 
 | Ne doğrulanıyor | Neden önemli |
@@ -637,6 +721,9 @@ npm test
 | Senaryo dosyalarındaki `service` ↔ `severity` tutarlılığı | yanlış olay raporu etiketini önler |
 | WGS84 yarıçapları, jeodezik↔jeosentrik enlem farkı, görüş konisi halkası | Dünya modelinin kusursuz küreye geri dönmesini engeller |
 | XAI seviyeleri kanıt geldikçe sırayla açılır, elle seçim ezilmez | sunumda panelin 1. adımda kalmasını önler |
+| Duraklama, son kanıt düştükten sonra oluyor | donan karede açıklamanın tamamı hazır olur |
+| Duraklamış akış ilerlemiyor; tıklayınca sürüyor | sunucunun anlatırken ekranın kaçmaması |
+| Aynı kademede ikinci kez duraklamaz | ST[12] arka arkaya geçiş üretir; her birinde durmak sunumu keserdi |
 
 ---
 
@@ -653,11 +740,20 @@ npm test
 | Aynı düğmeye basınca aynı anomali | ✅ birim test, kesirli başlangıç dahil |
 | XAI görselleri panelin üç adımıyla ve senaryoyla tutarlı | ✅ 9 görsel, `npm run xai:figures` ile üretiliyor; gerçek model çıktısı olmadığı görselin üzerinde yazılı |
 | Ekranda açıklanmamış jargon yok | ✅ ölçüldü: 28 terimden 0'a |
+| Son kanıt (ısı haritası) çıktıktan sonra akış duruyor | ✅ birim test: üç senaryoda da duraklama anında 3/3 kanıt yüklü, panel 3. adımda |
+| Senaryo başına yalnızca bir duraklama | ✅ birim test |
+| Duraklamış akış ilerlemiyor, tıklayınca sürüyor | ✅ birim test (görev saati donuyor, hız düğmesi de devam ettiriyor) |
+| Palet LIFT UP sunum şablonuyla aynı aileden | ✅ şablonun tema renklerinden türetildi, iki kaynak senkron |
 | Yanlış alarm sayacı gerçek ölçüm | ✅ nominal akışta 0, enjeksiyon sırasında saymaz |
 | Kanal listesi ESA-ADB `channels.csv` ile hizalı | ✅ 5 kanalın tamamı gerçek ve `Target=YES` |
 | Dünya modeli WGS84 | ✅ birim test (`earth.test.ts`) |
 | Sayaç ve gerçek değer yan yana | ✅ |
-| `SİMÜLE VERİ` rozeti sürekli görünür | ✅ sağ üst köşe |
+| Yedi şeridin tamamı kırpılmadan görünüyor | ✅ ölçüldü: satır toplamı 322 px ≤ kapsayıcı 325 px |
+| Yapay zekâ şeritleri nominal akışta da çiziliyor | ✅ ölçüldü: yedi şeritte de eşit yoğunlukta (~%3,1 yeşil piksel) |
+| Duraklatma bandı üst şeridi taşırmıyor | ✅ ölçüldü: duraklıyken de yatay taşma 0 |
+| Büyütülmüş XAI görseli net | ✅ 2240 px kaynak, ekranda 1178 px — küçültülerek gösteriliyor |
+| Senaryo açıklamaları kırpılmıyor | ✅ düğmeden çıkarıldı; kart yüzeye kelepçeli, üç senaryoda da taşma yok |
+| Üst şerit etiketleri hiç sarmaz | ✅ AOS/LOS geçişinde bile alan genişlikleri sabit |
 | 1920×1080'de kaydırma çubuğu yok | ✅ ölçüldü: 1920×1080 tam |
 | Her çözünürlükte panel taşması / üst üste binme yok | ✅ 1366×768, 1919×872, 1920×1080, 2560×1440 ölçüldü |
 | Senaryo 90 saniyede tamamlanıyor | ✅ 1× hızda (bkz. sapma 1) |
@@ -748,11 +844,18 @@ kullanın.
 **XAI paneli boş yuva gösteriyor.** Beklenen PNG `src/assets/xai/` altında yok.
 Tasarım gereği böyle; dosyayı koyup yeniden derleyin.
 
-**1920×1080 dışında bir çözünürlükte açtım.** Sorun değil. Konsol 1920×1080'lik
-sabit bir tasarım yüzeyine çizilir ve bu yüzey pencereye sığacak şekilde tek
-parça olarak ölçeklenir; en-boy oranı korunur, artan yer siyah bantla kapanır.
-Küçük ekranda her şey orantılı olarak küçülür, büyük ekranda büyür — düzen
-bozulmaz, panel sıkışmaz. Tarayıcı yakınlaştırmasıyla oynamanız gerekmez.
+**Farklı bir çözünürlükte açtım.** Sorun değil. Konsol **1600×900'lük** sabit
+bir tasarım yüzeyine çizilir ve bu yüzey pencereye sığacak şekilde tek parça
+olarak ölçeklenir; en-boy oranı korunur, artan yer siyah bantla kapanır. Küçük
+ekranda her şey orantılı olarak küçülür, büyük ekranda büyür — düzen bozulmaz,
+panel sıkışmaz. Tarayıcı yakınlaştırmasıyla oynamanız gerekmez.
+
+Yüzey bilerek küçük tutuldu (1920×1080 değil): **yüzey küçüldükçe aynı ekranda
+her öğe büyür.** Sahnede arka sıralardan okunabilirlik için en etkili tek ayar
+budur; her bileşenin puntosunu tek tek büyütmeye gerek kalmaz. Daha da
+büyütmek isterseniz `src/App.tsx` içindeki `STAGE_W` / `STAGE_H` değerlerini
+küçültün — ama alt satırın (`h-[252px]`) senaryo konsolunu kırpmadığını
+kontrol edin.
 
 **Küre siyah.** WebGL kapalı ya da GPU hızlandırma yok. Tarayıcıda
 `chrome://gpu` ile kontrol edin. Küre olmadan da demo ayakta durur.
