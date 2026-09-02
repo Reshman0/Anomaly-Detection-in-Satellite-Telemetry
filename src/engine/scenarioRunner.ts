@@ -32,7 +32,6 @@ export type ScenarioStep =
       t: number;
       type: 'show_xai';
       level: 1 | 2 | 3;
-      asset: string;
       caption: string;
       model: string;
       top_channels: string[];
@@ -46,7 +45,42 @@ export interface Scenario {
   description: string;
   model: string;
   duration_s: number;
+  /**
+   * Hedef kanal secenekleri. Her secenek `$1`, `$2`, ... yer tutucularina
+   * sirayla eslenir; senaryo her baslatildiginda biri secilir. Havuz alt
+   * sistem kisitini korur (nokta anomalisi hep alt sistem 5'te olur), yoksa
+   * model adi ve alarm metinleri kanalla celisirdi.
+   */
+  channel_pool?: string[][];
   timeline: ScenarioStep[];
+}
+
+/**
+ * `$1`, `$2`, ... yer tutucularini secilen kanallarla degistirip somut bir
+ * senaryo dondurur. Enjeksiyon `pid`'leri, alarm metinleri ve kanit gorselinin
+ * `top_channels` alani tek yerden cozulur; boylece uc yer birbirinden sapmaz.
+ */
+export function resolveScenario(sc: Scenario, channels: string[]): Scenario {
+  if (channels.length === 0) return sc;
+  const uygula = (str: string): string =>
+    str.replace(/\$(\d+)/g, (tam, n) => channels[Number(n) - 1] ?? tam);
+  const derin = (v: unknown): unknown => {
+    if (typeof v === 'string') return uygula(v);
+    if (Array.isArray(v)) return v.map(derin);
+    if (v && typeof v === 'object') {
+      return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, derin(x)]));
+    }
+    return v;
+  };
+  return { ...sc, timeline: derin(sc.timeline) as ScenarioStep[] };
+}
+
+/** Havuzdan bir secenek secer. `pick` 0..1; verilmezse rastgele. */
+export function pickChannels(sc: Scenario, pick?: number): string[] {
+  const pool = sc.channel_pool;
+  if (!pool || pool.length === 0) return [];
+  const r = pick === undefined ? Math.random() : pick;
+  return pool[Math.min(pool.length - 1, Math.floor(r * pool.length))];
 }
 
 export const SCENARIOS: Scenario[] = [
@@ -76,13 +110,17 @@ export interface InjectionResult {
  * `t` degerleri saniye, senaryonun baslatildigi ana goredir.
  */
 export class ScenarioRunner {
+  /** Yer tutuculari cozulmus senaryo: asagidaki her sey bunu kullanir. */
   readonly scenario: Scenario;
+  /** Bu kosuda secilen hedef kanallar (`$1`, `$2`, ... sirasiyla). */
+  readonly channels: string[];
   readonly startMissionT: number;
   readonly severityMul: number;
   private fired = new Set<number>();
 
-  constructor(scenario: Scenario, startMissionT: number, severityIndex: number) {
-    this.scenario = scenario;
+  constructor(scenario: Scenario, startMissionT: number, severityIndex: number, pick?: number) {
+    this.channels = pickChannels(scenario, pick);
+    this.scenario = resolveScenario(scenario, this.channels);
     // Baslangic ani orneklem izgarasina oturtulur. Aksi halde enjeksiyon sekli
     // kesirli bir ofsetle orneklenir ve ayni butona basmak farkli bir anomali
     // uretir; kabul kriteri §10 determinizmi bunu yasaklar.

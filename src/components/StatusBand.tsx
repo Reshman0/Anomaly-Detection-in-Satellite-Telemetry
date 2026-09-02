@@ -58,13 +58,13 @@ export default function StatusBand() {
           <div className="text-[13px] leading-[17px] text-ops-dim mt-1 h-[17px] truncate">
             {offenders.length > 0
               ? offenders.map((p) => p.pid + ' · ' + stateLabel(states.get(p.pid)!)).join(' · ')
-              : onboard.length + ' parametre limit içinde'}
+              : onboard.length + ' parametre limit içinde kalıyor'}
           </div>
         </div>
 
         <div className={'px-3 py-2 ' + (contrast ? 'bg-ops-ai/[0.07]' : '')}>
           <div className="text-[12px] uppercase tracking-[0.14em] text-ops-faint">
-            Yapay zekâ tespiti
+            Yapay zeka tespiti
           </div>
           <div
             className={

@@ -20,7 +20,7 @@ export default function TelemetryPanel() {
       <div className="panel-title flex items-center justify-between">
         <span>Uydudan gelen ölçümler</span>
         <span className="normal-case tracking-normal text-ops-faint">
-          {TOTAL_CHANNELS} kanallık ESA veri setinden bizim kullandığımız {shownChannels} kanal ·
+          {TOTAL_CHANNELS} kanallık ESA veri setinden bizim kullandığımız {shownChannels} kanal akıyor ·
           son {WINDOW_S / 60} dk · ◆ yerde hesaplanıyor
         </span>
       </div>

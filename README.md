@@ -178,10 +178,9 @@ bile gerek yoktur.
 |---|---|
 | `npm install` | Bağımlılıkları kurar (bir kez) |
 | `npm run dev` | Geliştirme sunucusu, sıcak yeniden yükleme ile |
-| `npm test` | 42 birim testini koşar |
+| `npm test` | 50 birim testini koşar |
 | `npm run build` | `dist/index.html` tek dosyasını üretir |
 | `npm run preview` | Derlenmiş çıktıyı yerelde sunar |
-| `npm run xai:figures` | XAI panel görsellerini yeniden üretir |
 
 ---
 
@@ -193,11 +192,11 @@ bile gerek yoktur.
 ├───────────────────────┬──────────────────────────────────────────────────┤
 │                       │  UYDUDAN GELEN ÖLÇÜMLER                          │
 │   UYDUNUN ANLIK       │  ch_42 ch_44 ch_46 ch_74 ch_75                   │
-│   KONUMU              │  ◆ Yapay zekâ · alt sistem 3 / alt sistem 5      │
+│   KONUMU              │  ◆ Yapay zeka · alt sistem 3 / alt sistem 5      │
 │   (WGS84 küre)        ├──────────────────────────────────────────────────┤
 │                       │  AŞAĞI İNEN VERİ PAKETİ  (ham baytlar)           │
 │                       ├──────────────────────────────────────────────────┤
-│                       │  DURUM  Uçuş yazılımı: NOMİNAL │ Yapay zekâ: ALARM│
+│                       │  DURUM  Uçuş yazılımı: NOMİNAL │ Yapay zeka: ALARM│
 │                       │         Yanlış alarm: 0                          │
 ├───────────────────────┼───────────────────────────┬──────────────────────┤
 │  SENARYO KONSOLU      │  ALARM KUYRUĞU            │  MODEL NEDEN ALARM   │
@@ -209,7 +208,7 @@ bile gerek yoktur.
 > tasarlandı. Bu yüzden ekranda **standart kısaltması bırakılmadı**: `ST[12]`,
 > `TM[3,25]`, `APID`, `SLE RAF`, `OBT`, `AOS/LOS`, `Grad-CAM` gibi terimlerin
 > tamamı düz Türkçeye çevrildi ya da kaldırıldı. Standart uyumu kaybolmadı —
-> paketler hâlâ gerçek CCSDS/PUS yapısıyla üretiliyor ve birim testleriyle
+> paketler hala gerçek CCSDS/PUS yapısıyla üretiliyor ve birim testleriyle
 > doğrulanıyor (§8, §9); yalnızca **ekranda** gösterilmiyor.
 
 **Üst şerit.** Görev adı, UTC, uydu saati (aralarında `-0,734 s` sabit ofset —
@@ -227,7 +226,7 @@ atmosfer parıltısı **bilerek yoktur.**
 çalışmamızda kullanılan 5'i"* yazar — izleyici gördüğünün bir alt küme olduğunu
 bilir. Her satırda parametre adı, **sayaç değeri ve gerçek değer yan yana**,
 limit bandı arka planda gölge olarak. `◆` işaretli satırlar yerde hesaplanan
-yapay zekâ skorlarıdır; uydudan inen ham karşılıkları olmadığı için sayaç
+yapay zeka skorlarıdır; uydudan inen ham karşılıkları olmadığı için sayaç
 sütununda `—` görünür.
 
 **Aşağı inen veri paketi.** Son üretilen paketin ham bayt dizisi, alt sistem
@@ -240,10 +239,10 @@ arka planda üretilmeye ve test edilmeye devam ediyor.
 belirir. Üst şeride konmadı: şerit dokuz alanla dolu ve böyle bir düğme onu
 ~60 px genişletiyordu (şeritte o sırada rozet de vardı).
 
-**Durum bandı.** Solda uçuş yazılımının sabit limit kontrolü, sağda yapay zekâ
+**Durum bandı.** Solda uçuş yazılımının sabit limit kontrolü, sağda yapay zeka
 tespiti. İkisi ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi
 belirir. Altında **yanlış alarm sayacı** vardır: hiçbir anomali enjekte
-edilmemişken bir yapay zekâ skorunun eşiği aşması sayılır — sabit değer değil,
+edilmemişken bir yapay zeka skorunun eşiği aşması sayılır — sabit değer değil,
 ölçümdür. Yanında bildirinin dürüstlük notu yazılıdır (300 s alan bilgisi
 kuralı).
 
@@ -254,24 +253,29 @@ nominal akışa dönüş. Düğmede yalnızca senaryonun adı yazar; **fare dü�
 `...` ile kırpılıyordu.
 
 Kart çizildikten sonra yüksekliği ölçülüp tasarım yüzeyinin içine kelepçelenir:
-en alttaki düğmenin uzun açıklaması aksi hâlde yüzeyin altından taşıyordu
+en alttaki düğmenin uzun açıklaması aksi halde yüzeyin altından taşıyordu
 (ölçüldü: kolektif senaryoda 42 px).
 
 **Alarm kuyruğu.** Şiddet sözcüğü, zaman damgası, sorumlu parametre, alt sistem,
 model adı ve güven skoru. Sol kenar rengi kaynağı söyler: yeşil/amber/kırmızı =
-uçuş yazılımının limit kontrolü, mor = yerde çalışan yapay zekâ modeli.
+uçuş yazılımının limit kontrolü, mor = yerde çalışan yapay zeka modeli.
 
 **Model neden alarm verdi.** Üç adımlı sekme: *1 · Nerede saptı*, *2 · Hangi
 kanal*, *3 · Isı haritası*. Senaryo yeni bir kanıt ürettiğinde panel
 **kendiliğinden o adıma geçer**; sunucunun sekmeye tıklaması gerekmez. Elle
-seçilen adım, yeni kanıt gelene kadar korunur. Görseller `npm run xai:figures` ile **üretilir** — demonun kendi senaryo
-tanımlarından türetilirler, gerçek bir model çıktısı değildirler ve her birinin
-alt kenarında bunu söyleyen bir satır vardır. Ayrıntı ve bildiriden alınmış
-gerçek çıktılarla değiştirme yolu:
-[`src/assets/xai/README.md`](src/assets/xai/README.md). Dosya yoksa panel boş
-bir yuva ve beklenen dosya yolunu gösterir.
+seçilen adım, yeni kanıt gelene kadar korunur.
 
-**Görsele tıklayınca ekranın ortasında büyütülmüş hâli açılır**; sağ üstteki
+Görseller **çalışma anında çizilir** ([`XaiFigure.tsx`](src/components/XaiFigure.tsx)),
+çünkü senaryo hedef kanalı her koşuda havuzdan seçer: sabit dosyalarla görseldeki
+kanal ile ekrandaki kanal birbirini tutmazdı. Çizilen şey senaryonun kendi
+enjeksiyon tanımından türer, gerçek bir model çıktısı değildir.
+
+Üç adım **bilerek üç farklı görsel dil** kullanır — 1) çizgi grafiği: modelin
+beklediği seri, ölçülen seri ve aradaki fark, 2) çubuk: kanal başına pay,
+3) ısı haritası: tüm kanallar × zaman. Aynı veriyi iki kez gösterirlerse panelin
+üç adımı birbirinden ayırt edilemiyor.
+
+**Görsele tıklayınca ekranın ortasında büyütülmüş hali açılır**; sağ üstteki
 `✕`, `Esc` ya da dışarı tıklamak kapatır. Şekiller 2240×840 (2×) üretildiği
 için büyütülmüş görünümde bile küçültülerek gösterilirler — yani yukarı
 ölçeklenip bulanıklaşmazlar. Büyütme katmanı, ölçeklenen tasarım yüzeyinin
@@ -316,9 +320,9 @@ Ara adımlarda durulmaz: her kanıtta durmak sunumu kesik kesik yapardı.
 | Kolektif sapma | 1 | L1 + L2 + L3 | 3 · Isı haritası | **NOMİNAL / ALARM ← KONTRAST** |
 
 > **Nokta anomalisi hakkında bir not.** Sıçrama anlıktır: üçüncü kanıt düştüğü
-> ana kadar hem limit hem de yapay zekâ skoru nominale dönmüş olur, bu yüzden
+> ana kadar hem limit hem de yapay zeka skoru nominale dönmüş olur, bu yüzden
 > donan karede durum bandı `NOMİNAL / NOMİNAL` görünür. Alarm kartları kuyrukta,
-> ısı haritası panelde durur — ama kontrast karesi bu senaryoda donmuş hâlde
+> ısı haritası panelde durur — ama kontrast karesi bu senaryoda donmuş halde
 > yakalanmaz. Bu senaryonun işlevi zaten kontrastı kurmak değil, klasik limit
 > kontrolünün **gerçekten çalıştığını** göstermektir; kontrast diğer iki
 > senaryoda kurulur. Sıçrama anında donmasını isterseniz `src/store.ts`
@@ -347,11 +351,11 @@ hata değil **bulgu** olduğunu kanıtlamaktır.
 
 `ch_75` kademeli olarak kayar ama limit bandının içinde kalır. Şerit gözle
 görülür şekilde sürüklenirken durum bandının solu `NOMİNAL` kalır; sağdaki yapay
-zekâ skoru önce uyarı, sonra alarm eşiğini aşar ve üç mor kart sırayla düşer:
+zeka skoru önce uyarı, sonra alarm eşiğini aşar ve üç mor kart sırayla düşer:
 *izlemede* → *anomali adayı* → *yüksek şiddet*. Sağdaki panel üç kanıt adımını
 kendiliğinden sırayla açar.
 
-> **Söylenecek:** "Uçuş yazılımı hâlâ hiçbir şey görmüyor — çünkü teknik olarak
+> **Söylenecek:** "Uçuş yazılımı hala hiçbir şey görmüyor — çünkü teknik olarak
 > haklı, parametre limitin içinde. Model ise sapmayı 30 saniye önce yakaladı ve
 > hangi kanaldan geldiğini söylüyor."
 
@@ -381,7 +385,7 @@ bildirinin kendi bulgusu.
   saniyede tamamlanır, geçiş dinamiği görünür hale gelir. Telemetriyi bu
   hızda izlemeye çalışmayın.
 - **Yanlış alarm sayacı** durum bandının altındadır ve nominal akış boyunca
-  `0` kalır. Sunumda buna işaret etmek hikâyenin "üstelik yanlış alarm
+  `0` kalır. Sunumda buna işaret etmek hikayenin "üstelik yanlış alarm
   üretmeden" maddesini kapatır.
 - Uygulama açılırken şeritler **10 dakikalık geçmişle dolu gelir**; boş grafikle
   açılmaz.
@@ -410,16 +414,14 @@ src/
     earth.ts            WGS84 elipsoidi, jeodezik→ECEF, görüş konisi halkası
     orbit.ts            SGP4 yayılımı, geçiş anları, görüş konisi
     simulation.ts       hepsini birleştiren düzenleyici
-    *.test.ts           limitChecker / earth birim testleri
+    xaiFigures.ts       kanıt görsellerinin verisi (tohumlu, saf fonksiyonlar)
+    *.test.ts           limitChecker / earth / xaiFigures birim testleri
   components/           arayüz (her panel bir dosya)
+    XaiFigure.tsx       kanıt görselini canvas'a çizer
   ui/colors.ts          durum renkleri
-  assets/xai/           üretilmiş XAI panel görselleri + künye
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
   store.test.ts         XAI seviye ilerlemesi testleri
   App.tsx               1920×1080 tasarım yüzeyi + pencereye ölçekleme
-
-tools/
-  xai-figures/          XAI görsel üreteci (bağımlılıksız, kendi PNG yazıcısı)
 ```
 
 ### Veri akışı
@@ -469,7 +471,7 @@ kalan yüksekliği paylaşır, düzen kendini ayarlar.
 > böler ve etiket sütunu **iki satırlıktır** (kimlik / sayaç + değer + durum).
 > Şu anki 7 şerit ~46 px'lik satırlara oturuyor ve etiket içeriği 38 px; pay
 > dar. Şerit ekler ya da etiket sütununa üçüncü bir satır koyarsanız içerik
-> satıra sığmaz ve panel kırpar — en alttaki yapay zekâ şeritleri yarım
+> satıra sığmaz ve panel kırpar — en alttaki yapay zeka şeritleri yarım
 > görünür. Böyle bir değişiklikten sonra şunu ölçün: satır yüksekliklerinin
 > toplamı, şeritleri saran kapsayıcının yüksekliğini aşmamalı.
 
@@ -563,27 +565,23 @@ Yeni senaryo eklediğinizde `src/engine/limitChecker.test.ts` içine ne bekliyor
 onu yazın — sürüklenme sınıfı senaryolar için `serviceCounts.get('12,12') === 0`,
 sıçrama sınıfı için `> 0`.
 
-### XAI görsellerini üretmek
+### Kanıt görselleri
 
-```bash
-npm run xai:figures
-```
+Görseller dosya değildir; panel açıldığında canvas'a çizilir.
 
-`tools/xai-figures/generate.mjs` dokuz PNG'yi `src/assets/xai/` altına yazar.
-Script'in hiçbir bağımlılığı yoktur — Node'un kendi `zlib`'i dışında bir şey
-kullanmaz, kendi PNG kodlayıcısı ve bitmap fontu vardır.
+- **Veri**: [`src/engine/xaiFigures.ts`](src/engine/xaiFigures.ts) — tohumlu ve
+  saf fonksiyonlar, senaryonun enjeksiyon tanımından türetir. Aynı senaryo +
+  aynı kanal her zaman aynı seriyi verir.
+- **Çizim**: [`src/components/XaiFigure.tsx`](src/components/XaiFigure.tsx) —
+  1120×420 tasarım biriminde çizer, panelde 2×, büyütülmüş görünümde 3×
+  çözünürlükte yeniden çizilir (ölçekleme yok, metinler keskin kalır).
 
-Görseller senaryo dosyalarından türetilir: kanal listesi, baskın kanal ve
-zamanlama enjeksiyon tanımlarıyla aynıdır. Senaryoyu değiştirdiğinizde
-script'i yeniden çalıştırın, görseller kendiliğinden uyumlu kalır.
+Hedef kanal her koşuda değiştiği için görsel de değişir: vurgulanan kanal
+etiketi, baskın çubuk ve ısı haritasındaki parlak satır hep o koşuda seçilen
+kanaldır. Bunu birim test garanti eder.
 
-Bunlar **gerçek model çıktısı değildir**; her görselin alt kenarında bunu
-söyleyen bir satır vardır. Bildiriden alınmış gerçek çıktılarla değiştirmek
-isterseniz PNG'leri aynı adlarla koyun, `npm run xai:figures` çalıştırmayın ve
-[o klasördeki README](src/assets/xai/README.md) künyesini güncelleyin.
-
-Panelin görsel alanı tasarım biriminde yaklaşık **528×207 px**; en-boy oranı
-~2,55 olan yatay görseller yuvayı tam doldurur.
+Bunlar **gerçek model çıktısı değildir**. Bildiriden alınmış gerçek çıktılar
+elinize geçerse `XaiFigure` yerine görüntü basan bir bileşen koyabilirsiniz.
 
 Şu an yerleştirilmiş yedi görselin künyesi (hangi notebook, hangi hücre) o
 klasördeki README'dedir. Kolektif senaryo, 1. ve 3. adımda sürüklenme
@@ -634,7 +632,7 @@ three.js çizimleri).
 | Nominal | yeşil `#449E4A` | şablondan birebir |
 | Uyarı | altın `#D6A361` | şablondan birebir |
 | Limit aşımı | kırmızı `#C23735` | şablondan birebir |
-| **Yapay zekâ tespiti** | mor `#9B7ACF` | şablonun `#3E2A56` moru, koyu zeminde okunacak parlaklığa açıldı |
+| **Yapay zeka tespiti** | mor `#9B7ACF` | şablonun `#3E2A56` moru, koyu zeminde okunacak parlaklığa açıldı |
 | Metin / soluk / silik | `#D9DEE5` `#ADB4C9` `#5C6B80` | şablondan |
 | Zemin / panel | `#071A2E` `#0D2842` | şablonun laciverdinden koyultuldu |
 
@@ -738,7 +736,8 @@ npm test
 | Önem derecesi ↔ `TM[5,x]` eşlemesi | ✅ birim test |
 | Sürüklenmede limit NOMİNAL, AI alarmda | ✅ birim test, 5 şiddet kademesi |
 | Aynı düğmeye basınca aynı anomali | ✅ birim test, kesirli başlangıç dahil |
-| XAI görselleri panelin üç adımıyla ve senaryoyla tutarlı | ✅ 9 görsel, `npm run xai:figures` ile üretiliyor; gerçek model çıktısı olmadığı görselin üzerinde yazılı |
+| XAI görselleri panelin üç adımıyla ve senaryoyla tutarlı | ✅ birim test: seçilen kanal enjeksiyon, alarm metni ve üç görselin tamamında aynı |
+| Hedef kanal her koşuda havuzdan seçilir | ✅ birim test: havuzun her seçeneğinde limit garantisi korunuyor |
 | Ekranda açıklanmamış jargon yok | ✅ ölçüldü: 28 terimden 0'a |
 | Son kanıt (ısı haritası) çıktıktan sonra akış duruyor | ✅ birim test: üç senaryoda da duraklama anında 3/3 kanıt yüklü, panel 3. adımda |
 | Senaryo başına yalnızca bir duraklama | ✅ birim test |
@@ -749,7 +748,7 @@ npm test
 | Dünya modeli WGS84 | ✅ birim test (`earth.test.ts`) |
 | Sayaç ve gerçek değer yan yana | ✅ |
 | Yedi şeridin tamamı kırpılmadan görünüyor | ✅ ölçüldü: satır toplamı 322 px ≤ kapsayıcı 325 px |
-| Yapay zekâ şeritleri nominal akışta da çiziliyor | ✅ ölçüldü: yedi şeritte de eşit yoğunlukta (~%3,1 yeşil piksel) |
+| Yapay zeka şeritleri nominal akışta da çiziliyor | ✅ ölçüldü: yedi şeritte de eşit yoğunlukta (~%3,1 yeşil piksel) |
 | Duraklatma bandı üst şeridi taşırmıyor | ✅ ölçüldü: duraklıyken de yatay taşma 0 |
 | Büyütülmüş XAI görseli net | ✅ 2240 px kaynak, ekranda 1178 px — küçültülerek gösteriliyor |
 | Senaryo açıklamaları kırpılmıyor | ✅ düğmeden çıkarıldı; kart yüzeye kelepçeli, üç senaryoda da taşma yok |
@@ -809,7 +808,7 @@ rm -rf node_modules package-lock.json && npm install
 > `Remove-Item -Recurse -Force node_modules, package-lock.json`
 
 **`npm test` başarısız.** Kurulum eksik ya da yarım kalmış olabilir; `npm
-install`'ı tekrar çalıştırın. Testler hâlâ kırmızıysa çıktıdaki dosya adına
+install`'ı tekrar çalıştırın. Testler hala kırmızıysa çıktıdaki dosya adına
 bakın: `limitChecker` senaryoların limit davranışını, `earth` Dünya modelini,
 `store` XAI seviye ilerlemesini doğrular.
 
@@ -841,8 +840,8 @@ kaydetmek Vite'ın sayfayı yeniden yüklemesine ve simülasyonun sıfırlanmas�
 açar. Senaryoyu test ederken dosya kaydetmeyin, ya da `dist` derlemesini
 kullanın.
 
-**XAI paneli boş yuva gösteriyor.** Beklenen PNG `src/assets/xai/` altında yok.
-Tasarım gereği böyle; dosyayı koyup yeniden derleyin.
+**XAI panelinde görsel çizilmiyor.** Kanıt yalnızca senaryo o adıma geldiğinde
+oluşur; panelin sağ üstündeki sayaç kaç kanıtın hazır olduğunu söyler.
 
 **Farklı bir çözünürlükte açtım.** Sorun değil. Konsol **1600×900'lük** sabit
 bir tasarım yüzeyine çizilir ve bu yüzey pencereye sığacak şekilde tek parça

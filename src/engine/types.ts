@@ -106,7 +106,9 @@ export interface Alarm {
 }
 
 export interface XaiEvidence {
-  asset: string;
+  /** Gorsel calisma aninda cizilir; cizim bu ikisiyle yeniden kurulur. */
+  scenarioId: string;
+  channels: string[];
   caption: string;
   top_channels: string[];
   band?: string;

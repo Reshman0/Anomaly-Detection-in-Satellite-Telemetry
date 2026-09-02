@@ -13,7 +13,7 @@ function friendlyPid(pid: string): string {
 
 function accent(a: Alarm): { border: string; label: string; text: string } {
   if (a.source === 'AI_DERIVED') {
-    return { border: 'border-l-ops-ai', label: 'text-ops-ai', text: 'YAPAY ZEKÂ' };
+    return { border: 'border-l-ops-ai', label: 'text-ops-ai', text: 'YAPAY ZEKA' };
   }
   const hard = a.severity >= 3;
   return {
@@ -39,7 +39,7 @@ export default function AlarmQueue() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {alarms.length === 0 && (
-          <div className="px-2 py-3 text-[13px] text-ops-faint">Henüz alarm yok, bütün parametreler nominal.</div>
+          <div className="px-2 py-3 text-[13px] text-ops-faint">Henüz alarm gelmedi, bütün parametreler nominal akıyor.</div>
         )}
         {alarms.map((a) => {
           const ac = accent(a);
@@ -81,7 +81,7 @@ export default function AlarmQueue() {
       </div>
       <div className="px-2 py-1 border-t border-ops-line text-3xs text-ops-faint leading-snug">
         Soldaki renk kaynağı söyler. Yeşil, sarı ve kırmızı uçuş yazılımının limit
-        kontrolünden, mor yerde çalışan yapay zekâ modelinden geliyor.
+        kontrolünden, mor yerde çalışan yapay zeka modelinden geliyor.
       </div>
     </section>
   );

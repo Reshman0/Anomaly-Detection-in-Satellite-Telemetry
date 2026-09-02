@@ -1,23 +1,13 @@
 import { useConsole } from '../store';
+import XaiFigure from './XaiFigure';
 
 /**
  * XAI paneli — uc seviyeli sekme.
  *
- * Gorseller `src/assets/xai/` altindaki BILDIRIDEN ALINMIS gercek ciktilardir.
- * Sentetik olarak yeniden cizilmez (yonerge §7). Dosya konulmamissa panel,
- * beklenen dosya adini gosteren bos bir yuva cizer — uydurma grafik uretmez.
+ * Gorseller calisma aninda cizilir (bkz. `XaiFigure`): senaryo hedef kanali
+ * her kosuda havuzdan sectigi icin gorselin de o kanala gore olusmasi gerekir.
+ * Cizilen sey senaryonun kendi enjeksiyon tanimindan turer, uydurma degildir.
  */
-const ASSETS = import.meta.glob('../assets/xai/*.png', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>;
-
-function assetUrl(rel: string): string | null {
-  const name = rel.replace(/^xai\//, '');
-  const key = Object.keys(ASSETS).find((k) => k.endsWith('/' + name));
-  return key ? ASSETS[key] : null;
-}
 
 const LEVEL_TITLES: Record<1 | 2 | 3, string> = {
   1: '1 · Nerede saptı',
@@ -34,7 +24,7 @@ export default function XaiPanel() {
 
   const evidence = sim.xai;
   const current = evidence.find((e) => e.level === level) ?? null;
-  const url = current ? assetUrl(current.asset) : null;
+
 
   return (
     <section className="panel flex flex-col min-h-0">
@@ -72,31 +62,25 @@ export default function XaiPanel() {
         <div className="flex-1 min-w-0 p-2 flex items-center justify-center bg-ops-sunken">
           {!current ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
-              Bu adımda henüz bir şey yok.
+              Bu adımda henüz bir şey gelmedi.
               <br />
               Bir senaryo başlatın, model çıktıları sırayla gelir.
             </div>
-          ) : url ? (
+          ) : (
             /* Tiklayinca ekranin ortasinda buyutulmus hali acilir. */
             <button
-              onClick={() => gorselAc(url, current.caption)}
+              onClick={() => gorselAc(current, current.caption)}
               title="Büyütmek için tıklayın"
               className="max-w-full max-h-full flex items-center justify-center cursor-zoom-in group"
             >
-              <img
-                src={url}
-                alt={current.caption}
+              <XaiFigure
+                scenarioId={current.scenarioId}
+                channels={current.channels}
+                level={current.level}
+                model={current.model}
                 className="max-w-full max-h-full object-contain transition-opacity group-hover:opacity-80"
               />
             </button>
-          ) : (
-            <div className="w-full h-full border border-dashed border-ops-line2 flex flex-col items-center justify-center gap-1 px-3">
-              <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Görsel yuvası boş</div>
-              <div className="num text-[11px] text-ops-dim text-center break-all">src/assets/{current.asset}</div>
-              <div className="text-3xs text-ops-faint text-center leading-snug max-w-[280px]">
-                Buraya bildiriden alınan gerçek {current.model} çıktısı gelir. Yerine uydurma bir grafik koymuyoruz.
-              </div>
-            </div>
           )}
         </div>
 

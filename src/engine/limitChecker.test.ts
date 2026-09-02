@@ -17,12 +17,14 @@ function scenario(id: string): Scenario {
  * `startOffsetMs` gorev saatini kesirli bir noktaya tasir; senaryonun baslatildigi
  * anin ondalik kismindan bagimsiz olmasi gerekir.
  */
-function runScenario(id: string, severityIndex: number, startOffsetMs = 0) {
+function runScenario(id: string, severityIndex: number, startOffsetMs = 0, pick = 0) {
   const sim = new Simulation();
   sim.setSeverity(severityIndex);
   if (startOffsetMs > 0) sim.advance(startOffsetMs);
   const sc = scenario(id);
-  sim.startScenario(sc);
+  sim.startScenario(sc, pick);
+  // Kanallar simdi yakalanmali: senaryo bitince runner temizleniyor.
+  const channels = sim.runner?.channels ?? [];
 
   const worst = new Map<string, LimitState>();
   const peakEng = new Map<string, number>();
@@ -40,7 +42,13 @@ function runScenario(id: string, severityIndex: number, startOffsetMs = 0) {
       if (pk === undefined || Math.abs(last.eng) > Math.abs(pk)) peakEng.set(pid, last.eng);
     }
   }
-  return { sim, worst, peakEng };
+  return { sim, worst, peakEng, channels };
+}
+
+/** Havuzdaki her secenegi tek tek denemek icin 0..1 arasi `pick` degerleri. */
+function picks(id: string): number[] {
+  const n = scenario(id).channel_pool?.length ?? 1;
+  return Array.from({ length: n }, (_, i) => (i + 0.5) / n);
 }
 
 function rank(s: LimitState): number {
@@ -50,11 +58,14 @@ function rank(s: LimitState): number {
 describe('§6.3 — yavaş sürüklenme: ST[12] NOMİNAL kalır, AI skoru alarma geçer', () => {
   SEVERITY_STEPS.forEach((mul, idx) => {
     it('şiddet kademesi ' + (idx + 1) + ' (×' + mul + ')', () => {
+      // Hedef kanal havuzdan seciliyor: her secenek ayni garantiyi vermeli.
+      for (const pick of picks('drift')) {
+        const { worst, peakEng, channels } = runScenario('drift', idx, 0, pick);
+        const hedef = channels[0];
+        expect(worst.get(hedef), hedef).toBe('NOMINAL');
+        expect(Math.abs(peakEng.get(hedef)!), hedef).toBeLessThan(param(hedef).limits.soft_high!);
+      }
       const { worst, peakEng, sim } = runScenario('drift', idx);
-
-      // Sabit limit kontrolü hedef kanalda hiç tetiklenmemeli.
-      expect(worst.get('ch_75')).toBe('NOMINAL');
-      expect(Math.abs(peakEng.get('ch_75')!)).toBeLessThan(param('ch_75').limits.soft_high!);
 
       // AI türetilmiş parametre sert eşiği aşmalı.
       expect(worst.get('AI_SCORE_SS3')).toBe('HARD_HIGH');
@@ -73,24 +84,29 @@ describe('§6.3 — yavaş sürüklenme: ST[12] NOMİNAL kalır, AI skoru alarma
 describe('§6.3 — kolektif sapma: kanallar tek tek limit içinde kalır', () => {
   SEVERITY_STEPS.forEach((_mul, idx) => {
     it('şiddet kademesi ' + (idx + 1), () => {
-      const { worst, sim } = runScenario('collective', idx);
-      for (const pid of ['ch_75', 'ch_42', 'ch_74']) {
-        expect(worst.get(pid)).toBe('NOMINAL');
+      for (const pick of picks('collective')) {
+        const { worst, sim, channels } = runScenario('collective', idx, 0, pick);
+        for (const pid of channels) {
+          expect(worst.get(pid), pid).toBe('NOMINAL');
+        }
+        expect(worst.get('AI_SCORE_SS3')).toBe('HARD_HIGH');
+        expect(sim.serviceCounts.get('12,12') ?? 0).toBe(0);
       }
-      expect(worst.get('AI_SCORE_SS3')).toBe('HARD_HIGH');
-      expect(sim.serviceCounts.get('12,12') ?? 0).toBe(0);
     });
   });
 });
 
 describe('nokta anomalisi: limit kontrolü gerçekten çalışır', () => {
   SEVERITY_STEPS.forEach((_mul, idx) => {
-    it('şiddet kademesi ' + (idx + 1) + ': ch_44 sert limiti aşar ve TM[12,12] üretilir', () => {
-      const { worst, sim } = runScenario('point', idx);
-      expect(worst.get('ch_44')).toBe('HARD_HIGH');
-      expect(sim.serviceCounts.get('12,12') ?? 0).toBeGreaterThan(0);
-      const limitAlarms = sim.alarms.filter((a) => a.source === 'ST12_LIMIT');
-      expect(limitAlarms.length).toBeGreaterThan(0);
+    it('şiddet kademesi ' + (idx + 1) + ': hedef kanal sert limiti aşar ve TM[12,12] üretilir', () => {
+      for (const pick of picks('point')) {
+        const { worst, sim, channels } = runScenario('point', idx, 0, pick);
+        const hedef = channels[0];
+        expect(worst.get(hedef), hedef).toBe('HARD_HIGH');
+        expect(sim.serviceCounts.get('12,12') ?? 0).toBeGreaterThan(0);
+        const limitAlarms = sim.alarms.filter((a) => a.source === 'ST12_LIMIT');
+        expect(limitAlarms.length).toBeGreaterThan(0);
+      }
     });
   });
 });

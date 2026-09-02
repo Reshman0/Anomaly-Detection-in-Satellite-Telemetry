@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useConsole } from '../store';
+import XaiFigure from './XaiFigure';
 
 /**
  * XAI gorselinin buyutulmus gorunumu.
@@ -49,10 +50,14 @@ export default function GorselBuyutec() {
             ✕
           </button>
         </div>
-        <img
-          src={buyuk.url}
-          alt={buyuk.baslik}
-          /* Dogal boyutu asma: yukari olceklenirse netlik kaybolur. */
+        {/* Buyutulmus gorunum daha yuksek cozunurlukte YENIDEN cizilir;
+            olcekleme yapilmadigi icin metinler ve egriler keskin kalir. */}
+        <XaiFigure
+          scenarioId={buyuk.kanit.scenarioId}
+          channels={buyuk.kanit.channels}
+          level={buyuk.kanit.level}
+          model={buyuk.kanit.model}
+          scale={3}
           style={{ maxWidth: 'min(92vw, 2240px)', maxHeight: 'calc(88vh - 60px)' }}
           className="block object-contain"
         />

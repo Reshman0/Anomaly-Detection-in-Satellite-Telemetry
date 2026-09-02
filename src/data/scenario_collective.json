@@ -5,6 +5,29 @@
   "description": "Alt sistem 3 ve 5'teki kanallar birlikte kayıyor. Tek tek bakınca hiçbiri limiti aşmıyor, sapma ancak kanalları birbiriyle karşılaştırınca ortaya çıkıyor. İki model de yakalıyor ama sorumluyu farklı alt sistemde arıyor.",
   "model": "TCN-AE + Spec-AE",
   "duration_s": 90,
+  "channel_pool": [
+    [
+      "ch_75",
+      "ch_42",
+      "ch_74"
+    ],
+    [
+      "ch_74",
+      "ch_44",
+      "ch_75"
+    ],
+    [
+      "ch_75",
+      "ch_46",
+      "ch_74"
+    ],
+    [
+      "ch_74",
+      "ch_42",
+      "ch_75"
+    ]
+  ],
+  "_channel_pool_note": "$1 ve $3 alt sistem 3, $2 alt sistem 5. Kolektif sapmanin anlami iki alt sistemin birlikte kaymasi; havuz bu kisiti korur.",
   "_attribution_note": "XAI L2 gorseli bildirinin Spec-AE / TCN-AE alt sistem atfi karsilastirmasidir: Spec-AE %52,4 -> alt sistem 5, TCN-AE %62,3 -> alt sistem 3.",
   "timeline": [
     {
@@ -13,19 +36,19 @@
       "duration_s": 78,
       "ramp_s": 22,
       "oscillation_hz": 0.045,
-      "max_abs_eng": 2.6,
+      "max_abs_eng": 2.9,
       "targets": [
         {
-          "pid": "ch_75",
-          "magnitude": -1.3
+          "pid": "$1",
+          "magnitude": -1.9
         },
         {
-          "pid": "ch_42",
-          "magnitude": 1.15
+          "pid": "$2",
+          "magnitude": 1.68
         },
         {
-          "pid": "ch_74",
-          "magnitude": 0.95
+          "pid": "$3",
+          "magnitude": 1.39
         }
       ]
     },
@@ -87,7 +110,7 @@
       ],
       "severity": 2,
       "pid": "AI_SCORE_SS3",
-      "text": "Kolektif sapma, en büyük pay ch_75'te",
+      "text": "Kolektif sapma büyüyor, en büyük payı $1 taşıyor",
       "model": "TCN-AE",
       "confidence": 0.84
     },
@@ -95,13 +118,12 @@
       "t": 46,
       "type": "show_xai",
       "level": 1,
-      "asset": "xai/collective_residual.png",
-      "caption": "Sapma hangi kanallara, ne zaman yayıldı",
+      "caption": "Model ne bekliyordu, ne ölçüldü",
       "model": "TCN-AE",
       "top_channels": [
-        "ch_75",
-        "ch_42",
-        "ch_74"
+        "$1",
+        "$2",
+        "$3"
       ],
       "band": "dom 0,002–0,125 Hz"
     },
@@ -122,13 +144,12 @@
       "t": 56,
       "type": "show_xai",
       "level": 2,
-      "asset": "xai/collective_channel_attr.png",
-      "caption": "Hangi kanal ne kadar pay aldı, kaynak nerede",
+      "caption": "Hangi kanal ne kadar pay aldı, kaynak nerede başladı",
       "model": "TCN-AE + Spec-AE",
       "top_channels": [
-        "ch_75",
-        "ch_42",
-        "ch_74"
+        "$1",
+        "$2",
+        "$3"
       ],
       "band": "dom 0,002–0,125 Hz"
     },
@@ -153,7 +174,7 @@
       ],
       "severity": 3,
       "pid": "AI_SCORE_SS3",
-      "text": "Kolektif sapma doğrulandı. Klasik limit kontrolü hâlâ sessiz.",
+      "text": "Kolektif sapma doğrulandı. Klasik limit kontrolü hala sessiz kalıyor.",
       "model": "TCN-AE",
       "confidence": 0.91
     },
@@ -161,13 +182,12 @@
       "t": 66,
       "type": "show_xai",
       "level": 3,
-      "asset": "xai/collective_gradcam.png",
-      "caption": "Model nereye ve ne zaman baktı",
+      "caption": "Sapma zamanla nasıl yayıldı",
       "model": "TCN-AE",
       "top_channels": [
-        "ch_75",
-        "ch_42",
-        "ch_74"
+        "$1",
+        "$2",
+        "$3"
       ],
       "band": "dom 0,002–0,125 Hz"
     }

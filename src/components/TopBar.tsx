@@ -61,7 +61,7 @@ export default function TopBar() {
       </Field>
 
       <div className="flex flex-col justify-center px-3 border-r border-ops-line">
-        <div className="text-2xs uppercase tracking-[0.16em] text-ops-faint leading-none">Hız</div>
+        <div className="text-2xs uppercase tracking-[0.16em] text-ops-faint leading-[13px]">Hız</div>
         <div className="flex gap-1 mt-1.5">
           {SPEED_OPTIONS.map((s) => (
             <button

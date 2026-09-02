@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { XaiEvidence } from './engine/types';
 import { Simulation } from './engine/simulation';
 import type { Speed } from './engine/missionClock';
 import { DEFAULT_SEVERITY_INDEX, NOMINAL_SCENARIO, type Scenario } from './engine/scenarioRunner';
@@ -23,8 +24,8 @@ interface ConsoleState {
   duraklatmaYapildi: boolean;
 
   /** Ekranin ortasinda buyutulmus gosterilen XAI gorseli (yoksa null). */
-  buyukGorsel: { url: string; baslik: string } | null;
-  gorselAc: (url: string, baslik: string) => void;
+  buyukGorsel: { kanit: XaiEvidence; baslik: string } | null;
+  gorselAc: (kanit: XaiEvidence, baslik: string) => void;
   gorselKapat: () => void;
 
   devamEt: () => void;
@@ -57,7 +58,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   duraklatmaYapildi: false,
   buyukGorsel: null,
 
-  gorselAc: (url, baslik) => set({ buyukGorsel: { url, baslik } }),
+  gorselAc: (kanit, baslik) => set({ buyukGorsel: { kanit, baslik } }),
   gorselKapat: () => set({ buyukGorsel: null }),
 
   devamEt: () => set({ durduruldu: false }),

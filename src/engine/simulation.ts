@@ -37,7 +37,7 @@ export class Simulation {
   readonly clock = new MissionClock();
   private source = new TelemetrySource();
   private limits = new LimitChecker();
-  private runner: ScenarioRunner | null = null;
+  runner: ScenarioRunner | null = null;
 
   buffers = new Map<string, Sample[]>();
   alarms: Alarm[] = [];
@@ -97,12 +97,13 @@ export class Simulation {
     return this.runner ? this.runner.progress(this.clock.missionT) : 0;
   }
 
-  startScenario(scenario: Scenario): void {
+  /** `pick` verilirse kanal secimi belirlenimci olur (testler icin). */
+  startScenario(scenario: Scenario, pick?: number): void {
     if (scenario.id === NOMINAL_SCENARIO.id || scenario.timeline.length === 0) {
       this.runner = null;
       return;
     }
-    this.runner = new ScenarioRunner(scenario, this.clock.missionT, this.severityIndex);
+    this.runner = new ScenarioRunner(scenario, this.clock.missionT, this.severityIndex, pick);
     this.xai = [];
   }
 
@@ -302,7 +303,8 @@ export class Simulation {
           });
         } else if (step.type === 'show_xai') {
           const ev: XaiEvidence = {
-            asset: step.asset,
+            scenarioId: this.runner!.scenario.id,
+            channels: this.runner!.channels,
             caption: step.caption,
             top_channels: step.top_channels,
             band: step.band,

@@ -42,7 +42,7 @@ export default function PacketInspector() {
             {pkt.hex}
           </div>
           <div className="text-3xs text-ops-faint mt-1 leading-snug truncate">
-            Uydudan inen ham baytlar. Paket yapısı CCSDS standardına göre.
+            Uydudan inen ham baytları gösterir. Paket yapısı CCSDS standardına uyar.
           </div>
         </div>
       ) : (

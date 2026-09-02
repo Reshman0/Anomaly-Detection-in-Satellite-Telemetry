@@ -2,11 +2,22 @@
   "id": "point",
   "name": "Nokta anomalisi",
   "button": "Nokta anomalisi enjekte et",
-  "description": "Alt sistem 5'te kısa bir sıçrama. Değer bandı aştığı için uçuş yazılımı da alarm verir. Klasik limit kontrolünün işini yaptığı tek senaryo bu.",
+  "description": "Alt sistem 5'te kısa bir sıçrama oluşur. Değer bandı aştığı için uçuş yazılımı da alarm verir. Klasik limit kontrolünün işini yaptığını bu senaryoda görürüz.",
   "model": "Spectrogram-AE",
   "duration_s": 90,
+  "channel_pool": [
+    [
+      "ch_42"
+    ],
+    [
+      "ch_44"
+    ],
+    [
+      "ch_46"
+    ]
+  ],
+  "_channel_pool_note": "Alt sistem 5 kanallari (ESA-ADB channels.csv: subsystem_5, Target=YES). Senaryo her kosuda birini secer.",
   "_note": "Buradaki ST[12] gecis raporlari senaryo dosyasindan gelmez; limitChecker MIB limitleriyle akan degeri karsilastirarak uretir.",
-  "_channel_note": "ch_44 ESA-ADB channels.csv'de subsystem_5 / Target=YES. Bildirinin Level-1 kanal katki grafiginde baskin kanal (%56,3) ch_44'tur.",
   "timeline": [
     {
       "t": 29,
@@ -17,7 +28,7 @@
     {
       "t": 30,
       "type": "inject_point",
-      "pid": "ch_44",
+      "pid": "$1",
       "magnitude": 8.6,
       "width_s": 3
     },
@@ -36,7 +47,7 @@
       ],
       "severity": 3,
       "pid": "AI_SCORE_SS5",
-      "text": "ch_44 kanalında tekil sıçrama, alt sistem 5",
+      "text": "Alt sistem 5'te $1 kanalı tekil bir sıçrama yaptı",
       "model": "Spectrogram-AE",
       "confidence": 0.94
     },
@@ -44,12 +55,10 @@
       "t": 32,
       "type": "show_xai",
       "level": 1,
-      "asset": "xai/specae_ss5_residual.png",
-      "caption": "Sapma hangi kanalda, ne zaman başladı",
+      "caption": "Model ne bekliyordu, ne ölçüldü",
       "model": "Spectrogram-AE",
       "top_channels": [
-        "ch_44",
-        "ch_46"
+        "$1"
       ],
       "band": "STFT Band-0 · nfft 64/128/256"
     },
@@ -63,12 +72,10 @@
       "t": 40,
       "type": "show_xai",
       "level": 2,
-      "asset": "xai/specae_ss5_channel_attr.png",
       "caption": "Hangi kanal ne kadar pay aldı",
       "model": "Spectrogram-AE",
       "top_channels": [
-        "ch_44",
-        "ch_42"
+        "$1"
       ],
       "band": "STFT Band-0 · nfft 64/128/256"
     },
@@ -82,11 +89,10 @@
       "t": 52,
       "type": "show_xai",
       "level": 3,
-      "asset": "xai/specae_ss5_gradcam.png",
-      "caption": "Model nereye ve ne zaman baktı",
+      "caption": "Sapma zamanla nasıl yayıldı",
       "model": "Spectrogram-AE",
       "top_channels": [
-        "ch_44"
+        "$1"
       ],
       "band": "STFT Band-0 · nfft 64/128/256"
     },
@@ -99,7 +105,7 @@
       ],
       "severity": 0,
       "pid": "AI_SCORE_SS5",
-      "text": "Alt sistem 5 nominale döndü, skor eşiğin altında",
+      "text": "Alt sistem 5 nominale döndü, skor eşiğin altına indi",
       "model": "Spectrogram-AE",
       "confidence": 0.88
     }

@@ -9,7 +9,7 @@ import type { LimitState, MibParameter, Sample } from '../engine/types';
 /** `AI_SCORE_SS3` -> `Yapay zeka skoru · alt sistem 3` (ekranda parametre kodu gorunmesin). */
 function aiName(pid: string): string {
   const m = /^AI_SCORE_SS(\d+)$/.exec(pid);
-  return m ? 'Yapay zekâ · alt sistem ' + m[1] : pid;
+  return m ? 'Yapay zeka · alt sistem ' + m[1] : pid;
 }
 
 interface Props {
@@ -94,6 +94,31 @@ function drawStrip(
   }
   g.setLineDash([]);
 
+  /*
+   * Beklenen aralik bandi.
+   *
+   * Sapmayi gorunur kilan asil sey mutlak piksel miktari degil, izin bu
+   * bandin disina cikmasi. Serit -6.2..+6.2 arasini gosteriyor ama kanal
+   * normalde +-0.9 icinde geziniyor: dikey alanin %86'si bos. Bant olmadan
+   * yavas suruklenme, kanalin kendi gurultusunden ayirt edilemiyor.
+   *
+   * Sinir: ortalama +- (2 sigma + gunluk salinim genligi), yani kanalin
+   * anomali yokken kaldigi bolge.
+   */
+  const yariCap = 2 * p.sim.sd + p.sim.diurnal_amp;
+  const bandUst = y(p.sim.mean + yariCap);
+  const bandAlt = y(p.sim.mean - yariCap);
+  g.fillStyle = alpha(p.derived ? COLOR.ai : COLOR.nominal, 0.12);
+  g.fillRect(0, bandUst, w, bandAlt - bandUst);
+  g.strokeStyle = alpha(p.derived ? COLOR.ai : COLOR.nominal, 0.35);
+  g.lineWidth = 1;
+  for (const by of [bandUst, bandAlt]) {
+    g.beginPath();
+    g.moveTo(0, Math.round(by) + 0.5);
+    g.lineTo(w, Math.round(by) + 0.5);
+    g.stroke();
+  }
+
   // Dakikalik dusey isaretler
   g.strokeStyle = alpha(COLOR.line2, 0.55);
   for (let t = Math.ceil(t0 / 60) * 60; t <= missionT; t += 60) {
@@ -169,7 +194,7 @@ export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
       <div className="w-[268px] shrink-0 px-2 py-[3px] border-r border-ops-line flex flex-col justify-center gap-[3px] min-w-0">
         {/* 1. satir: kimlik + kaynak */}
         <div className="flex items-center gap-1.5 min-w-0 leading-[14px]">
-          {p.derived && <span className="text-ops-ai text-[11px] leading-none shrink-0">◆</span>}
+          {p.derived && <span className="text-ops-ai text-[11px] leading-[14px] shrink-0">◆</span>}
           <span
             className={(p.derived ? 'text-[12px]' : 'num text-[13px]') + ' text-ops-text truncate'}
           >
@@ -187,12 +212,20 @@ export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
 
         {/* 2. satir: sayac + deger + durum */}
         <div className="flex items-baseline gap-1.5 min-w-0 leading-none">
-          <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0">sayaç</span>
-          <span className="num text-[12px] text-ops-dim shrink-0">
-            {last && last.raw !== null ? last.raw : '—'}
-          </span>
+          {/*
+            Turetilmis satirlarda ham sayac yok (deger uydudan gelmiyor, yerde
+            hesaplaniyor) ve "deger" etiketi ne oldugunu soylemiyordu.
+          */}
+          {!p.derived && (
+            <>
+              <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0">sayaç</span>
+              <span className="num text-[12px] text-ops-dim shrink-0">
+                {last && last.raw !== null ? last.raw : '—'}
+              </span>
+            </>
+          )}
           <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0 ml-1">
-            değer
+            {p.derived ? 'anomali skoru' : 'değer'}
           </span>
           <span className={'num text-[15px] shrink-0 ' + stateTextClass(state)}>
             {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
