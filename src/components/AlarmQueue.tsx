@@ -49,7 +49,9 @@ export default function AlarmQueue() {
               key={a.id}
               onClick={() => selectAlarm(isSel ? null : a.id)}
               className={
-                'card-in w-full text-left px-2 py-1.5 border-b border-ops-line border-l-2 ' +
+                // 'block': buton varsayilan inline-block oldugundan uzun alarm metni sarinca
+                // icerik yuksekligini almiyor ve karttan tasiyordu.
+                'card-in block w-full text-left px-2 py-1.5 border-b border-ops-line border-l-2 ' +
                 ac.border +
                 (isSel ? ' bg-white/[0.045]' : ' hover:bg-white/[0.025]')
               }

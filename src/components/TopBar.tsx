@@ -20,6 +20,7 @@ export default function TopBar() {
   const setSpeed = useConsole((s) => s.setSpeed);
   // Duraklatilmisken secili hiz vurgusu sonuk gorunur: akis gercekten akmiyor.
   const durduruldu = useConsole((s) => s.durduruldu);
+  const infoAc = useConsole((s) => s.infoAc);
   const sim = useConsole((s) => s.sim);
   useConsole((s) => s.version);
 
@@ -129,6 +130,19 @@ export default function TopBar() {
       </Field>
 
       <div className="flex-1" />
+
+      {/* Uydu bilgi penceresini acar: operator notu, gorev omru, anomali
+          sikligi, yer izi bolgeleri ve nadir acisi. */}
+      <div className="flex items-center px-3">
+        <button
+          onClick={infoAc}
+          title="Uydu bilgileri"
+          className="flex items-center gap-1 px-2 py-[5px] border border-ops-line2 text-ops-dim hover:text-ops-text hover:border-ops-dim transition-colors"
+        >
+          <span className="text-[13px] leading-[15px]">ⓘ</span>
+          <span className="text-2xs uppercase tracking-[0.14em] leading-[13px]">Bilgi</span>
+        </button>
+      </div>
     </header>
   );
 }

@@ -12,7 +12,7 @@ function picks(id: string): number[] {
 
 describe('hedef kanal havuzdan secilir', () => {
   it('her senaryonun havuzu doludur ve secenekler MIB kanallaridir', () => {
-    for (const id of ['point', 'drift', 'collective']) {
+    for (const id of ['point', 'drift', 'collective', 'structural']) {
       const pool = scenario(id).channel_pool!;
       expect(pool.length, id).toBeGreaterThan(1);
       for (const secenek of pool) {
@@ -22,7 +22,7 @@ describe('hedef kanal havuzdan secilir', () => {
   });
 
   it('havuzdaki her secenek gercekten secilebilir', () => {
-    for (const id of ['point', 'drift', 'collective']) {
+    for (const id of ['point', 'drift', 'collective', 'structural']) {
       const gorulen = new Set(picks(id).map((p) => pickChannels(scenario(id), p).join(',')));
       expect(gorulen.size, id).toBe(scenario(id).channel_pool!.length);
     }
@@ -41,7 +41,7 @@ describe('hedef kanal havuzdan secilir', () => {
 
 describe('yer tutucular tek yerden cozulur', () => {
   it('cozulmus senaryoda $n kalmaz ve secilen kanal her yerde ayni', () => {
-    for (const id of ['point', 'drift', 'collective']) {
+    for (const id of ['point', 'drift', 'collective', 'structural']) {
       for (const p of picks(id)) {
         const kanallar = pickChannels(scenario(id), p);
         const sc = resolveScenario(scenario(id), kanallar);
@@ -72,7 +72,7 @@ describe('yer tutucular tek yerden cozulur', () => {
 
 describe('kanit gorselleri secilen kanali gosterir', () => {
   it('sekil 2: en buyuk payi senaryonun enjekte ettigi kanal alir', () => {
-    for (const id of ['point', 'drift', 'collective']) {
+    for (const id of ['point', 'drift', 'collective', 'structural']) {
       for (const p of picks(id)) {
         const kanallar = pickChannels(scenario(id), p);
         const sc = resolveScenario(scenario(id), kanallar);
@@ -84,7 +84,7 @@ describe('kanit gorselleri secilen kanali gosterir', () => {
   });
 
   it('sekil 1: fark yalnizca hedef kanalda buyur, hedef olmayanda kalir', () => {
-    for (const id of ['point', 'drift']) {
+    for (const id of ['point', 'drift', 'structural']) {
       for (const p of picks(id)) {
         const kanallar = pickChannels(scenario(id), p);
         const sc = resolveScenario(scenario(id), kanallar);

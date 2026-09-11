@@ -1,0 +1,128 @@
+{
+  "id": "structural",
+  "name": "Yapısal kırılma",
+  "button": "Yapısal kırılma enjekte et",
+  "description": "Alt sistem 5'te değer bir anda kayar ve yeni seviyesinde kalır. Geri dönmediği için sıçramaya benzemez, sabit kaldığı için sürüklenmeye de. Sensör ofseti kaydığında ya da bir ısıtıcı anahtarı takıldığında tablo böyle görünür.",
+  "model": "Spectrogram-AE",
+  "duration_s": 90,
+  "channel_pool": [
+    [
+      "ch_42"
+    ],
+    [
+      "ch_44"
+    ],
+    [
+      "ch_46"
+    ]
+  ],
+  "_channel_pool_note": "Alt sistem 5 kanallari. Senaryo her kosuda birini secer.",
+  "_limit_constraint": "magnitude 1.6, en yuksek siddet kademesinde (x1.3) 2.08 eder; nominal salinimla birlikte max_abs_eng 2.9'a kelepcelenir ve yumusak limitin (3.0) altinda kalir. limitChecker.test.ts dogrular.",
+  "timeline": [
+    {
+      "t": 24,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 0.8
+    },
+    {
+      "t": 25,
+      "type": "inject_step",
+      "pid": "$1",
+      "magnitude": 1.6,
+      "settle_s": 3,
+      "max_abs_eng": 2.9
+    },
+    {
+      "t": 28,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 3.6
+    },
+    {
+      "t": 30,
+      "type": "event",
+      "service": [
+        5,
+        3
+      ],
+      "severity": 2,
+      "pid": "AI_SCORE_SS5",
+      "text": "Alt sistem 5'te seviye bir anda değişti",
+      "model": "Spectrogram-AE",
+      "confidence": 0.88
+    },
+    {
+      "t": 30,
+      "type": "show_xai",
+      "level": 1,
+      "caption": "Model ne bekliyordu, ne ölçüldü",
+      "model": "Spectrogram-AE",
+      "top_channels": [
+        "$1"
+      ],
+      "band": "STFT Band-0 · nfft 64/128/256"
+    },
+    {
+      "t": 40,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 7.2
+    },
+    {
+      "t": 42,
+      "type": "event",
+      "service": [
+        5,
+        4
+      ],
+      "severity": 3,
+      "pid": "AI_SCORE_SS5",
+      "text": "$1 eski seviyesine dönmüyor, kırılma kalıcı",
+      "model": "Spectrogram-AE",
+      "confidence": 0.93
+    },
+    {
+      "t": 44,
+      "type": "show_xai",
+      "level": 2,
+      "caption": "Hangi kanal ne kadar pay aldı",
+      "model": "Spectrogram-AE",
+      "top_channels": [
+        "$1"
+      ],
+      "band": "STFT Band-0 · nfft 64/128/256"
+    },
+    {
+      "t": 56,
+      "type": "event",
+      "service": [
+        5,
+        4
+      ],
+      "severity": 3,
+      "pid": "AI_SCORE_SS5",
+      "text": "Yapısal kırılma doğrulandı. Klasik limit kontrolü hala sessiz kalıyor.",
+      "model": "Spectrogram-AE",
+      "confidence": 0.95
+    },
+    {
+      "t": 58,
+      "type": "show_xai",
+      "level": 3,
+      "caption": "Sapma zamanla nasıl yayıldı",
+      "model": "Spectrogram-AE",
+      "top_channels": [
+        "$1"
+      ],
+      "band": "STFT Band-0 · nfft 64/128/256"
+    },
+    {
+      "t": 70,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS5",
+      "value": 6.8
+    }
+  ],
+  "_ai_score_note": "Tepe skor 7.2: en dusuk siddet kademesinde (x0.7) bile AI sert esigini (5.0) asmali. Kirilma kalici oldugu icin skor senaryo sonuna kadar yuksek kalir."
+}

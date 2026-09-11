@@ -70,6 +70,13 @@ export function deviationField(sc: Scenario, seed: number): DeviationField {
         const d = (t - step.t) / sigma;
         grid[c][t] += Math.abs(step.magnitude) * Math.exp(-0.5 * d * d);
       }
+    } else if (step.type === 'inject_step') {
+      const c = idx(step.pid);
+      if (c < 0) continue;
+      for (let t = Math.max(0, step.t); t < dur; t++) {
+        const oturma = step.settle_s > 0 ? Math.min(1, (t - step.t) / step.settle_s) : 1;
+        grid[c][t] += Math.abs(step.magnitude) * oturma;
+      }
     } else if (step.type === 'inject_collective') {
       for (const tg of step.targets) {
         const c = idx(tg.pid);
@@ -121,6 +128,10 @@ export function signalPair(sc: Scenario, pid: string, seed: number): SignalPair 
       for (let t = 0; t < dur; t++) {
         const d = (t - step.t) / sigma;
         olculen[t] += step.magnitude * Math.exp(-0.5 * d * d);
+      }
+    } else if (step.type === 'inject_step' && step.pid === pid) {
+      for (let t = Math.max(0, step.t); t < dur; t++) {
+        olculen[t] += step.magnitude * (step.settle_s > 0 ? Math.min(1, (t - step.t) / step.settle_s) : 1);
       }
     } else if (step.type === 'inject_collective') {
       const tg = step.targets.find((x) => x.pid === pid);

@@ -24,6 +24,11 @@ interface ConsoleState {
   duraklatmaYapildi: boolean;
 
   /** Ekranin ortasinda buyutulmus gosterilen XAI gorseli (yoksa null). */
+  /** Uydu bilgi penceresi acik mi. */
+  infoAcik: boolean;
+  infoAc: () => void;
+  infoKapat: () => void;
+
   buyukGorsel: { kanit: XaiEvidence; baslik: string } | null;
   gorselAc: (kanit: XaiEvidence, baslik: string) => void;
   gorselKapat: () => void;
@@ -56,6 +61,10 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   lastXaiSeq: 0,
   durduruldu: false,
   duraklatmaYapildi: false,
+  infoAcik: false,
+  infoAc: () => set({ infoAcik: true }),
+  infoKapat: () => set({ infoAcik: false }),
+
   buyukGorsel: null,
 
   gorselAc: (kanit, baslik) => set({ buyukGorsel: { kanit, baslik } }),

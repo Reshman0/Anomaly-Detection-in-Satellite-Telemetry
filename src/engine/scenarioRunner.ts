@@ -2,12 +2,20 @@ import nominalJson from '../data/scenario_nominal.json';
 import driftJson from '../data/scenario_drift.json';
 import pointJson from '../data/scenario_point.json';
 import collectiveJson from '../data/scenario_collective.json';
+import structuralJson from '../data/scenario_structural.json';
 import { param } from './mib';
 import { BASE_PERIOD_S } from './missionClock';
 
 export type ScenarioStep =
   | { t: number; type: 'inject_drift'; pid: string; duration_s: number; magnitude: number; max_abs_eng?: number }
   | { t: number; type: 'inject_point'; pid: string; magnitude: number; width_s: number }
+  /**
+   * Yapisal kirilma: deger bir anda kayar ve YENI seviyesinde kalir.
+   * Suruklenmeden farki egimin degil seviyenin degismesi; nokta anomalisinden
+   * farki geri donmemesi. Sensor ofsetinin kaymasi ya da bir isitici anahtarinin
+   * arizalanmasi boyle gorunur.
+   */
+  | { t: number; type: 'inject_step'; pid: string; magnitude: number; settle_s: number; max_abs_eng?: number }
   | {
       t: number;
       type: 'inject_collective';
@@ -87,6 +95,7 @@ export const SCENARIOS: Scenario[] = [
   pointJson as Scenario,
   driftJson as Scenario,
   collectiveJson as Scenario,
+  structuralJson as Scenario,
 ];
 
 export const NOMINAL_SCENARIO = nominalJson as Scenario;
@@ -177,6 +186,14 @@ export class ScenarioRunner {
         if (dt < 0) continue;
         const ramp = Math.min(1, dt / step.duration_s);
         delta += step.magnitude * this.severityMul * ramp * release;
+        if (step.max_abs_eng !== undefined) maxAbsEng = step.max_abs_eng;
+      } else if (step.type === 'inject_step') {
+        if (step.pid !== pid) continue;
+        const dt = te - step.t;
+        if (dt < 0) continue;
+        // Kisa bir oturma suresiyle yeni seviyeye gecer, sonra orada kalir.
+        const oturma = step.settle_s > 0 ? Math.min(1, dt / step.settle_s) : 1;
+        delta += step.magnitude * this.severityMul * oturma * release;
         if (step.max_abs_eng !== undefined) maxAbsEng = step.max_abs_eng;
       } else if (step.type === 'inject_point') {
         if (step.pid !== pid) continue;

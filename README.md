@@ -178,7 +178,7 @@ bile gerek yoktur.
 |---|---|
 | `npm install` | Bağımlılıkları kurar (bir kez) |
 | `npm run dev` | Geliştirme sunucusu, sıcak yeniden yükleme ile |
-| `npm test` | 50 birim testini koşar |
+| `npm test` | 68 birim testini koşar |
 | `npm run build` | `dist/index.html` tek dosyasını üretir |
 | `npm run preview` | Derlenmiş çıktıyı yerelde sunar |
 
@@ -275,6 +275,26 @@ beklediği seri, ölçülen seri ve aradaki fark, 2) çubuk: kanal başına pay,
 3) ısı haritası: tüm kanallar × zaman. Aynı veriyi iki kez gösterirlerse panelin
 üç adımı birbirinden ayırt edilemiyor.
 
+**Uydu bilgisi (ⓘ).** Üst şeritteki düğme, konsolun yüzeyine sığmayan durum
+bilgilerini tek bir pencerede toplar:
+
+- **Operatöre not** — kalıcı hafızada son 24 saatte düzeltilen tek bit hata
+  sayısı. Günlük ortalamanın üzerine çıktığında panel bir öneri üretir
+  (*kalıcı hafızayı yeniden başlatın*). Düzeltilemeyen hata sayısı ayrıca
+  yazılır; uyarı var ama veri kaybı yok.
+- **Görev ömrü** — fırlatma tarihi (15-04-2023), geçen gün, tasarım ömrüne
+  (5 yıl) göre kalan süre ve ilerleme çubuğu.
+- **Yörünge ve bakış** — yükseklik, alt nokta ve **nadir açısı**: uydunun tam
+  altına bakan yönden ne kadar saptığı. Yer istasyonu ufkun altındayken açı
+  tanımsızdır ve panel bunu açıkça söyler.
+- **Anomali sıklığı** — bu oturumda gerçekten üretilen alarmların sayısı,
+  kaynağına göre ayrılmış hâli ve saatlik hızı.
+- **Uydunun geçtiği yerler** — önümüzdeki bir tur boyunca yer izinin geçeceği
+  bölgeler, giriş/çıkış saatleriyle. Karadan uzak noktalar *açık deniz* sayılır.
+
+Nadir açısı ve o an üzerinden geçilen bölge, pencereyi açmaya gerek kalmadan
+küre panelinin okuma satırında da sürekli görünür.
+
 **Görsele tıklayınca ekranın ortasında büyütülmüş hali açılır**; sağ üstteki
 `✕`, `Esc` ya da dışarı tıklamak kapatır. Şekiller 2240×840 (2×) üretildiği
 için büyütülmüş görünümde bile küçültülerek gösterilirler — yani yukarı
@@ -318,6 +338,7 @@ Ara adımlarda durulmaz: her kanıtta durmak sunumu kesik kesik yapardı.
 | Nokta anomalisi | 1 | L1 + L2 + L3 | 3 · Isı haritası | NOMİNAL / NOMİNAL |
 | Yavaş sürüklenme | 1 | L1 + L2 + L3 | 3 · Isı haritası | **NOMİNAL / ALARM ← KONTRAST** |
 | Kolektif sapma | 1 | L1 + L2 + L3 | 3 · Isı haritası | **NOMİNAL / ALARM ← KONTRAST** |
+| Yapısal kırılma | 1 | L1 + L2 + L3 | 3 · Isı haritası | **NOMİNAL / ALARM ← KONTRAST** |
 
 > **Nokta anomalisi hakkında bir not.** Sıçrama anlıktır: üçüncü kanıt düştüğü
 > ana kadar hem limit hem de yapay zeka skoru nominale dönmüş olur, bu yüzden
@@ -371,6 +392,21 @@ olarak işaretler ve **iki modelin atfını yan yana koyar:** Spectrogram-AE
 sapmanın %52,4'ünü alt sistem 5'e, TCN-AE %62,3'ünü alt sistem 3'e veriyor —
 bildirinin kendi bulgusu.
 
+### 4. Yapısal kırılma · Spectrogram-AE · ~58 s
+
+Alt sistem 5'teki bir kanal 25. saniyede **bir anda kayar ve yeni seviyesinde
+kalır**. Sıçramadan farkı geri dönmemesi, sürüklenmeden farkı eğimin değil
+seviyenin değişmesidir — sensör ofseti kaydığında ya da bir ısıtıcı anahtarı
+takıldığında telemetri tam olarak böyle görünür.
+
+Kayma yumuşak limitin altında kaldığı için uçuş yazılımı baştan sona sessiz
+kalır; alarmı yalnızca yapay zekâ skoru üretir. Kanıt 3'teki ısı haritasında
+kırılma, kanal satırı boyunca kesintisiz uzanan parlak bir şerit olarak görünür
+— nokta anomalisinin tek noktada yoğunlaşan izinden bakışta ayrılır.
+
+Kalıcılık birim testle güvence altına alınmıştır: 75. saniyedeki değer,
+kırılmadan önceki seviyeden en az 1 birim uzakta olmalıdır.
+
 > **Söylenecek:** "Burada tek tek bakınca hiçbir kanal anormal değil. Anormal
 > olan aralarındaki ilişki — ve model kaynağı da teşhis ediyor."
 
@@ -415,9 +451,11 @@ src/
     orbit.ts            SGP4 yayılımı, geçiş anları, görüş konisi
     simulation.ts       hepsini birleştiren düzenleyici
     xaiFigures.ts       kanıt görsellerinin verisi (tohumlu, saf fonksiyonlar)
+    satelliteInfo.ts    nadir açısı, görev ömrü, yer izi bölgeleri, hafıza sayacı
     *.test.ts           limitChecker / earth / xaiFigures birim testleri
   components/           arayüz (her panel bir dosya)
     XaiFigure.tsx       kanıt görselini canvas'a çizer
+    InfoPanel.tsx       uydu bilgi penceresi (üst şeritteki ⓘ Bilgi düğmesi)
   ui/colors.ts          durum renkleri
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
   store.test.ts         XAI seviye ilerlemesi testleri

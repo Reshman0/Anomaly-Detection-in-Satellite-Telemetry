@@ -13,6 +13,7 @@ import {
   subPointAt,
   visibilityConeRadiusDeg,
 } from '../engine/orbit';
+import { nadirFromElevation, regionAt } from '../engine/satelliteInfo';
 import { COLOR } from '../ui/colors';
 
 /*
@@ -253,6 +254,12 @@ export default function GlobeView() {
         }
 
         if (readout.current) {
+          /*
+            Iki satir: ilki uydunun nerede oldugu, ikincisi istasyondan nasil
+            gorundugu. Onceki "Aci" belirsizdi; "Yukselti" (istasyondan gorunen
+            yukseklik acisi) ve "Nadir" (uydunun tam altina bakan yonden sapmasi)
+            olarak ayrildi.
+          */
           readout.current.textContent =
             'Yükseklik ' +
             sp.altKm.toFixed(1) +
@@ -260,10 +267,15 @@ export default function GlobeView() {
             sp.latDeg.toFixed(2) +
             '°   Boylam ' +
             sp.lonDeg.toFixed(2) +
-            '°   Yön ' +
+            '°   Üzerinde ' +
+            regionAt(sp.latDeg, sp.lonDeg) +
+            '\n' +
+            'Yön ' +
             ((la.azimuthDeg + 360) % 360).toFixed(1) +
-            '°   Açı ' +
+            '°   Yükselti ' +
             la.elevationDeg.toFixed(1) +
+            '°   Nadir ' +
+            nadirFromElevation(sp.altKm, la.elevationDeg).toFixed(1) +
             '°   Uzaklık ' +
             la.rangeKm.toFixed(0) +
             ' km';
@@ -294,11 +306,13 @@ export default function GlobeView() {
       </div>
       <div className="relative flex-1 min-h-0">
         <div ref={host} className="absolute inset-0" />
+        {/* Okuma satiri iki satira cikinca (Uzerinde + Nadir) sag alttaki
+            gosterge ile 30 px cakisiyordu; gosterge sag ust koseye alindi. */}
         <div
           ref={readout}
-          className="absolute left-2 bottom-2 num text-3xs text-ops-dim bg-ops-sunken/80 px-1.5 py-1 pointer-events-none"
+          className="absolute left-2 bottom-2 num text-3xs text-ops-dim bg-ops-sunken/80 px-1.5 py-1 pointer-events-none whitespace-pre-line leading-[1.55]"
         />
-        <div className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/80 px-1.5 py-1 pointer-events-none leading-relaxed">
+        <div className="absolute right-2 top-2 text-3xs text-ops-faint bg-ops-sunken/80 px-1.5 py-1 pointer-events-none leading-relaxed text-right">
           <div>
             <span className="text-ops-nominal">●</span> {GROUND_STATION.name} yer istasyonu ·
             uydunun görülebildiği alan

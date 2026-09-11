@@ -10,6 +10,7 @@ import AlarmQueue from './components/AlarmQueue';
 import XaiPanel from './components/XaiPanel';
 import GorselBuyutec from './components/GorselBuyutec';
 import DuraklatmaBandi from './components/DuraklatmaBandi';
+import InfoPanel from './components/InfoPanel';
 
 /** Arayuz tazeleme araligi (ms). Gorev saati bundan bagimsiz ilerler. */
 const UI_INTERVAL_MS = 66;
@@ -112,9 +113,13 @@ export default function App() {
         </main>
         {/* 244 px: yuzey 900'e indi ve ogeler buyudu; senaryo konsolunun
             aciklamalari + sasma kaydiricisi + nominale donus satiri bu
-            yukseklige sigar. Olculdu, kirpilma yok. Sutun genisligi de
-            aciklamalarin uc satira sarmamasi icin 280'e cikarildi. */}
-        <div className="h-[252px] shrink-0 grid grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,600px)] gap-px">
+            yukseklige sigar. Olculdu, kirpilma yok.
+
+            Sutun 280'den 340'a cikarildi: dorduncu senaryo (yapisal kirilma)
+            eklendiginde dugme metinleri iki satira sariyor ve blok 44 px
+            tasiyordu. Genis sutunda hepsi tek satira siger. Alarm kuyrugu
+            bundan 60 px kaybeder, orada bol yer var. */}
+        <div className="h-[252px] shrink-0 grid grid-cols-[minmax(0,340px)_minmax(0,1fr)_minmax(0,600px)] gap-px">
           <ScenarioConsole />
           <AlarmQueue />
           <XaiPanel />
@@ -124,6 +129,8 @@ export default function App() {
       {/* Olceklenen yuzeyin DISINDA: gorselin dogal cozunurlukte, bulaniklasmadan
           gosterilebilmesi icin transform'dan etkilenmemesi gerekir. */}
       <GorselBuyutec />
+      {/* Uzun listeleri panel kirpmasina takilmadan gosterebilmek icin yuzeyin disinda. */}
+      <InfoPanel />
     </div>
   );
 }

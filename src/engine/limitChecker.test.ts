@@ -96,6 +96,44 @@ describe('§6.3 — kolektif sapma: kanallar tek tek limit içinde kalır', () =
   });
 });
 
+describe('yapısal kırılma: seviye kalıcı kayar ama limit aşılmaz', () => {
+  SEVERITY_STEPS.forEach((_mul, idx) => {
+    it('şiddet kademesi ' + (idx + 1), () => {
+      for (const pick of picks('structural')) {
+        const { worst, peakEng, sim, channels } = runScenario('structural', idx, 0, pick);
+        const hedef = channels[0];
+        // Uçuş yazılımı sessiz kalmalı: senaryonun anlamı bu.
+        expect(worst.get(hedef), hedef).toBe('NOMINAL');
+        expect(Math.abs(peakEng.get(hedef)!), hedef).toBeLessThan(param(hedef).limits.soft_high!);
+        expect(sim.serviceCounts.get('12,12') ?? 0).toBe(0);
+        // Yapay zekâ yakalamalı.
+        expect(worst.get('AI_SCORE_SS5')).toBe('HARD_HIGH');
+      }
+    });
+  });
+
+  it('kırılma kalıcıdır: senaryo sonunda değer başlangıç seviyesine dönmez', () => {
+    const sc = scenario('structural');
+    const sim = new Simulation();
+    sim.setSeverity(2);
+    sim.startScenario(sc, 0);
+    const hedef = sim.runner!.channels[0];
+
+    let baslangic = 0;
+    let kirilmaSonrasi = 0;
+    for (let i = 0; i < 80; i++) {
+      sim.advance(1000);
+      const buf = sim.buffers.get(hedef);
+      const son = buf?.[buf.length - 1];
+      if (!son || son.t < 0) continue;
+      if (i === 20) baslangic = son.eng;
+      if (i === 75) kirilmaSonrasi = son.eng;
+    }
+    // 25. saniyedeki kayma 75. saniyede hâlâ duruyor olmalı.
+    expect(Math.abs(kirilmaSonrasi - baslangic)).toBeGreaterThan(1);
+  });
+});
+
 describe('nokta anomalisi: limit kontrolü gerçekten çalışır', () => {
   SEVERITY_STEPS.forEach((_mul, idx) => {
     it('şiddet kademesi ' + (idx + 1) + ': hedef kanal sert limiti aşar ve TM[12,12] üretilir', () => {
