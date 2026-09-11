@@ -7,13 +7,39 @@
   "duration_s": 90,
   "_note": "Buradaki ST[12] gecis raporlari senaryo dosyasindan gelmez; limitChecker MIB limitleriyle akan degeri karsilastirarak uretir.",
   "timeline": [
-    { "t": 29, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 3.6 },
-    { "t": 30, "type": "inject_point", "pid": "ch_11", "magnitude": 7.4, "width_s": 3 },
-    { "t": 31, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 6.4 },
+    {
+      "t": 8,
+      "type": "info",
+      "kind": "note",
+      "title": "Yörünge bağlamı",
+      "text": "Uydu Güney Atlantik Anomalisi (SAA) bölgesine giriyor; parçacık akısı yüksek."
+    },
+    {
+      "t": 29,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS1",
+      "value": 3.6
+    },
+    {
+      "t": 30,
+      "type": "inject_point",
+      "pid": "ch_11",
+      "magnitude": 7.4,
+      "width_s": 3
+    },
+    {
+      "t": 31,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS1",
+      "value": 6.4
+    },
     {
       "t": 32,
       "type": "event",
-      "service": [5, 4],
+      "service": [
+        5,
+        4
+      ],
       "severity": 3,
       "pid": "AI_SCORE_SS1",
       "text": "Nokta anomalisi — SS1, ch_11 tekil sıçrama",
@@ -27,10 +53,31 @@
       "asset": "xai/specae_ss1_spectrogram.png",
       "caption": "Spectrogram-AE rekonstrüksiyon artığı — ch_11",
       "model": "Spectrogram-AE",
-      "top_channels": ["ch_11"],
+      "top_channels": [
+        "ch_11"
+      ],
       "band": "0.15–0.45 Hz"
     },
-    { "t": 36, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 2.4 },
+    {
+      "t": 34,
+      "type": "info",
+      "kind": "stat",
+      "title": "Kalıcı hafıza EDAC",
+      "text": "Son 24 saatte 112 düzeltilebilir hata tespit edildi ve düzeltildi (nominal üst sınır 20). Düzeltilemez hata: 0."
+    },
+    {
+      "t": 36,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS1",
+      "value": 2.4
+    },
+    {
+      "t": 38,
+      "type": "info",
+      "kind": "note",
+      "title": "ST[12] ile karşılaştırma",
+      "text": "Sabit limit sıçramayı yakaladı; AI skoru 1 örneklem önce eşiği geçti. Bu sınıf anomalide iki yöntem birlikte çalışır."
+    },
     {
       "t": 40,
       "type": "show_xai",
@@ -38,10 +85,17 @@
       "asset": "xai/specae_ss1_channel_attr.png",
       "caption": "Kanal katkı dağılımı — SS1",
       "model": "Spectrogram-AE",
-      "top_channels": ["ch_11", "ch_12"],
+      "top_channels": [
+        "ch_11"
+      ],
       "band": "0.15–0.45 Hz"
     },
-    { "t": 44, "type": "ai_score", "pid": "AI_SCORE_SS1", "value": 1.1 },
+    {
+      "t": 44,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS1",
+      "value": 1.1
+    },
     {
       "t": 52,
       "type": "show_xai",
@@ -49,18 +103,50 @@
       "asset": "xai/specae_ss1_gradcam.png",
       "caption": "Grad-CAM zaman-frekans ısı haritası — ch_11",
       "model": "Spectrogram-AE",
-      "top_channels": ["ch_11"],
+      "top_channels": [
+        "ch_11"
+      ],
       "band": "0.15–0.45 Hz"
+    },
+    {
+      "t": 56,
+      "type": "info",
+      "kind": "recommendation",
+      "title": "ÖNERİ",
+      "text": "Sonraki geçişte SS1 işlemcisini planlı yeniden başlat; EDAC scrub aralığını sıklaştır."
     },
     {
       "t": 62,
       "type": "event",
-      "service": [5, 1],
+      "service": [
+        5,
+        1
+      ],
       "severity": 0,
       "pid": "AI_SCORE_SS1",
       "text": "SS1 nominale döndü — anomali skoru eşiğin altında",
       "model": "Spectrogram-AE",
       "confidence": 0.88
     }
-  ]
+  ],
+  "story": {
+    "headline": "SAA geçişinde tekil olay: SS1 ölçüm okumasında sıçrama",
+    "summary": "Güney Atlantik Anomalisi geçişi sırasında ch_11 tek örneklemde sert limitin üstüne sıçradı ve hemen geri döndü. ST[12] tetiklendi; AI skoru sıçramadan bir örneklem önce eşiği geçti.",
+    "cause": "Yüksek enerjili parçacık kaynaklı tekil olay (SEU): ölçüm yazmacında bit değişimi. Kalıcı hafıza EDAC sayacı da aynı geçişte artıyor — ortam kaynaklı, donanım arızası değil.",
+    "history": {
+      "count": 7,
+      "window": "son 30 gün",
+      "mean_duration_s": 3,
+      "trend": "SAA geçişleriyle örtüşüyor"
+    },
+    "recommendation": {
+      "urgency": "planlı",
+      "action": "ÖNERİ: sonraki geçişte SS1 işlemcisini planlı yeniden başlat",
+      "steps": [
+        "Kalıcı hafıza EDAC scrub aralığını 6 sa → 1 sa'ya indir",
+        "SAA geçişlerinde SS1 için genişletilmiş izleme (ST[12] repetition 1 → 2)",
+        "Yeniden başlatma sonrası düzeltilebilir hata sayacını sıfırla ve 24 sa izle"
+      ]
+    }
+  }
 }

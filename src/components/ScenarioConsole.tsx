@@ -74,6 +74,9 @@ export default function ScenarioConsole() {
           >
             {NOMINAL_SCENARIO.button}
           </button>
+          <div className="num text-3xs text-ops-faint mt-1 text-center tracking-wide">
+            1 2 3 senaryo · N nominal · L T küre · F takip · 0 hız 1×
+          </div>
         </div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 import { MIB } from './mib';
 
-export const SPEED_OPTIONS = [1, 60, 600] as const;
+/** Ust seritteki hiz carpanlari. 1x senaryo izlemek, 30-60x gecisleri, 300-600x tam yorungeyi izlemek icin. */
+export const SPEED_OPTIONS = [1, 10, 30, 60, 300, 600] as const;
 export type Speed = (typeof SPEED_OPTIONS)[number];
 
 /** Uygulama acilirken seritlerde gorunecek gecmis (§5): 10 dakika. */

@@ -2,9 +2,10 @@ import { LimitChecker, isHard, isSoft, stateLabel, type CheckTransition } from '
 import { MIB, PARAMETERS, apidLabel, param, subsystemName } from './mib';
 import { BASE_PERIOD_S, MissionClock, PREFILL_S, fmtTimeMs } from './missionClock';
 import { buildTmPacket, concatBytes, resetCounters, u16, type BuiltPacket, type PacketField } from './packetBuilder';
-import { DEFAULT_SEVERITY_INDEX, NOMINAL_SCENARIO, ScenarioRunner, type Scenario } from './scenarioRunner';
+import { DEFAULT_SEVERITY_INDEX, NOMINAL_SCENARIO, ScenarioRunner, targetPid, type Scenario } from './scenarioRunner';
 import { TelemetrySource } from './telemetrySource';
-import type { Alarm, LimitState, Sample, XaiEvidence } from './types';
+import { detectBreak, fitNominal, type NominalModel } from './changePoint';
+import type { Alarm, InfoNote, LimitState, OpsNotification, Sample, StructuralBreak, XaiEvidence } from './types';
 
 /** Seritlerde tutulan gecmis penceresi (gorev saniyesi). */
 export const WINDOW_S = PREFILL_S;
@@ -50,7 +51,22 @@ export class Simulation {
   serviceCounts = new Map<string, number>();
   packetCount = 0;
 
+  /** INFO paneli: senaryo notlari, bu oturumda kacinci kez, CUSUM kirilmasi. */
+  infoNotes: InfoNote[] = [];
+  runCounts = new Map<string, number>();
+  structuralBreak: StructuralBreak | null = null;
+  /** Kalici bildirimler: AI sert esigi gecip anomali dogrulaninca onerisi buraya duser; senaryo bitince silinmez. */
+  notifications: OpsNotification[] = [];
+  private notifiedRun = false;
+  /**
+   * Kanal basina nominal model (sigma, phi, sigma_e) — acilistaki 600 s temiz
+   * on-doldurmadan bir kez kestirilir ve dondurulur. Boylece pes pese kosulan
+   * senaryolarin kuyrugu bir sonrakinin referansini kirletmez.
+   */
+  private nominalModels = new Map<string, NominalModel>();
+
   private alarmSeq = 0;
+  private noteSeq = 0;
   private pendingSteps = 0;
 
   constructor() {
@@ -65,6 +81,13 @@ export class Simulation {
     this.clock.missionT = 0;
     // Onceden doldurma sirasinda uretilen paket kaydini gosterme; sayaclar kalir.
     this.packets = [];
+    // Temiz gecmisten nominal modeller (kirilma dedektoru icin).
+    this.nominalModels.clear();
+    for (const p of PARAMETERS) {
+      if (p.derived) continue;
+      const vals = (this.buffers.get(p.pid) ?? []).map((s) => s.eng);
+      if (vals.length >= 30) this.nominalModels.set(p.pid, fitNominal(vals));
+    }
   }
 
   get activeScenario(): Scenario | null {
@@ -75,17 +98,30 @@ export class Simulation {
     return this.runner ? this.runner.progress(this.clock.missionT) : 0;
   }
 
+  /** Aktif senaryonun (izgaraya oturtulmus) baslangic gorev saniyesi. */
+  get scenarioStartT(): number | null {
+    return this.runner ? this.runner.startMissionT : null;
+  }
+
   startScenario(scenario: Scenario): void {
     if (scenario.id === NOMINAL_SCENARIO.id || scenario.timeline.length === 0) {
       this.runner = null;
+      this.infoNotes = [];
+      this.structuralBreak = null;
       return;
     }
     this.runner = new ScenarioRunner(scenario, this.clock.missionT, this.severityIndex);
     this.xai = [];
+    this.infoNotes = [];
+    this.structuralBreak = null;
+    this.notifiedRun = false;
+    this.runCounts.set(scenario.id, (this.runCounts.get(scenario.id) ?? 0) + 1);
   }
 
   stopScenario(): void {
     this.runner = null;
+    this.infoNotes = [];
+    this.structuralBreak = null;
   }
 
   setSeverity(index: number): void {
@@ -100,6 +136,11 @@ export class Simulation {
     this.lastTransition = null;
     this.packetCount = 0;
     this.serviceCounts.clear();
+    this.infoNotes = [];
+    this.runCounts.clear();
+    this.structuralBreak = null;
+    this.notifications = [];
+    this.notifiedRun = false;
     this.limits.reset();
     resetCounters();
     this.source = new TelemetrySource();
@@ -216,6 +257,7 @@ export class Simulation {
         obt: fmtTimeMs(unixMs + MIB.obt_offset_s * 1000),
         missionT,
         transition: { from: tr.from, to: tr.to },
+        packet: packetRef(pkt),
       });
     }
 
@@ -257,9 +299,11 @@ export class Simulation {
             missionT,
             model: step.model,
             confidence: step.confidence,
+            packet: packetRef(pkt),
           });
         } else if (step.type === 'show_xai') {
           const ev: XaiEvidence = {
+            missionT,
             asset: step.asset,
             caption: step.caption,
             top_channels: step.top_channels,
@@ -268,9 +312,101 @@ export class Simulation {
             level: step.level,
           };
           this.xai = [...this.xai.filter((x) => x.level !== ev.level), ev].sort((a, b) => a.level - b.level);
+        } else if (step.type === 'info') {
+          this.pushNote(step.kind, step.title, step.text, missionT, unixMs);
+        }
+      }
+
+      this.maybeNotify(runner, missionT, unixMs);
+
+      // --- yapisal kirilma: senaryo dosyasina bakmaz, hedef kanali CUSUM ile izler ---
+      if (!this.structuralBreak) {
+        const pid = targetPid(runner.scenario);
+        // Pencere senaryo baslangicindan baslar: onceki gurultuden gelen bir
+        // sahte gecis gercek kirilmayi bloke etmesin.
+        const brk = pid
+          ? detectBreak(this.buffers.get(pid) ?? [], missionT, {
+              startAfterT: runner.startMissionT,
+              model: this.nominalModels.get(pid),
+              // Taban cizgisi icin 240 s medyan: bir onceki senaryonun kuyrugu
+              // referansin yarisindan azini kaplar, medyan etkilenmez.
+              refS: 240,
+            })
+          : null;
+        if (pid && brk) {
+          this.structuralBreak = { pid, ...brk };
+          const p = param(pid);
+          const text =
+            pid +
+            ' yapısal kırılma ' +
+            (brk.direction === 1 ? '↑' : '↓') +
+            ' · başlangıç t+' +
+            Math.round(brk.breakT - runner.startMissionT) +
+            ' s · tespit t+' +
+            Math.round(brk.detectedT - runner.startMissionT) +
+            ' s · ' +
+            brk.magnitudeSigma.toFixed(1) +
+            'σ (CUSUM)';
+          this.pushNote('stat', 'Yapısal kırılma hesaplandı', text, missionT, unixMs);
+          this.pushAlarm({
+            id: ++this.alarmSeq,
+            service: [5, 1],
+            severity: 0,
+            source: 'AI_DERIVED',
+            apid: p.apid,
+            pid,
+            subsystem: p.subsystem,
+            text,
+            utc: fmtTimeMs(unixMs),
+            obt: fmtTimeMs(unixMs + MIB.obt_offset_s * 1000),
+            missionT,
+            model: 'CUSUM',
+          });
         }
       }
     }
+  }
+
+  /**
+   * Dogrulama: hedef alt sistemin AI skoru sert esigi gecince senaryonun
+   * onerisi kalici bildirim listesine bir kez yazilir.
+   */
+  private maybeNotify(runner: ScenarioRunner, missionT: number, unixMs: number): void {
+    if (this.notifiedRun) return;
+    const sc = runner.scenario;
+    const pid = targetPid(sc);
+    if (!pid || !sc.story) return;
+    const sub = param(pid).subsystem;
+    const ai = PARAMETERS.find((q) => q.derived && q.pid === 'AI_SCORE_' + sub);
+    if (!ai) return;
+    const buf = this.buffers.get(ai.pid) ?? [];
+    const last = buf[buf.length - 1];
+    if (!last || last.t < runner.startMissionT || last.eng < (ai.limits.hard_high ?? 5)) return;
+    this.notifiedRun = true;
+    this.notifications.unshift({
+      id: ++this.noteSeq,
+      missionT,
+      utc: fmtTimeMs(unixMs).slice(0, 8),
+      scenarioId: sc.id,
+      scenarioName: sc.name,
+      headline: sc.story.headline,
+      urgency: sc.story.recommendation.urgency,
+      action: sc.story.recommendation.action,
+      steps: sc.story.recommendation.steps,
+      runNo: this.runCounts.get(sc.id) ?? 1,
+    });
+    if (this.notifications.length > 20) this.notifications.length = 20;
+  }
+
+  private pushNote(kind: InfoNote['kind'], title: string, text: string, missionT: number, unixMs: number): void {
+    this.infoNotes.push({ id: ++this.noteSeq, missionT, utc: fmtTimeMs(unixMs).slice(0, 8), kind, title, text });
+    if (this.infoNotes.length > 30) this.infoNotes.splice(0, this.infoNotes.length - 30);
+  }
+
+  /** Operator onayi: alarm kaydini isaretler; hicbir sey gondermez. */
+  acknowledge(id: number): void {
+    const a = this.alarms.find((x) => x.id === id);
+    if (a) a.acknowledged = true;
   }
 
   private pushPacket(p: BuiltPacket): void {
@@ -316,6 +452,15 @@ function stateCode(s: LimitState): number {
     case 'HARD_HIGH':
       return 4;
   }
+}
+
+/** Alarm kartina ilistirilecek hafif paket ozeti. */
+function packetRef(p: BuiltPacket): NonNullable<Alarm['packet']> {
+  return {
+    label: p.label,
+    hex: p.hex,
+    fields: p.fields.map((f) => ({ name: f.name, bits: f.bits, value: f.binary ?? f.value, group: f.group })),
+  };
 }
 
 /** Parametre adini 16 bitlik bir kimlige indirger (paket alani icin). */

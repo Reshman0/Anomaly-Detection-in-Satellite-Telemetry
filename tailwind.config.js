@@ -15,6 +15,7 @@ export default {
           faint: '#4A5B66',
           nominal: '#2FBF87',
           soft: '#D9A02B',
+          warn: '#EF7B3A',
           hard: '#E24A5F',
           ai: '#A184F5',
           aiDim: '#6B54B0',

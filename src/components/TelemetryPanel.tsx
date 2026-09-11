@@ -1,7 +1,7 @@
 import { useConsole } from '../store';
 import { PARAMETERS } from '../engine/mib';
 import { WINDOW_S } from '../engine/simulation';
-import TelemetryStrip from './TelemetryStrip';
+import TelemetryStrip, { ATTENTION_WINDOW_S } from './TelemetryStrip';
 
 export default function TelemetryPanel() {
   const sim = useConsole((s) => s.sim);
@@ -9,6 +9,15 @@ export default function TelemetryPanel() {
 
   const states = sim.snapshot().states;
   const missionT = sim.clock.missionT;
+
+  // En son yuklenen XAI kaniti: en yuksek katkili kanallara dikkat penceresi.
+  const latest = sim.xai.length ? sim.xai[sim.xai.length - 1] : null;
+  const attentionFor = (pid: string): { win: [number, number]; rank: number } | null => {
+    if (!latest) return null;
+    const rank = latest.top_channels.indexOf(pid);
+    if (rank < 0) return null;
+    return { win: [latest.missionT - ATTENTION_WINDOW_S, latest.missionT], rank: rank + 1 };
+  };
 
   return (
     <section className="panel flex flex-col min-h-0">
@@ -28,6 +37,9 @@ export default function TelemetryPanel() {
             buf={sim.buffers.get(p.pid)!}
             state={states.get(p.pid) ?? 'NOMINAL'}
             missionT={missionT}
+            attention={attentionFor(p.pid)?.win ?? null}
+            attentionRank={attentionFor(p.pid)?.rank ?? 0}
+            breakT={sim.structuralBreak && sim.structuralBreak.pid === p.pid ? sim.structuralBreak.breakT : null}
           />
         ))}
       </div>

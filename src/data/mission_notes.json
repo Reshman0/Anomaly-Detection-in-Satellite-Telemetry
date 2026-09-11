@@ -1,0 +1,20 @@
+{
+  "_note": "Senaryo yokken INFO panelinde gosterilen gorev notlari. Simule anlati; sayilar demo icindir.",
+  "notes": [
+    {
+      "kind": "stat",
+      "title": "Kalıcı hafıza EDAC",
+      "text": "Son 24 saatte 3 düzeltilebilir hata — nominal (üst sınır 20). Düzeltilemez hata: 0."
+    },
+    {
+      "kind": "note",
+      "title": "Güç bütçesi",
+      "text": "Batarya derinlik-of-discharge son yörüngede %18; güneş paneli akımı nominal."
+    },
+    {
+      "kind": "note",
+      "title": "Yönelim",
+      "text": "Yıldız izleyici kilitli, jiroskop sapması kalibrasyon içinde."
+    }
+  ]
+}
