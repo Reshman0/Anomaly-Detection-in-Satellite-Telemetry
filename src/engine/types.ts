@@ -103,9 +103,51 @@ export interface Alarm {
   confidence?: number;
   /** ST[12] icin gecis: onceki -> yeni durum */
   transition?: { from: LimitState; to: LimitState };
+  /** Alarmi tasiyan TM paketi (yer tarafi hesaplarda yok). */
+  packet?: { label: string; hex: string; fields: { name: string; bits: number; value: string; group: string }[] };
+  /** Operator onayi (ACK) — yalnizca kayit, uyduya komut degil. */
+  acknowledged?: boolean;
+}
+
+export type InfoKind = 'note' | 'stat' | 'recommendation';
+
+/** INFO paneline dusen zaman damgali operator notu. */
+export interface InfoNote {
+  id: number;
+  missionT: number;
+  utc: string;
+  kind: InfoKind;
+  title: string;
+  text: string;
+}
+
+/** Dogrulanmis bir anomalinin onerisi — senaryo bittikten sonra da kalir. */
+export interface OpsNotification {
+  id: number;
+  missionT: number;
+  utc: string;
+  scenarioId: string;
+  scenarioName: string;
+  headline: string;
+  urgency: 'izle' | 'planlı' | 'acil';
+  action: string;
+  steps: string[];
+  /** Ayni senaryonun bu oturumdaki kacinci kosusu. */
+  runNo: number;
+}
+
+/** CUSUM ile hesaplanan yapisal kirilma. */
+export interface StructuralBreak {
+  pid: string;
+  breakT: number;
+  detectedT: number;
+  direction: 1 | -1;
+  magnitudeSigma: number;
 }
 
 export interface XaiEvidence {
+  /** Kanitin yuklendigi gorev saati — seritlerdeki dikkat penceresi icin. */
+  missionT: number;
   asset: string;
   caption: string;
   top_channels: string[];

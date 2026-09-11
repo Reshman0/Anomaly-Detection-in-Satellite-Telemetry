@@ -7,24 +7,66 @@
   "duration_s": 90,
   "_limit_constraint": "inject_drift.max_abs_eng, ch_42 yumusak limitinin (3.0) altinda tutulur — yonerge §6.3. limitChecker.test.ts bunu tum siddet kademelerinde dogrular.",
   "timeline": [
-    { "t": 0, "type": "inject_drift", "pid": "ch_42", "duration_s": 70, "magnitude": 1.3, "max_abs_eng": 2.6 },
-    { "t": 18, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 1.4 },
-    { "t": 32, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 2.2 },
+    {
+      "t": 0,
+      "type": "inject_drift",
+      "pid": "ch_42",
+      "duration_s": 70,
+      "magnitude": 1.3,
+      "max_abs_eng": 2.6
+    },
+    {
+      "t": 6,
+      "type": "info",
+      "kind": "note",
+      "title": "Yörünge bağlamı",
+      "text": "Tutulma çıkışı: güneş ışığına geçiş. Yıldız izleyici optik başlığı ısınmaya başlıyor."
+    },
+    {
+      "t": 18,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS3",
+      "value": 1.4
+    },
+    {
+      "t": 26,
+      "type": "info",
+      "kind": "stat",
+      "title": "SS3 ısıtıcı görev döngüsü",
+      "text": "%62 — nominal üst sınırda. Optik başlık sıcaklık eğimi +0,4 °C/dk."
+    },
+    {
+      "t": 32,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS3",
+      "value": 2.2
+    },
     {
       "t": 40,
       "type": "event",
-      "service": [5, 1],
+      "service": [
+        5,
+        1
+      ],
       "severity": 0,
       "pid": "AI_SCORE_SS3",
       "text": "AI izleme — SS3 rekonstrüksiyon hatası yükseliyor",
       "model": "TCN-AE",
       "confidence": 0.61
     },
-    { "t": 46, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 3.4 },
+    {
+      "t": 46,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS3",
+      "value": 3.4
+    },
     {
       "t": 48,
       "type": "event",
-      "service": [5, 3],
+      "service": [
+        5,
+        3
+      ],
       "severity": 2,
       "pid": "AI_SCORE_SS3",
       "text": "Anomali adayı — SS3, ch_42 kademeli sapma",
@@ -38,10 +80,24 @@
       "asset": "xai/tcn_ss3_residual.png",
       "caption": "TCN-AE rekonstrüksiyon artığı — ch_42",
       "model": "TCN-AE",
-      "top_channels": ["ch_42", "ch_75"],
+      "top_channels": [
+        "ch_42"
+      ],
       "band": "0.02–0.08 Hz"
     },
-    { "t": 58, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 5.0 },
+    {
+      "t": 50,
+      "type": "info",
+      "kind": "note",
+      "title": "Limit kontrolü sessiz",
+      "text": "ch_42 sürüklenirken ST[12] sabit limit bandının içinde: uçuş yazılımı bir şey görmüyor. AI skoru 3σ eşiğini geçti."
+    },
+    {
+      "t": 58,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS3",
+      "value": 5.0
+    },
     {
       "t": 62,
       "type": "show_xai",
@@ -49,14 +105,24 @@
       "asset": "xai/tcn_ss3_channel_attr.png",
       "caption": "Kanal katkı dağılımı — SS3",
       "model": "TCN-AE",
-      "top_channels": ["ch_42", "ch_75"],
+      "top_channels": [
+        "ch_42"
+      ],
       "band": "0.02–0.08 Hz"
     },
-    { "t": 70, "type": "ai_score", "pid": "AI_SCORE_SS3", "value": 7.2 },
+    {
+      "t": 70,
+      "type": "ai_score",
+      "pid": "AI_SCORE_SS3",
+      "value": 7.2
+    },
     {
       "t": 72,
       "type": "event",
-      "service": [5, 4],
+      "service": [
+        5,
+        4
+      ],
       "severity": 3,
       "pid": "AI_SCORE_SS3",
       "text": "Yüksek şiddet — SS3 sapması doğrulandı; ST[12] sabit limit ihlali yok",
@@ -70,8 +136,37 @@
       "asset": "xai/tcn_ss3_gradcam.png",
       "caption": "Grad-CAM zaman-kanal ısı haritası — SS3",
       "model": "TCN-AE",
-      "top_channels": ["ch_42", "ch_75"],
+      "top_channels": [
+        "ch_42"
+      ],
       "band": "0.02–0.08 Hz"
+    },
+    {
+      "t": 76,
+      "type": "info",
+      "kind": "recommendation",
+      "title": "ÖNERİ",
+      "text": "Isıtıcı görev döngüsünü kontrol et; sonraki tutulma çıkışında SS3 için genişletilmiş izleme; ST[12] yumuşak limit tanımını daraltmayı değerlendir."
     }
-  ]
+  ],
+  "story": {
+    "headline": "Tutulma çıkışında yıldız izleyici termal sürüklenmesi",
+    "summary": "Tutulmadan çıkışta SS3 yönelim hata sinyali (ch_42) 70 saniye boyunca kademeli olarak kaydı ama sabit limit bandının içinde kaldı. ST[12] hiç tetiklenmedi; TCN-AE sapmayı 3σ'da yakaladı.",
+    "cause": "Güneş ışığına ani geçişte yıldız izleyici optik başlığında termal gradyan; odak düzlemi kayması yönelim çözümünü sürükler. Isıtıcı görev döngüsü nominal üst sınırda.",
+    "history": {
+      "count": 4,
+      "window": "son 30 gün",
+      "mean_duration_s": 70,
+      "trend": "artıyor"
+    },
+    "recommendation": {
+      "urgency": "izle",
+      "action": "ÖNERİ: yıldız izleyici ısıtıcı görev döngüsünü kontrol et; bir sonraki tutulma çıkışında SS3 için genişletilmiş izleme",
+      "steps": [
+        "Isıtıcı görev döngüsü ve optik başlık sıcaklık telemetrisini tutulma döngüsüyle ilişkilendir",
+        "ST[12] yumuşak limit tanımını (monitoring definition) daraltmayı değerlendir",
+        "Sürüklenme tekrarlarsa yönelim çözümünde jiroskop ağırlığını geçici artır"
+      ]
+    }
+  }
 }

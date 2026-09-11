@@ -95,7 +95,7 @@ npm run preview
 
 ### Dağıtım çıktısı
 
-`npm run build` **tek bir `dist/index.html` dosyası** üretir (~788 kB). Tüm
+`npm run build` **tek bir `dist/index.html` dosyası** üretir (~860 kB). Tüm
 JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri ve XAI görselleri bu
 dosyanın içine gömülüdür.
 
@@ -118,14 +118,14 @@ yeterlidir.** Bir USB bellek yeter; `node_modules` gerekmez.
 │ ÜST ŞERİT  Görev · UTC · OBT · Hız · SLE RAF · İstasyon · AOS/LOS · TLE  │
 ├───────────────────────┬──────────────────────────────────────────────────┤
 │                       │  TELEMETRİ ŞERİTLERİ                             │
-│   DÜNYA / KÜRE        │  ch_11 ch_12 ch_42 ch_75 ch_58                   │
-│   SGP4, yörünge izi,  │  ◆ AI_SCORE_SS1 / SS3 / SS5                      │
-│   görüş konisi        ├──────────────────────────────────────────────────┤
+│  KATALOG │ DÜNYA      │  ch_11 ch_12 ch_42 ch_75 ch_58                   │
+│  32 Türk │ SGP4       │  ◆ AI_SCORE_SS1 / SS3 / SS5                      │
+│  uydusu  │ gerçek zm. ├──────────────────────────────────────────────────┤
 │                       │  PAKET DENETLEYİCİ  (hex + bit alanları)         │
 │                       ├──────────────────────────────────────────────────┤
 │                       │  DURUM   ST[12]: NOMİNAL │ AI: ALARM ← KONTRAST  │
 ├───────────────────────┼───────────────────────────┬──────────────────────┤
-│  SENARYO KONSOLU      │  ALARM KUYRUĞU            │  XAI PANELİ          │
+│  SENARYO KONSOLU  │ ALARM KUYRUĞU │ GEÇİŞ PLANI + GÖKYÜZÜ │ XAI PANELİ  │
 └───────────────────────┴───────────────────────────┴──────────────────────┘
 ```
 
@@ -134,19 +134,124 @@ korelasyonu izlenimi), hız çarpanı, `SLE RAF` durumu (uydu görüş alanında
 `ACTIVE`, dışındayken `READY`), yer istasyonu, AOS/LOS geri sayımı, anlık
 yükselti açısı ve kullanılan TLE'nin yaşı.
 
-**Küre.** `satellite.js` ile gerçek SGP4. Sürükleyerek döndürülür, tekerlekle
-yakınlaştırılır. Yörünge izi, yer istasyonu görüş konisi ve görüş anında
-istasyon–uydu vektörü çizilir. Terminator, bulut katmanı, atmosfer parıltısı
-**bilerek yoktur.**
+**Küre.** `satellite.js` ile gerçek SGP4. **Türkiye'nin yörüngedeki 32
+uydusunun tamamı** gerçek zamanlı konumlarıyla çizilir: TÜRKSAT GEO haberleşme
+filosu, yer gözlem uyduları (GÖKTÜRK, İMECE, RASAT, BİLSAT), Plan-S Connecta
+IoT takımyıldızı ve akademik küçük uydular. Her uydu için hem gövde işareti hem
+**yer izdüşümü** (dünya yüzeyindeki anlık konum) gösterilir.
+
+Soldaki katalog listesinden bir uydu seçilir; seçili uydu üst şeritteki AOS/LOS
+geri sayımını, yörünge izini, görüş konisini ve görüş vektörünü sürer.
+Sürükleyerek döndürülür, tekerlekle yakınlaştırılır. Sağ üstteki `LEO` / `TÜMÜ`
+düğmeleri kamerayı alçak yörüngeye ya da GEO kuşağı dahil tüm filoya
+çerçeveler. Terminator, bulut katmanı, atmosfer parıltısı **bilerek yoktur.**
+
+**Yer zemini.** Kıtalar dolu şekiller olarak çizilir, ülke kara sınırları
+işlenir ve **Türkiye ayrı bir dolgu, en parlak anahat ve `TÜRKİYE` etiketiyle
+vurgulanır** — operatör yer istasyonunun hangi ülkede olduğunu tek bakışta
+seçebilsin diye. Zemin, uygulama açılırken tarayıcıda üretilir (Natural Earth
+verisinden bir canvas dokusu); hazır bir görüntü dosyası yüklenmez, dolayısıyla
+çalışma zamanında ağ isteği oluşmaz.
+
+> **İrtifa görsel olarak sıkıştırılmıştır.** GEO 6.6 dünya yarıçapındadır;
+> gerçek ölçekte çizilse küre noktaya dönerdi. Alçak yörüngede sapma %1'in
+> altındadır, yukarıda logaritmik olarak sıkışır. **Okunan km, derece ve
+> zaman değerleri her zaman gerçektir**; sıkıştırma yalnızca çizimdedir ve
+> ekranda yazılıdır.
+
+Küre durumsal farkındalık içindir. Telemetri akışı tek bir göreve — `AZS-DEMO`
+— aittir ve uydu seçiminden etkilenmez (yönerge §11: ikinci bir uydu misyonu
+kapsam dışı).
 
 **Telemetri şeritleri.** Her satırda parametre adı, **ham değer ve mühendislik
 değeri yan yana**, limit bandı arka planda gölge olarak. `◆` işaretli satırlar
 yer türetilmiş parametrelerdir; on-board ham karşılıkları olmadığı için ham
 sütununda `—` görünür.
 
-**Paket denetleyici.** Son üretilen paketin oktet dizisi ve çözülmüş bit
-alanları. Renk kodu: gri = birincil başlık, yeşil = PUS ikincil başlığı,
-mor = kaynak veri alanı, amber = Packet Error Control.
+Bir XAI kanıtı yüklendiğinde, kanıtın **en yüksek katkılı** saydığı kanalların
+şeritlerine mor bir dikkat parantezi ve `XAI #n` rozeti düşer: modelin kararına
+dayanak yaptığı 60 saniyelik pencere. Açıklanabilirlik böylece XAI panelinde
+kalmaz, operatörün zaten baktığı şeride iner.
+
+**INFO · operatör bilgi paneli** (kürenin altında). Panel senaryonun
+başladığına değil, konsolun **gerçekten ne tespit ettiğine** göre açılır
+(`src/engine/infoStage.ts`): `İZLEME` (hiç tespit yok — görev notları),
+`ŞÜPHE` (CUSUM kırılması *veya* AI ≥ 3σ *veya* ST[12] geçişi — tespit
+gerçekleri, imza kütüphanesinden eşleşme adayı, geçmiş), `DOĞRULANDI` (AI ≥ 5σ
+— olası neden ve ÖNERİ). Öneri notları doğrulamadan önce düşmez; panel
+şeritler, alarm kuyruğu ve XAI ile aynı anda aynı şeyi söyler. Panelin
+**BİLDİRİMLER** sekmesi doğrulanan her anomalinin önerisini kalıcı olarak
+tutar — senaryo bitip konsol nominale dönse de operatörün yapılacaklar listesi
+kaybolmaz (`sim.notifications`; sekme başlığında sayaç). Doğrulandığında
+anomalinin **hikâyesini** anlatır: *Ne oldu* ve *olası neden* (senaryo verisi,
+simüle), *geçmiş* ("bu imza son 30 günde 4 kez, ~70 s, eğilim artıyor"),
+**yapısal kırılma** (beyazlatılmış CUSUM ile **hesaplanır**, senaryo
+dosyasından okunmaz; nominal model σ/φ açılıştaki 600 s temiz geçmişten bir kez
+kestirilip dondurulur ki peş peşe koşulan senaryolar birbirinin referansını
+kirletmesin; ilgili şeritte turuncu kesikli işaret ve `TM[5,1]` bildirimi), AI
+tespit anı ve
+aciliyet rozetli **ÖNERİ** (izle / planlı / acil) ile eylem maddeleri. Altta
+zaman damgalı operatör notları senaryo ilerledikçe düşer (örn. "Kalıcı hafıza
+EDAC: son 24 saatte 112 düzeltilebilir hata düzeltildi"). Nominalde görev
+notları, sıradaki geçiş ve sayaçlar görünür. Panel başlığı senaryonun bu
+oturumda kaçıncı kez koştuğunu sayar.
+
+Üç hikâye gerçek fiziksel mekanizmalara dayanır, olaylar simüledir: SAA
+geçişinde tekil olay (SEU) ve EDAC sayacı; tutulma çıkışında yıldız izleyici
+termal sürüklenmesi; reaksiyon tekerleği sürtünme artışının termal ve yönelim
+kanallarını birlikte kaydırması.
+
+**Geçiş planı.** Kahramankazan için SGP4'ten hesaplanan geçiş tahtası. Solda
+seçili uydunun sıradaki geçişi için **kutupsal gökyüzü grafiği** (merkez zenit,
+dış çember ufuk, kuzey yukarıda; AOS yeşil, LOS kırmızı, geçiş sırasında anlık
+konum noktası). Sağda filo genelinde en yakın geçişler: AOS saati, süre, tepe
+yükselti ve geri sayım — satıra tıklamak o uyduyu seçer. GEO uydusu seçiliyse
+grafik boş kalır ve "sürekli görüş" yazar; bu bir hata değil, GEO'nun
+tanımıdır.
+
+**Yörünge elemanları.** Katalog listesinin altında seçili uydunun Kepler
+elemanları: `i e Ω ω M n T a hp ha B* epok`. Hepsi doğrudan TLE'den okunur.
+
+**Küre okuma satırı.** Seçili uydu için `ALT LAT LON AZ EL RANGE` yanında
+**menzil hızı** (`RR`, km/s — Doppler kaymasının işaretini ve büyüklüğünü
+belirleyen nicelik) ve **tek yön ışık gecikmesi** (`OWLT`, ms). İstasyondan o
+anda görünen her uyduya ince yeşil bir görüş vektörü çizilir; panel başlığı
+görünen uydu sayısını gösterir.
+
+**Kamera takibi.** `TAKİP` düğmesi (ya da `F`) kamerayı seçili uydunun üzerine
+kilitler; dünya altında döner. Fareyle müdahale takibi keser.
+
+**Zemin temaları.** Kürenin sağ üstündeki `OPS · SİYASİ · FİZİKİ` düğmeleri:
+
+| Tema | Ne gösterir | Kaynak |
+|---|---|---|
+| **OPS** | Koyu operasyon zemini: dolu kıtalar, kıyı çizgisi, ülke sınırları, Türkiye vurgulu | Natural Earth 110m, canvas'ta üretilir |
+| **SİYASİ** | Klasik siyasi harita: her ülke ayrı pastel dolgu, koyu sınırlar, **Türkçe ülke adları** (büyüklüğe göre ölçekli; küçük ülkeler okunmayacağı için atlanır), Türkiye amber | Natural Earth 110m, `NAME_TR` alanı |
+| **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
+
+Üç temada da uydular, görüş konisi, yörünge izi ve GEO kuşağı aynı kalır; yalnızca
+zemin, kenar halkası ve paralel/meridyen ağının rengi değişir. Dokular ilk
+seçimde bir kez üretilir, sonra anında anahtarlanır. Fiziki temada kabartma
+uydurulmaz — görüntü NASA'nın gerçek verisidir; §11'in yasakladığı bulut ve
+atmosfer efekti yoktur (BMNG bulutsuz bir üründür).
+
+**Paket denetleyici.** Üç katmanlı sekme: `CADU · FRAME · PACKET`. Solda bölge
+lejandı (renk, ad, özet, oktet aralığı), sağda renkli hex dökümü.
+
+- **PACKET** — son üretilen CCSDS 133.0-B Space Packet: mavi birincil başlık,
+  amber PUS-C ikincil başlığı, yeşil kullanıcı verisi, kırmızı Packet Error
+  Control.
+- **FRAME** — aynı paketi taşıyan CCSDS 132.0-B TM Transfer Frame, standart
+  RS(255,223) I=5 boyunda (1115 oktet): mavi birincil başlık (`TFVN 0 · SCID
+  171 · VCID 0`), yeşil veri alanı (paket + idle paket dolgusu, APID 2047),
+  amber **OCF/CLCW** (4 oktet, başlıkta değil sonda) ve gerçekten hesaplanan
+  kırmızı FECF (CRC-16-CCITT). Alt bilgi `MCFC · VCFC` sayaçlarını gösterir.
+- **CADU** — CCSDS 131.0-B: gerçek ASM (`1ACFFC1D`) + **Reed-Solomon kodblok
+  (255,223) I=5** (1275 oktet). Kontrol simgeleri gerçekten hesaplanır
+  (`src/engine/reedSolomon.ts`, bkz. sapma 5); hex dökümünde sahte bayt yoktur.
+
+SCID (171) ve çerçeve uzunluğu `apid_table.json` içinde tanımlı demo
+tahsisleridir, APID'ler gibi.
 
 **Durum bandı.** Solda ST[12] sabit limit durumu, sağda AI tespiti. İkisi
 ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi belirir.
@@ -155,12 +260,59 @@ ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi belirir
 nominal akışa dönüş.
 
 **Alarm kuyruğu.** Servis etiketi, UTC + OBT damgası, APID, sorumlu parametre,
-alt sistem, model adı ve güven skoru. Sol kenar rengi kaynağı söyler:
-yeşil/amber/kırmızı = `ST[12] LİMİT`, mor = `AI TÜRETİLMİŞ`.
+alt sistem, model adı ve güven skoru. Kartlar iki bağımsız renk ekseni taşır:
 
-**XAI paneli.** Üç seviyeli sekme (artık → kanal katkısı → Grad-CAM). Görseller
-bildiriden alınmış gerçek çıktılardır; dosya konulmamışsa panel boş bir yuva ve
-beklenen dosya yolunu gösterir, **sentetik grafik çizmez.**
+- **Kaynak** — sol kenar ve sağdaki etiket: mor `◆ AI TÜRETİLMİŞ`, yeşil/amber/
+  kırmızı `▲ ST[12] LİMİT` (uçuş yazılımı).
+- **Şiddet** — servis etiketi, dört bölmeli şiddet çubuğu ve kart zemini:
+  ESA-ADB 0–3 ↔ `TM[5,1..4]` → yeşil *bilgi* · amber *düşük* · turuncu *orta*
+  · kırmızı *yüksek*. Orta ve yüksek kartlar hafif renkli zemin alır.
+
+Panel başlığında şiddet başına canlı sayaçlar ve AI/ST[12] toplamı var; kuyruk
+okunmadan "kim söylüyor" ve "ne kadar ciddi" ayrı ayrı seçilir.
+
+Karta tıklamak **alarm detay penceresini** açar: UTC/OBT/görev saati, kaynak
+(APID, parametre, alt sistem, model, güven, ST[12] geçişi), parametrenin MIB
+tanımı (kalibrasyon, limitler, örnekleme) ve anlık değeri, alarm anının
+−90/+30 s bağlamını gösteren limit bantlı mini şerit, alarmı taşıyan TM
+paketinin hex dökümü ve veri alanları, o anda yüklü XAI kanıtı. `ONAYLA (ACK)`
+alarmı operatör kaydı olarak işaretler (kart soluklaşır, `✓ ACK` rozeti);
+uyduya hiçbir şey gönderilmez. Esc ya da dışına tıklama kapatır; pencere
+açıkken sunucu kısayolları devre dışıdır.
+
+**XAI paneli.** Üç seviyeli sekme (artık → kanal katkısı → Grad-CAM). Öncelik
+bildiriden alınmış gerçek PNG'dedir (`src/assets/xai/`). Dosya yoksa panel,
+**konsolun kendi telemetri tamponundan o anda hesaplanan** sentetik çizimi
+gösterir (simülasyon uyarısı üst şeritteki rozettedir; çizimin üstüne ayrıca
+yazılmaz):
+
+Üç seviye **üç farklı soruya, üç farklı nicelikle** cevap verir — aynı grafiğin
+üç görünümü değildir:
+
+- *1 · Artık — **ne zaman?*** (zaman ekseni) Hedef kanal ve rekonstrüksiyon
+  taban çizgisi; altında **AI skoru eğrisi**, 3σ/5σ eşikleri, skorun eşikleri
+  ilk geçtiği anlar (`tespit`, `doğrulama`) ve varsa ST[12] geçiş anı. Köşede
+  **öncülük süresi**: AI tespit − ST[12] geçiş. Sürüklenme/kolektifte
+  "öncülük ∞ — limit aşılmadı" yazar; demonun ana mesajı rakama bağlanır.
+- *2 · Kanal katkısı — **hangi kanal?*** (kanal ekseni) Sıfır çizgisinden
+  **işaretli tepe sapma** çubukları (ortalama değil — sıçramada ortalama
+  seyreltir, tepe seyreltmez): sağ = taban çizgisinin üstü, sol = altı;
+  `tepe +6.4σ ↑` / `tepe −7.7σ ↓` etiketleri, enerji payı yüzdesi, `baskın`
+  rozeti.
+- *3 · Grad-CAM — **hangi frekans?*** (zaman × frekans) Hedef kanal artığının
+  **AC spektrogramı** (pencere ortalaması çıkarılmış; 32 s Hann penceresi,
+  1/32 Hz çözünürlük, 0–0.5 Hz) ve altta ayrı bir **DC satırı** (sürekli
+  kayma). Senaryo kanıtındaki `band` alanı amber çerçeveyle, son 60 s dikkat
+  penceresi mor çerçeveyle, tepe hücre işaretli. Sürüklenme DC satırında
+  yoğunlaşır; kolektifteki 0.045 Hz salınım 1/32 Hz çözünürlükte 0.031 Hz
+  bin'inde, kanıt bandının içinde okunur; nokta anomalisi tepe/ortalama oranı
+  düşük olduğu için "geniş bantlı sıçrama" olarak teşhis edilir.
+
+Sekmeler soruyu taşır (`1 · Artık / ne zaman?`) ve yan sütun seviyeye özel tek
+cümlelik cevabı yazar.
+
+Hazır resim yoktur; çizim anomalinin gerçekten ekrandaki şeritlerde olduğu
+yerden türer, dolayısıyla şerit ile panel birbirini tutar.
 
 ---
 
@@ -178,6 +330,9 @@ alarm kuyruğuna **yeşil/kırmızı kenarlı** bir ST[12] kartı düşer.
 
 > **Söylenecek:** "Klasik limit kontrolü bunu zaten yakalıyor. Burada bir
 > sorunumuz yok."
+>
+> **INFO paneli:** SAA geçişi, SEU, kalıcı hafızada 24 saatte 112 düzeltilebilir
+> hata → ÖNERİ: sonraki geçişte planlı yeniden başlatma.
 
 Bu senaryonun işlevi, sonraki ikisinde ST[12]'nin sessiz kalmasının bir hata
 değil **bulgu** olduğunu kanıtlamaktır.
@@ -194,7 +349,8 @@ kartlar düşer. XAI paneli üç seviyeyi sırayla yükler.
 > hangi kanaldan geldiğini söylüyor."
 
 Durum bandındaki `NOMİNAL / ALARM` kontrastını gösterin. **Projenin tüm
-gerekçesi bu tek karededir.**
+gerekçesi bu tek karededir.** INFO panelinde yapısal kırılma anı ve "son 30
+günde 4 kez, eğilim artıyor" satırını, ardından ÖNERİ'yi gösterin.
 
 ### 3. Kolektif sapma · TCN-AE · ~62 s
 
@@ -204,6 +360,18 @@ başına limit aşmaz; anomali yalnızca çok değişkenli yapıda görünür. X
 
 > **Söylenecek:** "Burada tek tek bakınca hiçbir kanal anormal değil. Anormal
 > olan aralarındaki ilişki — ve model kaynağı da teşhis ediyor."
+
+### Klavye kısayolları
+
+Sunum sırasında fareye uzanmadan:
+
+| Tuş | Eylem |
+|---|---|
+| `1` `2` `3` | Nokta anomalisi · Yavaş sürüklenme · Kolektif sapma |
+| `N` | Nominal akışa dön |
+| `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır |
+| `F` | Seçili uyduyu kamerayla takip et (aç/kapat) |
+| `0` | Hızı 1×'e al |
 
 ### İpuçları
 
@@ -227,9 +395,16 @@ src/
   data/                 saf veri — kod yok
     mib.json            görev veritabanı: parametreler, limitler, kalibrasyon
     apid_table.json     APID tahsis tablosu
-    scenario_*.json     nominal / point / drift / collective
-    tle.txt             gömülü TLE
+    scenario_*.json     nominal / point / drift / collective (+ story ve info adımları)
+    mission_notes.json  nominal INFO paneli görev notları
+    tle.txt             gömülü TLE kataloğu (32 uydu, 3 satırlık standart biçim)
+    satellites.json     uydu meta verisi: işletici, görev türü, grup
     land_110m.json      Natural Earth 110m kıta çizgileri (kamu malı)
+    borders_110m.json   Natural Earth 110m ülke kara sınırları (kamu malı)
+    turkiye_110m.json   Türkiye anahattı — vurgulanmış çizim için
+    countries_110m.json Natural Earth 110m ülke poligonları + Türkçe adlar (siyasi tema)
+  assets/earth/
+    bmng_2048.jpg       NASA Blue Marble NG, 2048×1024 (fiziki tema), kamu malı
   engine/               saf TypeScript — React'ten bağımsız
     types.ts            ortak tipler
     mib.ts              MIB yükleme, kalibrasyon (raw ↔ mühendislik)
@@ -238,8 +413,11 @@ src/
     rng.ts              tohumlu rastgelelik (mulberry32 + Box-Muller)
     telemetrySource.ts  nominal seri üretimi + enjeksiyon
     limitChecker.ts     ST[12] sabit limit kontrolü  ← gerçekten hesaplar
-    scenarioRunner.ts   senaryo zaman çizelgesi, şiddet ölçeklemesi
-    orbit.ts            SGP4, AOS/LOS, görüş konisi
+    scenarioRunner.ts   senaryo zaman çizelgesi, şiddet ölçeklemesi, hikâye tipi
+    changePoint.ts      CUSUM yapısal kırılma tespiti
+    robust.ts           medyan / MAD taban çizgisi
+    spectral.ts         STFT, bant ayrıştırma (XAI seviye 3)
+    orbit.ts            SGP4, AOS/LOS, geçiş tahmini, gökyüzü izi, Kepler elemanları
     simulation.ts       hepsini birleştiren düzenleyici
   components/           arayüz (her panel bir dosya)
   ui/colors.ts          durum renkleri
@@ -364,6 +542,13 @@ bu kasıtlıdır.
 | `ai_score` | `pid`, `value` | AI skoru kilometre taşı; aralar doğrusal olarak dolar |
 | `event` | `service`, `severity`, `pid`, `text`, `model?`, `confidence?` | ST[05] bildirimi + alarm kartı |
 | `show_xai` | `level`, `asset`, `caption`, `model`, `top_channels[]`, `band?` | XAI panelinde ilgili seviyeyi yükler |
+| `info` | `kind` (`note`/`stat`/`recommendation`), `title`, `text` | INFO paneline zaman damgalı operatör notu düşürür |
+
+Senaryo kökünde isteğe bağlı `story` bloğu INFO panelinin hikâye alanlarını
+besler: `headline`, `summary`, `cause`, `history {count, window,
+mean_duration_s, trend}`, `recommendation {urgency: izle|planlı|acil, action,
+steps[]}`. Yapısal kırılma buradan **okunmaz**; `src/engine/changePoint.ts`
+hedef kanalı (ilk enjeksiyon adımının kanalı) CUSUM ile izler.
 
 Kurallar:
 
@@ -387,26 +572,74 @@ sıçrama sınıfı için `> 0`.
 adları [o klasördeki README](src/assets/xai/README.md) içinde listelidir. Farklı
 ad kullanacaksanız senaryo dosyalarındaki `show_xai.asset` alanını güncelleyin.
 
-Görseller derleme sırasında tek dosya çıktısına gömülür. **Sentetik olarak
-yeniden çizilmiş grafik koymayın** — panelin boş yuva göstermesi, uydurma bir
-grafik göstermesinden iyidir.
+Görseller derleme sırasında tek dosya çıktısına gömülür. PNG yokken panel `src/ui/xaiRender.ts` ile simüle
+telemetriden hesaplanan etiketli çizimi gösterir; PNG konulunca o öne geçer.
 
 Panelin görsel alanı yaklaşık 520×170 px'dir; yatay (geniş) görseller en iyi
 oturur.
 
-### Uyduyu veya yer istasyonunu değiştirmek
+### Uydu kataloğunu güncellemek
 
-TLE için `src/data/tle.txt` dosyasını üç satırlık biçimde (ad + iki satır)
-güncelleyin. NORAD numarası, epok ve yörünge periyodu satırlardan otomatik
-okunur.
+TLE'ler `src/data/tle.txt` içinde standart üç satırlık biçimdedir (ad + iki
+satır), arka arkaya. Tazelemek için Celestrak'tan yeni kayıtları çekip dosyayı
+değiştirin — **derleme zamanı** bir işlemdir, çalışma zamanında ağ isteği
+yapılmaz:
 
-**Uyarı:** GEO uydusunda (örn. TÜRKSAT 6A) AOS/LOS geçişi olmaz, uydu sabit
-görünür. Geçiş dinamiği istiyorsanız LEO bir uydu seçin. Şu an İMECE
-(NORAD 56178) kullanılıyor.
+```bash
+curl -s "https://celestrak.org/NORAD/elements/gp.php?NAME=TURKSAT&FORMAT=tle"
+```
 
-Yer istasyonu `src/data/mib.json` içindeki `ground_station` bloğundadır:
-enlem, boylam, yükseklik ve minimum yükselti açısı. Görüş konisi yarıçapı bu
-açıdan ve uydunun anlık irtifasından hesaplanır.
+Yeni bir uydu eklemek için TLE'sini `tle.txt`'e, meta verisini
+`src/data/satellites.json` içindeki `satellites` dizisine ekleyin:
+
+```jsonc
+{ "norad": "56178", "name": "İMECE", "group": "obs",
+  "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" }
+```
+
+`satellites.json` yalnızca **işletici ve görev türünü** tanımlar. Fırlatma
+yılı, yörünge sınıfı (LEO/MEO/GEO), periyot, eğim ve GEO istasyon tutumu
+göstergesi **TLE'den hesaplanır** — bu dosyada iddia edilmez (yönerge §0: bir
+alanın karşılığını bilmiyorsan ekrana koyma).
+
+İstasyon tutumu göstergesi şöyle türetilir: bir GEO uydusunun eğimi 0.5°'nin
+altında ve ortalama hareketi bir yıldız gününe (1.0027379 devir/gün) eşitse
+uydu aktif olarak tutuluyordur. TÜRKSAT 1B, 1C ve 2A bu testten geçemez —
+eğimleri 9°–14°'ye sürüklenmiştir — ve listede `yörünge tutumu yok` olarak
+görünür. Bu bir iddia değil, TLE'nin kendisinden okunan bir sonuçtur.
+
+Katalog kapsamı: Celestrak genel kataloğunda hâlâ yörünge kaydı bulunan Türk
+uyduları. Yörüngeden düşmüş küçük uydular (UBAKUSAT, BeEagleSat, HAVELSAT,
+Grizu-263A) katalogda bulunmadığı için listede yoktur.
+
+Açılışta seçili gelen uydu `satellites.json` içindeki `default_norad` ile
+belirlenir. **Uyarı:** GEO uydusunda AOS/LOS geçişi olmaz — üst şerit bu durumda
+`sürekli görünür` yazar. Geçiş dinamiği göstermek istiyorsanız LEO bir uydu
+seçin; varsayılan İMECE'dir.
+
+### Dünya zeminini değiştirmek
+
+Zemin dokusu `src/components/GlobeView.tsx` içindeki `buildEarthTexture()`
+tarafından açılışta üretilir: 4096×2048 bir canvas'a önce kara dolgusu, sonra
+Türkiye dolgusu, sonra ülke sınırları, sonra kıyı çizgisi, en son Türkiye
+anahattı çizilir. Renkler aynı dosyadaki `TEX_COLORS` bloğundadır.
+
+Doku koordinatları `toVec` ile tutarlı olacak şekilde türetilmiştir:
+`px = (lon + 180) / 360 × genişlik`, standart eşdikdörtgen düzen. Dikkat:
+`toVec` doğu boylamını **−Z**'ye düşürür; three.js sağ el sistemidir ve kamera
+dışarıdan baktığı için ancak böyle doğu ekranda sağda kalır. +Z alınırsa küre
+ayna görüntüsü olur (ilk sürümde bu hata vardı). Kontrol: varsayılan kamerada
+Türkiye tuvalin tam ortasındadır ve Ege Denizi Türkiye'nin **solunda** kalır.
+
+Daha yüksek çözünürlüklü Natural Earth verisi (50m) kullanılabilir ama tek
+dosya çıktısını ~500 kB büyütür; kürenin ekrandaki boyutunda kazanç sınırlı
+kaldığı için 110m'de kalındı.
+
+### Yer istasyonunu değiştirmek
+
+`src/data/mib.json` içindeki `ground_station` bloğundadır: enlem, boylam,
+yükseklik ve minimum yükselti açısı. Görüş konisi yarıçapı bu açıdan ve
+uydunun anlık irtifasından hesaplanır.
 
 ### Görev saati ve pencere ayarları
 
@@ -414,7 +647,7 @@ açıdan ve uydunun anlık irtifasından hesaplanır.
 
 | Sabit | Varsayılan | Anlamı |
 |---|---|---|
-| `SPEED_OPTIONS` | `1, 60, 600` | üst şeritteki hız düğmeleri |
+| `SPEED_OPTIONS` | `1, 10, 30, 60, 300, 600` | üst şeritteki hız düğmeleri |
 | `PREFILL_S` | `600` | açılışta önceden doldurulan geçmiş (ve şerit penceresi) |
 | `BASE_PERIOD_S` | `1` | temel telemetri örnekleme periyodu |
 
@@ -430,7 +663,8 @@ three.js çizimleri).
 |---|---|---|
 | Nominal | soğuk yeşil `#2FBF87` | limit içinde |
 | Yumuşak limit | amber `#D9A02B` | yumuşak bant ihlali |
-| Sert limit | kırmızı `#E24A5F` | sert bant ihlali |
+| Orta şiddet | turuncu `#EF7B3A` | yalnızca alarm kuyruğunda, ESA-ADB şiddet 2 |
+| Sert limit | kırmızı `#E24A5F` | sert bant ihlali, ESA-ADB şiddet 3 |
 | **AI tespiti** | mor `#A184F5` | AI kaynaklı alarm, türetilmiş parametre |
 | Zemin | `#0E1419` | saf siyah değil — projektörde bantlaşmasın |
 
@@ -482,7 +716,10 @@ for (let i = 0; i < 130; i++) __azs.getState().tick(1000);
 | SLE RAF durum göstergesi | CCSDS 911.1 |
 | Kanal adları (`ch_42`, `ch_75`) | ESA-ADB (anonimleştirilmiş) |
 | Önem derecesi 0–3 ↔ `TM[5,1..4]` | ESA-ADB ↔ ECSS eşlemesi |
-| Kıta çizgileri | Natural Earth 110m, kamu malı |
+| Kıta çizgileri, ülke sınırları | Natural Earth 110m, kamu malı |
+| Uydu TLE'leri | Celestrak GP (celestrak.org), son yayınlanmış kayıtlar |
+| Ülke poligonları ve Türkçe adlar | Natural Earth 110m admin_0, `NAME_TR` |
+| Fiziki zemin görüntüsü | NASA Blue Marble Next Generation, Aralık 2004, kamu malı |
 
 Yalnızca **ST[03], ST[05], ST[12]** kullanılır; başka servis numarası yoktur.
 
@@ -499,7 +736,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-23 test, tek dosyada: `src/engine/limitChecker.test.ts`.
+40 test, dört dosyada: `src/engine/limitChecker.test.ts` (26), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -527,7 +764,7 @@ npm test
 | Önem derecesi ↔ `TM[5,x]` eşlemesi | ✅ birim test |
 | Sürüklenmede limit NOMİNAL, AI alarmda | ✅ birim test, 5 şiddet kademesi |
 | Aynı düğmeye basınca aynı anomali | ✅ birim test, kesirli başlangıç dahil |
-| XAI görselleri bildiriden alınmış gerçek çıktılar | ⚠️ **görseller henüz konulmadı** — yuvalar hazır |
+| XAI görselleri bildiriden alınmış gerçek çıktılar | ⚠️ PNG'ler konulmadı; yerine **simüle veriden hesaplanan, etiketli** çizim (bkz. sapma 4) |
 | Ham ve mühendislik değer yan yana | ✅ |
 | `SİMÜLE VERİ` rozeti sürekli görünür | ✅ sağ üst köşe |
 | 1920×1080'de kaydırma çubuğu yok | ✅ ölçüldü: 1920×1080 tam |
@@ -546,6 +783,22 @@ içindir.
 yumuşak limitini (±3.0) aşardı ve §6.3'ün "limit NOMİNAL kalmalı" kısıtını
 bozardı. §6.3 kısıtı kazandı: taban büyüklük 1.3, enjeksiyona ayrıca
 `max_abs_eng` kelepçesi kondu, birim testi tüm şiddet kademelerinde doğruluyor.
+
+**5. Reed-Solomon kodlaması.** Şartname çerçeve kodlamasını ve RS'yi kapsam
+dışı bırakır. Ekibin CADU görünümü talebiyle RS(255,223) kodlayıcısı gerçekten
+yazıldı: CCSDS alanı (F(x)=x⁸+x⁷+x²+x+1), üreteç g(x)=∏(x−α^{11j}), j=112..143,
+interleave 5. Birim testler kodlanan sözcüklerin 32 sendromunun sıfır olduğunu
+doğrular. **Sınır:** CCSDS'in Berlekamp dual-basis simge gösterimi uygulanmaz,
+geleneksel taban kullanılır; bu yüzden tel üstündeki kontrol baytları standart
+kodlayıcının çıktısıyla bit-bit aynı değildir. Lejandda "geleneksel taban",
+alt bilgide "dual-basis dönüşümü uygulanmadı" yazar.
+
+**4. Sentetik XAI çizimleri.** Şartname yeniden çizilmiş grafik istemez.
+Ekibin talebiyle, gerçek PNG konulana kadar panel konsolun kendi telemetrisinden
+hesaplanan artık/katkı/ısı haritası çizimlerini gösteriyor. Hazır resim değil,
+canlı hesap; simülasyon uyarısı üst şeritteki `SİMÜLE VERİ` rozetiyle
+taşınıyor. PNG konulduğu anda öncelik ona geçer. Kanıtların `top_channels` alanı da gerçekten
+enjekte edilen kanallarla eşitlendi ki iddia ile hesap çelişmesin.
 
 **3. Kanal adları.** `ch_42` ve `ch_75` yönergede geçtiği gibi bırakıldı.
 Konsolun dolu görünmesi için ESA-ADB adlandırma şemasına uygun `ch_11`, `ch_12`,
@@ -568,8 +821,10 @@ kaydetmek Vite'ın sayfayı yeniden yüklemesine ve simülasyonun sıfırlanmas�
 açar. Senaryoyu test ederken dosya kaydetmeyin, ya da `dist` derlemesini
 kullanın.
 
-**XAI paneli boş yuva gösteriyor.** Beklenen PNG `src/assets/xai/` altında yok.
-Tasarım gereği böyle; dosyayı koyup yeniden derleyin.
+**XAI panelinde bildiri görseli yerine çizim görünüyor.** Beklenen PNG
+`src/assets/xai/` altında yok; panel simüle veriden hesaplanan çizimi
+gösteriyor (yan sütunda dosya yolu yazar). Bildiri görselini koyup yeniden
+derleyin.
 
 **1920×1080 dışında bir çözünürlükte açtım, düzen bozuk.** Konsol 1920×1080 için
 tasarlandı ve kaydırma yoktur. Daha küçük ekranlarda tarayıcı yakınlaştırmasını

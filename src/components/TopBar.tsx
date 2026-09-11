@@ -1,7 +1,7 @@
 import { useConsole } from '../store';
 import { MIB } from '../engine/mib';
 import { SPEED_OPTIONS, fmtCountdown, fmtDate, fmtTime, fmtTimeMs } from '../engine/missionClock';
-import { GROUND_STATION, NORAD_ID, TLE_EPOCH_MS, TLE_NAME, elevationAt, isVisible, nextPassEvent } from '../engine/orbit';
+import { GROUND_STATION, elevationAt, isVisible, nextPassEvent, satByNorad } from '../engine/orbit';
 import { useMemo, useRef } from 'react';
 
 function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
@@ -17,22 +17,32 @@ export default function TopBar() {
   const speed = useConsole((s) => s.speed);
   const setSpeed = useConsole((s) => s.setSpeed);
   const sim = useConsole((s) => s.sim);
+  const selectedNorad = useConsole((s) => s.selectedNorad);
   useConsole((s) => s.version);
 
   const utcMs = sim.clock.utcMs();
   const obtMs = sim.clock.obtMs();
+  const sat = satByNorad(selectedNorad);
 
   // AOS/LOS aramasi pahalidir; birkac saniyede bir tazelenir.
-  const passRef = useRef<{ atMs: number; kind: 'AOS' | 'LOS'; targetMs: number } | null>(null);
-  if (!passRef.current || Math.abs(utcMs - passRef.current.atMs) > 4000 || utcMs > passRef.current.targetMs) {
-    const ev = nextPassEvent(utcMs);
-    passRef.current = ev ? { atMs: utcMs, kind: ev.kind, targetMs: ev.unixMs } : null;
+  const passRef = useRef<{ atMs: number; norad: string; kind: 'AOS' | 'LOS'; targetMs: number } | null>(null);
+  if (
+    !passRef.current ||
+    passRef.current.norad !== selectedNorad ||
+    Math.abs(utcMs - passRef.current.atMs) > 4000 ||
+    utcMs > passRef.current.targetMs
+  ) {
+    const ev = nextPassEvent(sat, utcMs);
+    passRef.current = ev ? { atMs: utcMs, norad: selectedNorad, kind: ev.kind, targetMs: ev.unixMs } : null;
   }
   const pass = passRef.current;
-  const visible = isVisible(utcMs);
-  const elevation = elevationAt(utcMs);
+  const visible = isVisible(sat, utcMs);
+  const elevation = elevationAt(sat, utcMs);
 
-  const tleAge = useMemo(() => Math.round((Date.parse(MIB.epoch) - TLE_EPOCH_MS) / 86400000), []);
+  const tleAge = useMemo(
+    () => Math.round((Date.parse(MIB.epoch) - sat.epochMs) / 86400000),
+    [sat.epochMs],
+  );
 
   return (
     <header className="h-[52px] shrink-0 flex items-stretch bg-ops-panel border-b border-ops-line2">
@@ -58,7 +68,7 @@ export default function TopBar() {
               key={s}
               onClick={() => setSpeed(s)}
               className={
-                'num text-[11px] px-[7px] py-[1px] border transition-colors ' +
+                'num text-[11px] px-[5px] py-[1px] border transition-colors ' +
                 (speed === s
                   ? 'border-ops-nominal text-ops-nominal bg-ops-nominal/10'
                   : 'border-ops-line2 text-ops-dim hover:text-ops-text')
@@ -82,7 +92,7 @@ export default function TopBar() {
         </span>
       </Field>
 
-      <Field label={pass ? (pass.kind === 'AOS' ? 'AOS geri sayım' : 'LOS geri sayım') : 'AOS/LOS'}>
+      <Field label={pass ? (pass.kind === 'AOS' ? 'AOS geri sayım' : 'LOS geri sayım') : 'Görünürlük'}>
         {pass ? (
           <>
             <span className={pass.kind === 'LOS' ? 'text-ops-nominal' : 'text-ops-text'}>
@@ -91,7 +101,11 @@ export default function TopBar() {
             <span className="text-ops-faint ml-2 text-[11px]">@ {fmtTime(pass.targetMs)}</span>
           </>
         ) : (
-          <span className="text-ops-faint">—</span>
+          // 6 saatlik ufukta gecis yok: istasyon boylamindaki GEO uydularinda beklenen durum.
+          <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>
+            {visible ? 'sürekli görünür' : 'görüş dışı'}
+            <span className="text-ops-faint ml-2 text-[11px]">6 sa içinde geçiş yok</span>
+          </span>
         )}
       </Field>
 
@@ -102,9 +116,11 @@ export default function TopBar() {
         <span className="text-ops-faint ml-2 text-[11px]">≥ {GROUND_STATION.min_elevation_deg.toFixed(0)}°</span>
       </Field>
 
-      <Field label={'Uydu · NORAD ' + NORAD_ID}>
-        <span className="text-ops-text">{TLE_NAME}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">son yayınlanmış TLE, {tleAge} gün</span>
+      <Field label={'Seçili uydu · NORAD ' + sat.norad}>
+        <span className="text-ops-text">{sat.name}</span>
+        <span className="text-ops-faint ml-2 text-[11px]">
+          {sat.orbitClass} · TLE {tleAge} gün · {sat.intlDes}
+        </span>
       </Field>
 
       <div className="flex-1 border-r border-ops-line" />

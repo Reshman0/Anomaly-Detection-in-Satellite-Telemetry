@@ -3,8 +3,10 @@
 Bu klasöre **bildiriden alınmış gerçek model çıktıları** konur. Sentetik olarak
 yeniden çizilmiş grafik konulmaz (yönerge §7, §10).
 
-Dosya bulunmadığında XAI paneli boş bir yuva çizer ve beklenen dosya adını
-gösterir — uydurma bir grafik üretmez.
+Dosya bulunmadığında XAI paneli, konsolun kendi telemetri tamponundan o anda
+hesaplanan bir çizim gösterir (`src/ui/xaiRender.ts`) ve üzerine
+`SİMÜLE TELEMETRİDEN ÜRETİLDİ` etiketi basar. Hazır/uydurma resim değildir;
+PNG konulduğu anda öncelik PNG'ye geçer.
 
 Senaryo dosyalarının beklediği adlar:
 

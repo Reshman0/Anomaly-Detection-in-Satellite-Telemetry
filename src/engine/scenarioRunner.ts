@@ -37,7 +37,17 @@ export type ScenarioStep =
       model: string;
       top_channels: string[];
       band?: string;
-    };
+    }
+  | { t: number; type: 'info'; kind: 'note' | 'stat' | 'recommendation'; title: string; text: string };
+
+/** Senaryonun operasyon hikayesi — INFO paneli icin. Simule anlati, senaryo verisidir. */
+export interface Story {
+  headline: string;
+  summary: string;
+  cause: string;
+  history: { count: number; window: string; mean_duration_s: number; trend: string };
+  recommendation: { urgency: 'izle' | 'planlı' | 'acil'; action: string; steps: string[] };
+}
 
 export interface Scenario {
   id: string;
@@ -46,7 +56,17 @@ export interface Scenario {
   description: string;
   model: string;
   duration_s: number;
+  story?: Story;
   timeline: ScenarioStep[];
+}
+
+/** Senaryonun hedef kanali: ilk enjeksiyon adiminin kanali (kirilma tespiti icin). */
+export function targetPid(sc: Scenario): string | null {
+  for (const s of sc.timeline) {
+    if (s.type === 'inject_drift' || s.type === 'inject_point') return s.pid;
+    if (s.type === 'inject_collective') return s.targets[0]?.pid ?? null;
+  }
+  return null;
 }
 
 export const SCENARIOS: Scenario[] = [
@@ -110,7 +130,7 @@ export class ScenarioRunner {
     const te = this.elapsed(missionT);
     const out: ScenarioStep[] = [];
     this.scenario.timeline.forEach((step, i) => {
-      if (step.type !== 'event' && step.type !== 'show_xai') return;
+      if (step.type !== 'event' && step.type !== 'show_xai' && step.type !== 'info') return;
       if (this.fired.has(i) || step.t > te) return;
       this.fired.add(i);
       out.push(step);

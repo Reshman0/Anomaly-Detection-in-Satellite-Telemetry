@@ -11,7 +11,15 @@ interface Props {
   buf: Sample[];
   state: LimitState;
   missionT: number;
+  /** XAI kaniti bu kanali en yuksek katkililar arasinda saydiysa: [baslangic, bitis] gorev saniyesi. */
+  attention: [number, number] | null;
+  attentionRank: number;
+  /** CUSUM ile bulunan yapisal kirilma ani (gorev saniyesi); yalnizca hedef kanalda. */
+  breakT?: number | null;
 }
+
+/** Kanit yuklenmeden once modelin baktigi pencere (saniye). */
+export const ATTENTION_WINDOW_S = 60;
 
 /** Serit dusey araligi: sert limit bandinin biraz disi. */
 function range(p: MibParameter): [number, number] {
@@ -28,6 +36,8 @@ function drawStrip(
   buf: Sample[],
   state: LimitState,
   missionT: number,
+  attention: [number, number] | null,
+  breakT: number | null,
 ): void {
   const dpr = window.devicePixelRatio || 1;
   const w = cv.clientWidth;
@@ -98,6 +108,45 @@ function drawStrip(
     g.stroke();
   }
 
+  // XAI dikkat penceresi: modelin karara dayanak yaptigi aralik (mor parantez).
+  if (attention) {
+    const x0 = Math.max(0, x(attention[0]));
+    const x1 = Math.min(w, x(attention[1]));
+    if (x1 > x0) {
+      g.fillStyle = alpha(COLOR.ai, 0.13);
+      g.fillRect(x0, 0, x1 - x0, h);
+      g.strokeStyle = alpha(COLOR.ai, 0.85);
+      g.lineWidth = 1.5;
+      for (const px of [x0, x1]) {
+        const tick = px === x0 ? 4 : -4;
+        g.beginPath();
+        g.moveTo(px + tick, 1);
+        g.lineTo(px, 1);
+        g.lineTo(px, h - 1);
+        g.lineTo(px + tick, h - 1);
+        g.stroke();
+      }
+    }
+  }
+
+  // Yapisal kirilma: CUSUM'un sapmanin basladigini hesapladigi an.
+  if (breakT !== null && breakT >= t0 && breakT <= missionT) {
+    const bx = Math.round(x(breakT)) + 0.5;
+    g.strokeStyle = COLOR.warn;
+    g.lineWidth = 1.5;
+    g.setLineDash([4, 3]);
+    g.beginPath();
+    g.moveTo(bx, 0);
+    g.lineTo(bx, h);
+    g.stroke();
+    g.setLineDash([]);
+    g.font = '600 9px Consolas, monospace';
+    g.fillStyle = COLOR.warn;
+    g.textAlign = 'left';
+    g.textBaseline = 'top';
+    g.fillText('yapısal kırılma', bx + 4, 3);
+  }
+
   if (buf.length < 2) return;
 
   // Iz
@@ -134,13 +183,13 @@ function drawStrip(
   g.fill();
 }
 
-export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
+export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const version = useConsole((s) => s.version);
 
   useEffect(() => {
-    if (ref.current) drawStrip(ref.current, p, buf, state, missionT);
-  }, [version, p, buf, state, missionT]);
+    if (ref.current) drawStrip(ref.current, p, buf, state, missionT, attention, breakT);
+  }, [version, p, buf, state, missionT, attention, breakT]);
 
   const last = buf[buf.length - 1];
   const [lo, hi] = range(p);
@@ -154,6 +203,11 @@ export default function TelemetryStrip({ p, buf, state, missionT }: Props) {
           <span className="text-3xs text-ops-faint">
             {p.subsystem} · APID {p.apid}
           </span>
+          {attention && (
+            <span className="ml-auto text-3xs tracking-[0.1em] text-ops-ai border border-ops-ai/50 px-1 leading-[13px]">
+              XAI #{attentionRank}
+            </span>
+          )}
         </div>
         <div className="flex items-baseline gap-2">
           <div className="flex flex-col">

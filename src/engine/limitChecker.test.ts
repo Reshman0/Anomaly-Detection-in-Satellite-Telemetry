@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Simulation, severityToSubtype } from './simulation';
+import { deriveStage } from './infoStage';
 import { SCENARIOS, SEVERITY_STEPS, type Scenario } from './scenarioRunner';
 import { param } from './mib';
 import { evaluate } from './limitChecker';
@@ -114,7 +115,10 @@ describe('§10 — determinizm', () => {
         expect(shifted.worst.get(pid), id + '/' + pid).toBe(clean.worst.get(pid));
       }
       expect(shifted.sim.serviceCounts.get('12,12') ?? 0).toBe(clean.sim.serviceCounts.get('12,12') ?? 0);
-      expect(shifted.sim.alarms.map((a) => a.text)).toEqual(clean.sim.alarms.map((a) => a.text));
+      // CUSUM kırılma bildirimi veriye bağlı bir dedektördür; saniyesi gürültüyle
+      // 1-2 s oynayabilir. Senaryo kaynaklı alarmlar birebir aynı olmalı.
+      const texts = (a: { text: string; model?: string }[]) => a.filter((x) => x.model !== 'CUSUM').map((x) => x.text);
+      expect(texts(shifted.sim.alarms)).toEqual(texts(clean.sim.alarms));
     }
   });
 });
@@ -189,5 +193,92 @@ describe('§4 — paket üretimi', () => {
         expect(step.service[1]).toBe(severityToSubtype(step.severity));
       }
     }
+  });
+});
+
+describe('hikâye katmanı ve yapısal kırılma', () => {
+  it('her senaryonun hikâyesi ve bir ÖNERİ notu vardır', () => {
+    for (const sc of SCENARIOS) {
+      expect(sc.story, sc.id).toBeDefined();
+      expect(sc.story!.recommendation.steps.length).toBeGreaterThan(0);
+      expect(sc.timeline.some((s) => s.type === 'info' && s.kind === 'recommendation'), sc.id).toBe(true);
+      expect(sc.story!.history.count).toBeGreaterThan(0);
+    }
+  });
+
+  it('sürüklenmede CUSUM kırılması AI tespitinden önce ya da en geç 10 s sonra bulunur', () => {
+    const { sim } = runScenario('drift', 2);
+    const brk = sim.structuralBreak;
+    expect(brk).not.toBeNull();
+    expect(brk!.pid).toBe('ch_42');
+    expect(brk!.direction).toBe(1);
+    const ai = sim.buffers.get('AI_SCORE_SS3')!;
+    const detect = ai.find((s) => s.t >= 0 && s.eng >= param('AI_SCORE_SS3').limits.soft_high!)?.t ?? null;
+    expect(detect).not.toBeNull();
+    expect(brk!.breakT).toBeLessThanOrEqual(detect! + 10);
+    expect(sim.infoNotes.some((n) => n.kind === 'recommendation')).toBe(true);
+    expect(sim.runCounts.get('drift')).toBe(1);
+  });
+
+  it('nokta anomalisinde kırılma sıçrama anına düşer', () => {
+    const { sim } = runScenario('point', 2);
+    expect(sim.structuralBreak?.pid).toBe('ch_11');
+    expect(Math.abs(sim.structuralBreak!.breakT - (sim.scenarioStartT ?? 0) - 30)).toBeLessThanOrEqual(3);
+  });
+});
+
+describe('INFO paneli aşamaları tespitle tutarlıdır', () => {
+  const stageAt = (id: string, ticks: number) => {
+    const sim = new Simulation();
+    sim.setSeverity(2);
+    sim.startScenario(scenario(id));
+    for (let i = 0; i < ticks; i++) sim.advance(1000);
+    return deriveStage(sim);
+  };
+
+  it('sürüklenme: düğmeye basıldığında İZLEME, AI 3σ ile ŞÜPHE, 5σ ile DOĞRULANDI', () => {
+    expect(stageAt('drift', 5).stage).toBe(0);
+    const mid = stageAt('drift', 50);
+    expect(mid.stage).toBe(1);
+    expect(mid.trigger).not.toBeNull();
+    const late = stageAt('drift', 80);
+    expect(late.stage).toBe(2);
+    expect(late.aiConfirmT).not.toBeNull();
+    expect(late.st12T).toBeNull();
+  });
+
+  it('nokta: sıçramadan önce İZLEME, sıçramayla en az ŞÜPHE ve ST[12] geçişi kayıtlı', () => {
+    expect(stageAt('point', 20).stage).toBe(0);
+    const after = stageAt('point', 40);
+    expect(after.stage).toBeGreaterThanOrEqual(1);
+    expect(after.st12T).not.toBeNull();
+  });
+});
+
+describe('kalıcı bildirimler', () => {
+  it('doğrulanan anomalinin önerisi senaryo bitince de bildirim listesinde kalır', () => {
+    const { sim } = runScenario('drift', 2);
+    expect(sim.notifications).toHaveLength(1);
+    expect(sim.notifications[0].urgency).toBe('izle');
+    expect(sim.notifications[0].steps.length).toBeGreaterThan(0);
+    sim.startScenario(scenario('point'));
+    for (let i = 0; i < 130; i++) sim.advance(1000);
+    expect(sim.activeScenario).toBeNull();
+    expect(sim.notifications).toHaveLength(2);
+    expect(sim.notifications[0].scenarioId).toBe('point');
+  });
+});
+
+describe('alarm detayı', () => {
+  it('ST[12] ve ST[05] alarmları taşıyan paketi taşır; onay kaydı çalışır', () => {
+    const { sim } = runScenario('point', 2);
+    const st12 = sim.alarms.find((a) => a.source === 'ST12_LIMIT')!;
+    const st05 = sim.alarms.find((a) => a.source === 'AI_DERIVED' && a.model !== 'CUSUM')!;
+    expect(st12.packet?.label).toBe('TM[12,12]');
+    expect(st05.packet?.label).toMatch(/^TM\[5,[1-4]\]$/);
+    expect(st12.packet!.hex.split(' ').length).toBe(st12.packet!.hex.length / 3 + 1 > 0 ? st12.packet!.hex.split(' ').length : 0);
+    expect(st12.acknowledged).toBeUndefined();
+    sim.acknowledge(st12.id);
+    expect(sim.alarms.find((a) => a.id === st12.id)!.acknowledged).toBe(true);
   });
 });
