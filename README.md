@@ -121,8 +121,9 @@ yeterlidir.** Bir USB bellek yeter; `node_modules` gerekmez.
 │  KATALOG │ DÜNYA      │  ch_11 ch_12 ch_42 ch_75 ch_58                   │
 │  32 Türk │ SGP4       │  ◆ AI_SCORE_SS1 / SS3 / SS5                      │
 │  uydusu  │ gerçek zm. ├──────────────────────────────────────────────────┤
-│                       │  PAKET DENETLEYİCİ  (hex + bit alanları)         │
-│                       ├──────────────────────────────────────────────────┤
+│          │            │  paket denetleyici şeridi  ▸ AÇ                  │
+│          │            │  INFO · operatör bilgi paneli / BİLDİRİMLER      │
+│          │            ├──────────────────────────────────────────────────┤
 │                       │  DURUM   ST[12]: NOMİNAL │ AI: ALARM ← KONTRAST  │
 ├───────────────────────┼───────────────────────────┬──────────────────────┤
 │  SENARYO KONSOLU  │ ALARM KUYRUĞU │ GEÇİŞ PLANI + GÖKYÜZÜ │ XAI PANELİ  │
@@ -154,8 +155,9 @@ verisinden bir canvas dokusu); hazır bir görüntü dosyası yüklenmez, dolay�
 çalışma zamanında ağ isteği oluşmaz.
 
 > **İrtifa görsel olarak sıkıştırılmıştır.** GEO 6.6 dünya yarıçapındadır;
-> gerçek ölçekte çizilse küre noktaya dönerdi. Alçak yörüngede sapma %1'in
-> altındadır, yukarıda logaritmik olarak sıkışır. **Okunan km, derece ve
+> gerçek ölçekte çizilse küre noktaya dönerdi. Alçak yörüngede sapma %2'nin
+> altındadır, yukarıda logaritmik olarak sıkışır (GEO halkası ~2 yarıçapa
+> iner; kürenin ekranda büyük kalmasını bu sağlar). **Okunan km, derece ve
 > zaman değerleri her zaman gerçektir**; sıkıştırma yalnızca çizimdedir ve
 > ekranda yazılıdır.
 
@@ -173,7 +175,7 @@ Bir XAI kanıtı yüklendiğinde, kanıtın **en yüksek katkılı** saydığı 
 dayanak yaptığı 60 saniyelik pencere. Açıklanabilirlik böylece XAI panelinde
 kalmaz, operatörün zaten baktığı şeride iner.
 
-**INFO · operatör bilgi paneli** (kürenin altında). Panel senaryonun
+**INFO · operatör bilgi paneli** (sağ sütunda, telemetri şeritlerinin altında). Panel senaryonun
 başladığına değil, konsolun **gerçekten ne tespit ettiğine** göre açılır
 (`src/engine/infoStage.ts`): `İZLEME` (hiç tespit yok — görev notları),
 `ŞÜPHE` (CUSUM kırılması *veya* AI ≥ 3σ *veya* ST[12] geçişi — tespit
@@ -235,8 +237,13 @@ seçimde bir kez üretilir, sonra anında anahtarlanır. Fiziki temada kabartma
 uydurulmaz — görüntü NASA'nın gerçek verisidir; §11'in yasakladığı bulut ve
 atmosfer efekti yoktur (BMNG bulutsuz bir üründür).
 
-**Paket denetleyici.** Üç katmanlı sekme: `CADU · FRAME · PACKET`. Solda bölge
-lejandı (renk, ad, özet, oktet aralığı), sağda renkli hex dökümü.
+**Paket denetleyici.** Telemetri şeritleri ile INFO paneli arasındaki ince
+şerit son paketin etiketini, APID/sekansını ve oktet dizisini sürekli gösterir;
+tıklamak (ya da `P`) tam denetleyici penceresini açar. Böylece hex dökümü
+sürekli yer kaplamaz, küre ve INFO paneli ana ekranda geniş durur.
+Pencerede üç katmanlı sekme: `CADU · FRAME · PACKET`. Solda bölge lejandı
+(renk, ad, özet, oktet aralığı), sağda renkli hex dökümü. Esc ya da dışına
+tıklama kapatır.
 
 - **PACKET** — son üretilen CCSDS 133.0-B Space Packet: mavi birincil başlık,
   amber PUS-C ikincil başlığı, yeşil kullanıcı verisi, kırmızı Packet Error
@@ -372,6 +379,7 @@ Sunum sırasında fareye uzanmadan:
 | `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır |
 | `F` | Seçili uyduyu kamerayla takip et (aç/kapat) |
 | `0` | Hızı 1×'e al |
+| `P` | Paket denetleyici penceresini aç/kapat |
 
 ### İpuçları
 

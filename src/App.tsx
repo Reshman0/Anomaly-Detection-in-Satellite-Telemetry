@@ -3,7 +3,7 @@ import { useConsole } from './store';
 import TopBar from './components/TopBar';
 import GlobeView from './components/GlobeView';
 import TelemetryPanel from './components/TelemetryPanel';
-import PacketInspector from './components/PacketInspector';
+import PacketInspector, { PacketInspectorBar } from './components/PacketInspector';
 import StatusBand from './components/StatusBand';
 import ScenarioConsole from './components/ScenarioConsole';
 import AlarmQueue from './components/AlarmQueue';
@@ -33,6 +33,12 @@ export default function App() {
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
       const st = useConsole.getState();
       if (st.selectedAlarmId !== null) return; // alarm detay penceresi acik
+      if (e.key === 'p' || e.key === 'P') {
+        st.setPacketOpen(!st.packetOpen);
+        e.preventDefault();
+        return;
+      }
+      if (st.packetOpen) return; // paket denetleyici penceresi acik
       switch (e.key) {
         case '1':
         case '2':
@@ -86,17 +92,18 @@ export default function App() {
   return (
     <div className="h-full w-full flex flex-col bg-ops-bg gap-px">
       <TopBar />
-      <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,35%)_minmax(0,1fr)] gap-px">
-        <div className="flex flex-col min-h-0 gap-px">
+      <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,42%)_minmax(0,1fr)] gap-px">
+        {/* Kure tum sol sutunu alir. Paket denetleyici ust seritteki dugmeyle
+            acilan bir pencere oldugu icin sag sutunda INFO paneline yer kaldi.
+            overflow-hidden hicbir panelin komsusunun ustune tasmamasini garanti eder. */}
+        <div className="flex flex-col min-h-0 overflow-hidden">
           <GlobeView />
-          <div className="h-[250px] shrink-0 flex flex-col">
-            <InfoPanel />
-          </div>
         </div>
-        <div className="flex flex-col min-h-0 gap-px">
+        <div className="flex flex-col min-h-0 gap-px overflow-hidden">
           <TelemetryPanel />
-          <div className="h-[212px] shrink-0 flex flex-col">
-            <PacketInspector />
+          <PacketInspectorBar />
+          <div className="h-[196px] shrink min-h-[130px] flex flex-col">
+            <InfoPanel />
           </div>
           <StatusBand />
         </div>
@@ -107,6 +114,7 @@ export default function App() {
         <PassBoard />
         <XaiPanel />
       </div>
+      <PacketInspector />
       <AlarmDetail />
     </div>
   );

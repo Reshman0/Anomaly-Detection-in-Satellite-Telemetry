@@ -183,6 +183,11 @@ function drawStrip(
   g.fill();
 }
 
+/**
+ * min-h-[54px]: etiket sutunundaki uc satirin (ad / ham+muh / durum) okunabilir
+ * kaldigi en kucuk yukseklik. Daha kisa pencerelerde serit kutusu kaydirir,
+ * metni kirpmaz.
+ */
 export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const version = useConsole((s) => s.version);

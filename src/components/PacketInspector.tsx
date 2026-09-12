@@ -1,15 +1,17 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { useConsole } from '../store';
 import { apidLabel } from '../engine/mib';
 import { buildCadu, buildTmFrame, packetView, type ByteRegion, type Framed, type RegionKind } from '../engine/frameBuilder';
 
 /**
- * Paket denetleyici — uc katman:
+ * Paket denetleyici — telemetri ile INFO arasindaki seritten (ya da P tusuyla)
+ * acilan pencere.
+ * Surekli yer kaplamasi yerine istendiginde acilir; boylece kure ve INFO paneli
+ * ana ekranda daha genis yer bulur.
+ *
  *   PACKET  CCSDS 133.0-B Space Packet + PUS-C
  *   FRAME   CCSDS 132.0-B TM Transfer Frame (baslik, veri alani, OCF, FECF)
  *   CADU    CCSDS 131.0-B ASM + RS(255,223) I=5 kodblogu
- *
- * Sol: bolge lejandi (renk, ad, ozet, oktet araligi). Sag: renkli hex dokumu.
  */
 
 type Tab = 'CADU' | 'FRAME' | 'PACKET';
@@ -58,8 +60,52 @@ const HexDump = memo(function HexDump({ view }: { view: Framed }) {
   );
 });
 
+/**
+ * Telemetri seritleri ile INFO paneli arasindaki ince acma seridi. Kapaliyken
+ * bile son paketin etiketini, APID/sekansini ve oktet dizisini gosterir;
+ * tiklaninca tam denetleyici penceresi acilir.
+ */
+export function PacketInspectorBar() {
+  const sim = useConsole((s) => s.sim);
+  const open = useConsole((s) => s.packetOpen);
+  const setOpen = useConsole((s) => s.setPacketOpen);
+  useConsole((s) => s.version);
+  const pkt = sim.packets[sim.packets.length - 1];
+  const counts = Array.from(sim.serviceCounts.entries()).sort();
+
+  return (
+    <button
+      onClick={() => setOpen(!open)}
+      title="CCSDS paket / çerçeve / CADU denetleyicisini aç (P)"
+      className={
+        'panel shrink-0 h-[26px] flex items-center gap-3 px-2 text-left transition-colors ' +
+        (open ? 'border-ops-text bg-ops-sunken' : 'hover:bg-white/[0.035]')
+      }
+    >
+      <span className="text-3xs uppercase tracking-[0.16em] text-ops-faint shrink-0">Paket denetleyici</span>
+      {pkt ? (
+        <>
+          <span className="num text-[11px] text-ops-nominal shrink-0">{pkt.label}</span>
+          <span className="num text-3xs text-ops-faint shrink-0">
+            APID {pkt.apid} · SEQ {pkt.sequenceCount} · {pkt.bytes.length} oktet
+          </span>
+          <span className="num text-3xs text-ops-dim truncate flex-1 min-w-0">{pkt.hex}</span>
+        </>
+      ) : (
+        <span className="text-3xs text-ops-faint flex-1">paket bekleniyor…</span>
+      )}
+      <span className="num text-3xs text-ops-faint shrink-0">{counts.map(([k, v]) => 'TM[' + k + ']:' + v).join('  ')}</span>
+      <span className={'text-2xs tracking-[0.12em] shrink-0 ' + (open ? 'text-ops-text' : 'text-ops-nominal')}>
+        {open ? '▾ AÇIK' : '▸ AÇ  ·  P'}
+      </span>
+    </button>
+  );
+}
+
 export default function PacketInspector() {
   const sim = useConsole((s) => s.sim);
+  const open = useConsole((s) => s.packetOpen);
+  const setOpen = useConsole((s) => s.setPacketOpen);
   useConsole((s) => s.version);
   const [tab, setTab] = useState<Tab>('PACKET');
 
@@ -67,71 +113,98 @@ export default function PacketInspector() {
   const frameIndex = sim.packetCount;
 
   const view = useMemo<Framed | null>(() => {
-    if (!pkt) return null;
+    if (!pkt || !open) return null;
     if (tab === 'PACKET') return packetView(pkt);
     const frame = buildTmFrame(pkt, frameIndex);
     return tab === 'FRAME' ? frame : buildCadu(frame);
-  }, [pkt, tab, frameIndex]);
+  }, [pkt, tab, frameIndex, open]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    if (open) window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, setOpen]);
+
+  if (!open) return null;
 
   const counts = Array.from(sim.serviceCounts.entries()).sort();
 
   return (
-    <section className="panel flex flex-col flex-1 min-h-0">
-      <div className="panel-title flex items-center justify-between">
-        <span>Paket denetleyici</span>
-        <span className="normal-case tracking-normal text-ops-faint num">
-          {counts.map(([k, v]) => 'TM[' + k + ']:' + v).join('  ')} · toplam {sim.packetCount}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between px-2 py-1 border-b border-ops-line">
-        <div className="flex gap-[3px]">
-          {(['CADU', 'FRAME', 'PACKET'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={
-                'num text-2xs px-[8px] py-[2px] border transition-colors tracking-[0.08em] ' +
-                (tab === t ? 'border-ops-text text-ops-text bg-ops-sunken' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
-              }
-            >
-              {t}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55" onClick={() => setOpen(false)}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Paket denetleyici"
+        onClick={(e) => e.stopPropagation()}
+        className="card-in w-[1220px] max-w-[95vw] h-[70vh] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
+      >
+        <div className="panel-title flex items-center justify-between">
+          <span>Paket denetleyici · CCSDS</span>
+          <span className="normal-case tracking-normal text-ops-faint num flex items-center gap-3">
+            <span>
+              {counts.map(([k, v]) => 'TM[' + k + ']:' + v).join('  ')} · toplam {sim.packetCount}
+            </span>
+            <button onClick={() => setOpen(false)} className="text-ops-dim hover:text-ops-text text-[13px] leading-none px-1" title="Kapat (Esc)">
+              ✕
             </button>
-          ))}
+          </span>
         </div>
-        <span className="text-3xs text-ops-faint num">{view?.headline ?? '—'}</span>
-      </div>
 
-      {view && pkt ? (
-        <div className="flex-1 min-h-0 flex">
-          <div className="w-[300px] shrink-0 border-r border-ops-line px-2 py-1.5 overflow-y-auto flex flex-col">
-            {view.regions.map((r) => {
-              const st = REGION_STYLE[r.kind];
-              return (
-                <div key={r.kind + r.start} className="mb-[7px]">
-                  <div className="flex items-center gap-1.5">
-                    <span className={'inline-block w-[8px] h-[8px] ' + st.swatch} />
-                    <span className="text-[11px] text-ops-text leading-tight">{r.name}</span>
+        <div className="flex items-center justify-between px-2 py-1 border-b border-ops-line">
+          <div className="flex gap-[3px]">
+            {(['CADU', 'FRAME', 'PACKET'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={
+                  'num text-2xs px-[8px] py-[2px] border transition-colors tracking-[0.08em] ' +
+                  (tab === t ? 'border-ops-text text-ops-text bg-ops-sunken' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
+                }
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <span className="text-3xs text-ops-faint num">{view?.headline ?? '—'}</span>
+        </div>
+
+        {view && pkt ? (
+          <div className="flex-1 min-h-0 flex">
+            <div className="w-[300px] shrink-0 border-r border-ops-line px-2 py-1.5 overflow-y-auto flex flex-col">
+              {view.regions.map((r) => {
+                const st = REGION_STYLE[r.kind];
+                return (
+                  <div key={r.kind + r.start} className="mb-[7px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className={'inline-block w-[8px] h-[8px] ' + st.swatch} />
+                      <span className="text-[11px] text-ops-text leading-tight">{r.name}</span>
+                    </div>
+                    <div className="num text-3xs ml-[14px] leading-tight text-ops-dim">{r.detail}</div>
+                    <div className="num text-3xs ml-[14px] text-ops-faint leading-tight">
+                      oktet {r.start}–{r.end}
+                    </div>
                   </div>
-                  <div className="num text-3xs ml-[14px] leading-tight text-ops-dim">{r.detail}</div>
-                  <div className="num text-3xs ml-[14px] text-ops-faint leading-tight">
-                    oktet {r.start}–{r.end}
-                  </div>
-                </div>
-              );
-            })}
-            <div className="mt-auto num text-3xs text-ops-faint pt-1 border-t border-ops-line">
-              {view.footer ?? pkt.label + ' · APID ' + pkt.apid + ' · ' + apidLabel(pkt.apid)}
+                );
+              })}
+              <div className="mt-auto num text-3xs text-ops-faint pt-1 border-t border-ops-line">
+                {view.footer ?? pkt.label + ' · APID ' + pkt.apid + ' · ' + apidLabel(pkt.apid)}
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0 px-2 py-1.5 overflow-auto">
+              <HexDump view={view} />
             </div>
           </div>
+        ) : (
+          <div className="px-2 py-3 text-[11px] text-ops-faint">Paket bekleniyor…</div>
+        )}
 
-          <div className="flex-1 min-w-0 px-2 py-1.5 overflow-auto">
-            <HexDump view={view} />
-          </div>
+        <div className="px-3 py-2 border-t border-ops-line2 text-3xs text-ops-faint">
+          Esc ya da dışına tıklama kapatır · P tuşu açar/kapatır
         </div>
-      ) : (
-        <div className="px-2 py-3 text-[11px] text-ops-faint">Paket bekleniyor…</div>
-      )}
-    </section>
+      </div>
+    </div>
   );
 }
