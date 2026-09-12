@@ -16,6 +16,8 @@ interface ConsoleState {
   speed: Speed;
   severityIndex: number;
   selectedAlarmId: number | null;
+  /** Paket denetleyici penceresi acik mi (ust seritteki dugme / P tusu). */
+  packetOpen: boolean;
   xaiLevel: 1 | 2 | 3;
   /** Ust seritteki AOS/LOS, yorunge izi ve gorus vektorunu suren uydu. */
   selectedNorad: string;
@@ -33,6 +35,7 @@ interface ConsoleState {
   backToNominal: () => void;
   selectAlarm: (id: number | null) => void;
   ackAlarm: (id: number) => void;
+  setPacketOpen: (v: boolean) => void;
   setXaiLevel: (l: 1 | 2 | 3) => void;
   selectSatellite: (norad: string) => void;
   setGlobeView: (v: GlobeView) => void;
@@ -46,6 +49,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   speed: 1,
   severityIndex: DEFAULT_SEVERITY_INDEX,
   selectedAlarmId: null,
+  packetOpen: false,
   xaiLevel: 1,
   selectedNorad: DEFAULT_NORAD,
   globeView: 'ALL',
@@ -88,6 +92,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
     set((s) => ({ version: s.version + 1 }));
   },
   setXaiLevel: (xaiLevel) => set({ xaiLevel }),
+  setPacketOpen: (packetOpen) => set({ packetOpen }),
 
   selectSatellite: (selectedNorad) => set({ selectedNorad }),
   setGlobeView: (globeView) => set((s) => ({ globeView, globeFitNonce: s.globeFitNonce + 1, followSat: false })),

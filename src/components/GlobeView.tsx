@@ -25,14 +25,14 @@ const D2R = Math.PI / 180;
 const GEO_ALT_KM = 35786;
 
 /**
- * Irtifa -> gorsel yaricap. LEO'da gercek olcege cok yakindir (%1 hata),
+ * Irtifa -> gorsel yaricap. LEO'da gercek olcege yakindir (~%2 hata),
  * daha yukarida logaritmik olarak sikistirilir; aksi halde GEO halkasi
  * 6.6 dunya yaricapinda kalir ve kure noktaya doner. Ekranda "irtifa gorsel
  * olarak sikistirilmistir" notu ile birlikte gosterilir; okunan km degerleri
  * her zaman gercektir.
  */
 function displayRadius(altKm: number): number {
-  return 1 + 0.42 * Math.log(1 + altKm / 2500);
+  return 1 + 0.36 * Math.log(1 + altKm / 2500);
 }
 
 const GEO_DISPLAY_R = displayRadius(GEO_ALT_KM);
@@ -416,7 +416,11 @@ export default function GlobeView() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(new THREE.Color(COLOR.sunken), 1);
     el.appendChild(renderer.domElement);
+    // setSize(w, h, false) yalnizca arka tamponu ayarlar, CSS boyutunu degil.
+    // Canvas'i kapsayiciya kilitle: ResizeObserver gecikse bile tasmaz.
     renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
 
     const trLabel = makeLabel('TÜRKİYE', '#dff0fa', 0.032);
     const earthMat = new THREE.MeshBasicMaterial({ map: buildEarthTexture() });
@@ -712,7 +716,7 @@ export default function GlobeView() {
   }, [fitNonce, globeView]);
 
   return (
-    <section className="panel flex flex-col flex-1 min-h-0">
+    <section className="panel flex flex-col flex-1 min-h-[200px]">
       <div className="panel-title flex items-center justify-between">
         <span>Dünya · SGP4 · Türkiye uydu kataloğu</span>
         <span className="normal-case tracking-normal text-ops-faint num">

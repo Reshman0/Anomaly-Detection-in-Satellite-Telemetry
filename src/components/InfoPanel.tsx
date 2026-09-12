@@ -198,7 +198,7 @@ export default function InfoPanel() {
             </div>
           </div>
 
-          <div className="h-[62px] shrink-0 border-t border-ops-line overflow-y-auto">
+          <div className="h-[54px] shrink-0 border-t border-ops-line overflow-y-auto">
             {notes.length === 0 ? (
               <div className="px-2 py-1 text-3xs text-ops-faint">Operatör notları tespit ilerledikçe düşer.</div>
             ) : (

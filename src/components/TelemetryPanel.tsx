@@ -19,8 +19,10 @@ export default function TelemetryPanel() {
     return { win: [latest.missionT - ATTENTION_WINDOW_S, latest.missionT], rank: rank + 1 };
   };
 
+  // 1920x1080'de 8 serit x ~56 px tam sigar. Daha kisa pencerelerde once paket
+  // denetleyici daralir (o esneyebilir); yine yetmezse serit kutusu kaydirir.
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section className="panel flex flex-col flex-1 min-h-[344px]">
       <div className="panel-title flex items-center justify-between">
         <span>Telemetri şeritleri · TM[3,25] HK Parameter Report</span>
         <span className="normal-case tracking-normal text-ops-faint">
@@ -29,7 +31,7 @@ export default function TelemetryPanel() {
       </div>
       {/* Seritler kalan yuksekligi esit paylasir: mib.json'a parametre eklendiginde
           duzen kendini ayarlar, sabit satir yuksekligi yuzunden kirpilma olmaz. */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
         {PARAMETERS.map((p) => (
           <TelemetryStrip
             key={p.pid}
