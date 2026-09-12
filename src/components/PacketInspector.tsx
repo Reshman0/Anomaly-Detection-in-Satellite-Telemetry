@@ -1,6 +1,7 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useConsole } from '../store';
 import { apidLabel } from '../engine/mib';
+import { crc16Ccitt, type BuiltPacket } from '../engine/packetBuilder';
 import { buildCadu, buildTmFrame, packetView, type ByteRegion, type Framed, type RegionKind } from '../engine/frameBuilder';
 
 /**
@@ -72,10 +73,13 @@ export function PacketInspectorBar() {
   useConsole((s) => s.version);
   const pkt = sim.packets[sim.packets.length - 1];
   const counts = Array.from(sim.serviceCounts.entries()).sort();
+  // Packet Error Control dogrulamasi: son iki oktet CRC-16-CCITT, ustu kapsam (ECSS-E-ST-70-41C §7.4.4).
+  const pecOk = pkt ? crc16Ccitt(pkt.bytes.subarray(0, pkt.bytes.length - 2)) === ((pkt.bytes[pkt.bytes.length - 2] << 8) | pkt.bytes[pkt.bytes.length - 1]) : null;
 
   return (
     <button
       onClick={() => setOpen(!open)}
+      aria-label="Paket denetleyici penceresini aç"
       title="CCSDS paket / çerçeve / CADU denetleyicisini aç (P)"
       className={
         'panel shrink-0 h-[26px] flex items-center gap-3 px-2 text-left transition-colors ' +
@@ -88,6 +92,9 @@ export function PacketInspectorBar() {
           <span className="num text-[11px] text-ops-nominal shrink-0">{pkt.label}</span>
           <span className="num text-3xs text-ops-faint shrink-0">
             APID {pkt.apid} · SEQ {pkt.sequenceCount} · {pkt.bytes.length} oktet
+          </span>
+          <span className={'num text-3xs shrink-0 ' + (pecOk ? 'text-ops-nominal' : 'text-ops-hard')} title="Packet Error Control: CRC-16-CCITT yeniden hesaplandı">
+            PEC {pecOk ? 'OK' : 'HATA'}
           </span>
           <span className="num text-3xs text-ops-dim truncate flex-1 min-w-0">{pkt.hex}</span>
         </>
@@ -108,9 +115,15 @@ export default function PacketInspector() {
   const setOpen = useConsole((s) => s.setPacketOpen);
   useConsole((s) => s.version);
   const [tab, setTab] = useState<Tab>('PACKET');
+  // DONDUR: goruntulenen paket sabitlenir, akis arka planda surer (hex okunurken kaymasin).
+  const [frozen, setFrozen] = useState(false);
+  const frozenRef = useRef<{ pkt: BuiltPacket; index: number } | null>(null);
 
-  const pkt = sim.packets[sim.packets.length - 1];
-  const frameIndex = sim.packetCount;
+  const live = sim.packets[sim.packets.length - 1];
+  if (frozen && !frozenRef.current && live) frozenRef.current = { pkt: live, index: sim.packetCount };
+  if (!frozen) frozenRef.current = null;
+  const pkt = frozen && frozenRef.current ? frozenRef.current.pkt : live;
+  const frameIndex = frozen && frozenRef.current ? frozenRef.current.index : sim.packetCount;
 
   const view = useMemo<Framed | null>(() => {
     if (!pkt || !open) return null;
@@ -166,6 +179,17 @@ export default function PacketInspector() {
                 {t}
               </button>
             ))}
+            <button
+              onClick={() => setFrozen((f) => !f)}
+              aria-pressed={frozen}
+              title="Görüntülenen paketi sabitle; akış arka planda sürer"
+              className={
+                'num text-2xs px-[8px] py-[2px] border tracking-[0.08em] ml-2 ' +
+                (frozen ? 'border-ops-soft text-ops-soft bg-ops-soft/10' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
+              }
+            >
+              {frozen ? '■ DONDURULDU' : '▶ CANLI'}
+            </button>
           </div>
           <span className="text-3xs text-ops-faint num">{view?.headline ?? '—'}</span>
         </div>

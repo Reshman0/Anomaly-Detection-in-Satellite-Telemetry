@@ -3,11 +3,15 @@ import { Simulation } from './engine/simulation';
 import type { Speed } from './engine/missionClock';
 import { DEFAULT_SEVERITY_INDEX, NOMINAL_SCENARIO, type Scenario } from './engine/scenarioRunner';
 import { DEFAULT_NORAD } from './engine/orbit';
+import { applyA11y, buildPalette, clearA11y, loadA11y, saveA11y, type A11ySettings } from './ui/a11y';
+import { setPalette } from './ui/colors';
 
 /** Kure cerceveleme onayari: LEO'ya yakinlas ya da GEO halkasi dahil hepsini sigdir. */
 export type GlobeView = 'LEO' | 'ALL';
 /** Dunya zemini temasi: operasyon (koyu), siyasi harita, fiziki (NASA Blue Marble). */
 export type EarthTheme = 'ops' | 'political' | 'physical';
+/** Dunya gorunumu: 3B kure ya da 2B esdikdortgen harita. */
+export type MapMode = '3D' | '2D';
 
 interface ConsoleState {
   sim: Simulation;
@@ -16,8 +20,6 @@ interface ConsoleState {
   speed: Speed;
   severityIndex: number;
   selectedAlarmId: number | null;
-  /** Paket denetleyici penceresi acik mi (ust seritteki dugme / P tusu). */
-  packetOpen: boolean;
   xaiLevel: 1 | 2 | 3;
   /** Ust seritteki AOS/LOS, yorunge izi ve gorus vektorunu suren uydu. */
   selectedNorad: string;
@@ -27,6 +29,14 @@ interface ConsoleState {
   /** Kamera secili uyduyu takip eder; dunya altinda doner. */
   followSat: boolean;
   earthTheme: EarthTheme;
+  mapMode: MapMode;
+  /** Paket denetleyici pencere (pop-up) acik mi. */
+  packetOpen: boolean;
+  /** Erisilebilirlik ayar paneli acik mi. */
+  a11yOpen: boolean;
+  a11y: A11ySettings;
+  /** Palet her degistiginde artar; bir kez kurulan renkler (three.js) bunu izler. */
+  paletteVersion: number;
 
   tick: (realDtMs: number) => void;
   setSpeed: (s: Speed) => void;
@@ -35,12 +45,23 @@ interface ConsoleState {
   backToNominal: () => void;
   selectAlarm: (id: number | null) => void;
   ackAlarm: (id: number) => void;
-  setPacketOpen: (v: boolean) => void;
   setXaiLevel: (l: 1 | 2 | 3) => void;
   selectSatellite: (norad: string) => void;
   setGlobeView: (v: GlobeView) => void;
   setFollow: (on: boolean) => void;
   setEarthTheme: (t: EarthTheme) => void;
+  setMapMode: (m: MapMode) => void;
+  setPacketOpen: (open: boolean) => void;
+  setA11yOpen: (open: boolean) => void;
+  setA11y: (patch: Partial<A11ySettings>) => void;
+  resetA11y: () => void;
+}
+
+const initialA11y = loadA11y();
+{
+  const p = buildPalette(initialA11y);
+  setPalette(p);
+  applyA11y(initialA11y, p);
 }
 
 export const useConsole = create<ConsoleState>((set, get) => ({
@@ -49,13 +70,17 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   speed: 1,
   severityIndex: DEFAULT_SEVERITY_INDEX,
   selectedAlarmId: null,
-  packetOpen: false,
   xaiLevel: 1,
   selectedNorad: DEFAULT_NORAD,
   globeView: 'ALL',
   globeFitNonce: 0,
   followSat: false,
   earthTheme: 'ops',
+  mapMode: '3D',
+  packetOpen: false,
+  a11yOpen: false,
+  a11y: initialA11y,
+  paletteVersion: 1,
 
   tick: (realDtMs) => {
     get().sim.advance(realDtMs);
@@ -92,12 +117,34 @@ export const useConsole = create<ConsoleState>((set, get) => ({
     set((s) => ({ version: s.version + 1 }));
   },
   setXaiLevel: (xaiLevel) => set({ xaiLevel }),
-  setPacketOpen: (packetOpen) => set({ packetOpen }),
 
   selectSatellite: (selectedNorad) => set({ selectedNorad }),
   setGlobeView: (globeView) => set((s) => ({ globeView, globeFitNonce: s.globeFitNonce + 1, followSat: false })),
   setFollow: (followSat) => set({ followSat }),
   setEarthTheme: (earthTheme) => set({ earthTheme }),
+  // 2B haritaya ilk gecis: koyu OPS zemini 2B'de anlamsiz kalir; fiziki (gercek
+  // renk + topografya golgesi) zemine gecilir. Kullanici sonra istedigini secer.
+  setMapMode: (mapMode) =>
+    set((s) => ({ mapMode, earthTheme: mapMode === '2D' && s.earthTheme === 'ops' ? 'physical' : s.earthTheme })),
+  setPacketOpen: (packetOpen) => set({ packetOpen }),
+  setA11yOpen: (a11yOpen) => set({ a11yOpen }),
+  setA11y: (patch) => {
+    const a11y = { ...get().a11y, ...patch };
+    const p = buildPalette(a11y);
+    setPalette(p);
+    applyA11y(a11y, p);
+    saveA11y(a11y);
+    set((s) => ({ a11y, paletteVersion: s.paletteVersion + 1 }));
+  },
+  resetA11y: () => {
+    // Sifirlama: depolanan ayari sil, varsayilanlara (sistem tercihi dahil) don.
+    clearA11y();
+    const fresh = loadA11y();
+    const p = buildPalette(fresh);
+    setPalette(p);
+    applyA11y(fresh, p);
+    set((s) => ({ a11y: fresh, paletteVersion: s.paletteVersion + 1 }));
+  },
 }));
 
 // Gelistirme sirasinda konsoldan durum incelemek icin (yalnizca dev derlemesi).

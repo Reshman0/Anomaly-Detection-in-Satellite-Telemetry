@@ -237,13 +237,30 @@ seçimde bir kez üretilir, sonra anında anahtarlanır. Fiziki temada kabartma
 uydurulmaz — görüntü NASA'nın gerçek verisidir; §11'in yasakladığı bulut ve
 atmosfer efekti yoktur (BMNG bulutsuz bir üründür).
 
+**2B harita.** Kürenin sağ üstündeki `3B | 2B` düğmesi (ya da `M`) dünyayı
+eşdikdörtgen (plate carrée) izdüşümde açar (`src/components/MapView2D.tsx`).
+Zemin dokuları küreyle paylaşılır (`src/ui/earthTexture.ts`); 2B'ye ilk
+geçişte OPS zemini otomatik olarak **FİZİKİ**'ye (NASA Blue Marble — gerçek
+renk, topografya gölgeli, batimetri işlenmiş) çevrilir, sonra üç tema
+serbestçe seçilir. Çizilenler: tüm filonun yer izdüşümleri (LEO eşkenar
+dörtgen, GEO kare; grup rengiyle), seçili uydunun **tam yer izi** (−½/+¾
+periyot), istasyonun seçili irtifa için **görüş dairesi**, görünen uydulara
+kesikli görüş çizgisi, 30° paralel/meridyen ağı, ekvator ölçek çubuğu.
+Sürükle = kaydır, tekerlek = imleç etrafında yakınlaş, çift tık = sıfırla,
+uyduya tık = seç, üzerine gel = ad/NORAD/sınıf. Terminator, bulut ve atmosfer
+yine yoktur (§11). Kürenin WebGL çizimi 2B açıkken atlanır, sahne canlı kalır.
+
 **Paket denetleyici.** Telemetri şeritleri ile INFO paneli arasındaki ince
 şerit son paketin etiketini, APID/sekansını ve oktet dizisini sürekli gösterir;
 tıklamak (ya da `P`) tam denetleyici penceresini açar. Böylece hex dökümü
 sürekli yer kaplamaz, küre ve INFO paneli ana ekranda geniş durur.
 Pencerede üç katmanlı sekme: `CADU · FRAME · PACKET`. Solda bölge lejandı
 (renk, ad, özet, oktet aralığı), sağda renkli hex dökümü. Esc ya da dışına
-tıklama kapatır.
+tıklama kapatır. Pencerede `DONDUR` düğmesi hex dökümünü akış
+durmadan sabitler; şeritteki `PEC OK/HATA` rozeti son paketin CRC-16-CCITT'sini
+yeniden hesaplayarak doğrular. Alarm detayındaki "denetleyici ↗" bağlantısı
+aynı pencereyi açar.
+
 
 - **PACKET** — son üretilen CCSDS 133.0-B Space Packet: mavi birincil başlık,
   amber PUS-C ikincil başlığı, yeşil kullanıcı verisi, kırmızı Packet Error
@@ -286,6 +303,48 @@ paketinin hex dökümü ve veri alanları, o anda yüklü XAI kanıtı. `ONAYLA 
 alarmı operatör kaydı olarak işaretler (kart soluklaşır, `✓ ACK` rozeti);
 uyduya hiçbir şey gönderilmez. Esc ya da dışına tıklama kapatır; pencere
 açıkken sunucu kısayolları devre dışıdır.
+
+Pencere üç sekmelidir ve başlığında **alarm yaşam döngüsü** şeridi
+(`YÜKSELTİLDİ → ONAY → TEMİZLENDİ/BİLGİ`, yaş, prosedür kimliği ve aciliyet)
+durur. İçerik `src/engine/alarmInfo.ts` tarafından konsolun kendi verisinden
+(MIB, tampon, paket, senaryo hikâyesi) türetilir; hiçbir alan uydurulmaz:
+
+| Sekme | İçerik | Dayanak |
+|---|---|---|
+| **ÖZET** | zaman, kaynak, MIB tanımı, −90/+30 s bağlam şeridi, taşıyan paket, XAI kanıtı | (önceki sürüm) |
+| **STANDART ALANLAR** | `TM[5,x]` olay raporu alanları (event definition ID, şiddet ↔ alt tip, auxiliary data) ya da `TM[12,12]` geçiş raporu alanları (parameter ID, monitoring check ID, previous/current check status `WITHIN LIMITS · BELOW LOW LIMIT · ABOVE HIGH LIMIT`, transition time); **PMON tanımı** (kontrol tipi = limit check, check 1 soft / check 2 hard, repetition number, örnekleme, kalibrasyon); **OOL bilgisi** (ihlal edilen limit, alarm anı değeri, limitten sapma, en kötü değer, limit dışı süre/örneklem, şu anki durum); AI alarmlarında skor parametresi, eşikler ve ST[12] karşılığı | ECSS-E-ST-70-41C §6.5 / §6.12, ECSS-E-ST-70-31C, ECSS-E-ST-70-11C |
+| **OPERATÖR EYLEMİ** | prosedür (FOP kimliği, aciliyet `izle / planlı / acil`, eylem, numaralı adımlar — senaryo hikâyesinden ya da genel OOL prosedüründen), operasyonel sonuç (alt sistem, olası etki, uydu güvenliği, komut gerekip gerekmediği), aynı alt sistemin **ilişkili parametreleri** anlık değer ve durumla, ESA-ADB sınıflandırması (nokta / sürüklenme / kolektif) | ECSS-E-ST-70-32C biçimi, ECSS-E-ST-70-11C, ECSS-E-ST-70C, ESA-ADB |
+
+FOP kimlikleri (`FOP-SS1-POINT-01`, `FOP-SS3-OOL-HARD` …) demo tanımıdır ve
+öyle etiketlenir; gerçek görevde uçuş operasyon prosedürü kütüphanesinden
+gelir. Konsol hiçbir adımda komut göndermez.
+
+**Erişilebilirlik.** Üst şeritteki `ERİŞİLEBİLİRLİK` düğmesi (ya da `A`)
+ayar penceresini açar (`src/ui/a11y.ts`, `src/components/AccessibilityPanel.tsx`).
+Ayarlar bu tarayıcıda saklanır (`localStorage`, anahtar `azs.a11y.v1`) ve
+yalnızca konsolu etkiler; telemetri, limit ve paketler değişmez.
+
+| Ayar | Ne yapar | Dayanak |
+|---|---|---|
+| Kontrast: standart / **yüksek** | siyah zemin, beyaz metin, doygun durum renkleri (≥ 7:1), kalın kenarlıklar | WCAG 1.4.3 / 1.4.6, ISO 11064 (karanlık kontrol odası) |
+| Renk görme: standart / deuteranopi / protanopi / tritanopi / akromatopsi | durum paleti Okabe–Ito güvenli setine geçer (deutan/protan: mavi–sarı–turuncu–macenta; tritan: yeşil–pembe–turuncu–kırmızı; mono: parlaklık merdiveni). Renk hiçbir yerde tek başına anlam taşımaz: `▲ ◆` glifleri, dört bölmeli şiddet çubuğu ve durum sözcükleri her modda kalır | WCAG 1.4.1, ECSS-E-ST-10-11C |
+| Arayüz ölçeği %85–%175 | `#root` üzerinde `zoom`; canvas'lar ResizeObserver ile yeniden boyutlanır. `Ctrl +/−/0` | WCAG 1.4.4 |
+| Hareketi azalt | kart animasyonu ve küre kamera sönümlemesi kapanır; `prefers-reduced-motion` açılışta okunur | WCAG 2.3.3 |
+| Kalın yazı | tüm metin 600, küçük etiketler 700 ağırlık | düşük görme keskinliği |
+| Desen kodlaması | alarm kartı zeminine şiddete göre çizgi deseni, AI kaynaklı kartlara noktalı kenar | ECSS-E-ST-10-11C (renk yedeklenir) |
+| Odak halkası her zaman | `:focus` da çerçeve alır, yalnızca `:focus-visible` değil | WCAG 2.4.7 |
+| Alarmları ekran okuyucuya duyur | görünmez `aria-live="assertive"` bölgesi: kaynak · şiddet · metin · UTC | WCAG 4.1.3 |
+| Sesli uyarı | orta/yüksek şiddette WebAudio tonu (yüksekte çift ton); ses dosyası ve ağ isteği yok | ISO 11064-5 |
+
+Pencerenin sağ sütunu **canlı paleti ve ölçülen kontrast oranlarını** (WCAG
+göreli parlaklık formülü, `contrastRatio()`) AA/AAA notuyla gösterir; örnek
+alarm kartı seçilen modda nasıl görüneceğini önizler. Teknik olarak tüm
+renkler CSS değişkenlerinden okunur (`src/index.css` `:root`, Tailwind
+`rgb(var(--ops-x) / <alpha-value>)`); canvas ve three.js çizimleri aynı
+paleti `COLOR` nesnesinden alır ve palet değişince (`paletteVersion`) bir kez
+kurulan malzemeler güncellenir. Her modal `role="dialog"` /
+`aria-modal` taşır, alarm kartları `aria-label` ile okunur, sekmeler
+`role="tab"` kullanır.
 
 **XAI paneli.** Üç seviyeli sekme (artık → kanal katkısı → Grad-CAM). Öncelik
 bildiriden alınmış gerçek PNG'dedir (`src/assets/xai/`). Dosya yoksa panel,
@@ -379,7 +438,11 @@ Sunum sırasında fareye uzanmadan:
 | `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır |
 | `F` | Seçili uyduyu kamerayla takip et (aç/kapat) |
 | `0` | Hızı 1×'e al |
+| `M` | Dünya: 3B küre ↔ 2B eşdikdörtgen harita |
 | `P` | Paket denetleyici penceresini aç/kapat |
+| `A` | Erişilebilirlik ayar penceresi |
+| `Ctrl +` / `Ctrl −` / `Ctrl 0` | Arayüz ölçeği (tarayıcı yakınlaştırması değil; canvas'lar birlikte ölçeklenir) |
+| `Esc` | Açık pencereyi kapat |
 
 ### İpuçları
 
@@ -663,16 +726,19 @@ Görev epoğu ve OBT ofseti `mib.json` içindedir (`epoch`, `obt_offset_s`).
 
 ### Renkler ve tipografi
 
-Palet iki yerde tanımlıdır ve **senkron tutulmalıdır**:
-`tailwind.config.js` (arayüz sınıfları) ve `src/ui/colors.ts` (canvas ve
-three.js çizimleri).
+Palet **tek yerde** tanımlıdır: `src/ui/a11y.ts` (`BASE`, yüksek kontrast ve
+renk görme varyantları). Buradan `src/index.css` `:root` değişkenleri (Tailwind
+sınıfları `rgb(var(--ops-x) / <alpha-value>)` ile okur) ve `src/ui/colors.ts`
+`COLOR` nesnesi (canvas ve three.js çizimleri) çalışma zamanında beslenir.
+`index.css` içindeki varsayılan değerler yalnızca ilk boyama içindir; bir renk
+değiştirilecekse `a11y.ts` ve `index.css` `:root` birlikte güncellenir.
 
 | Rol | Renk | Kullanım |
 |---|---|---|
 | Nominal | soğuk yeşil `#2FBF87` | limit içinde |
 | Yumuşak limit | amber `#D9A02B` | yumuşak bant ihlali |
 | Orta şiddet | turuncu `#EF7B3A` | yalnızca alarm kuyruğunda, ESA-ADB şiddet 2 |
-| Sert limit | kırmızı `#E24A5F` | sert bant ihlali, ESA-ADB şiddet 3 |
+| Sert limit | kırmızı `#E85A6E` (önce `#E24A5F`; panel zemininde 5.0:1, WCAG AA) | sert bant ihlali, ESA-ADB şiddet 3 |
 | **AI tespiti** | mor `#A184F5` | AI kaynaklı alarm, türetilmiş parametre |
 | Zemin | `#0E1419` | saf siyah değil — projektörde bantlaşmasın |
 
@@ -728,6 +794,12 @@ for (let i = 0; i < 130; i++) __azs.getState().tick(1000);
 | Uydu TLE'leri | Celestrak GP (celestrak.org), son yayınlanmış kayıtlar |
 | Ülke poligonları ve Türkçe adlar | Natural Earth 110m admin_0, `NAME_TR` |
 | Fiziki zemin görüntüsü | NASA Blue Marble Next Generation, Aralık 2004, kamu malı |
+| 2B harita izdüşümü | eşdikdörtgen (plate carrée), Natural Earth / NASA BMNG ile aynı doku |
+| Alarm detayı: `TM[5,x]` alanları, PMON tanımı, `TM[12,12]` alanları | ECSS-E-ST-70-41C §6.5, §6.12 |
+| Alarm detayı: OOL bilgisi, operasyonel sonuç, alarm bağlamı | ECSS-E-ST-70-11C |
+| Alarm yaşam döngüsü (raised → ack → cleared), operatör kaydı ≠ TC | ECSS-E-ST-70C |
+| Prosedür biçimi (FOP kimliği, aciliyet, adımlar — demo tanımı) | ECSS-E-ST-70-32C |
+| Erişilebilirlik: renk yedekleme, okunabilirlik | ECSS-E-ST-10-11C, ISO 9241-171, ISO 11064, WCAG 2.2 AA |
 
 Yalnızca **ST[03], ST[05], ST[12]** kullanılır; başka servis numarası yoktur.
 

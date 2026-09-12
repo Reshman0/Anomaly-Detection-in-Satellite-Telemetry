@@ -107,6 +107,8 @@ export interface Alarm {
   packet?: { label: string; hex: string; fields: { name: string; bits: number; value: string; group: string }[] };
   /** Operator onayi (ACK) — yalnizca kayit, uyduya komut degil. */
   acknowledged?: boolean;
+  /** Alarm dustugunde kosan senaryo (varsa) — detay penceresindeki prosedur/siniflandirma icin. */
+  scenarioId?: string;
 }
 
 export type InfoKind = 'note' | 'stat' | 'recommendation';

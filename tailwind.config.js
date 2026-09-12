@@ -1,24 +1,33 @@
 /** @type {import('tailwindcss').Config} */
+
+/**
+ * Renkler CSS degiskenlerinden okunur (src/index.css `:root`), boylece
+ * erisilebilirlik paleti (yuksek kontrast, renk gorme modlari) calisma
+ * zamaninda tum Tailwind siniflarini ve canvas cizimlerini birlikte degistirir.
+ * `<alpha-value>` Tailwind'in /10, /[0.06] gibi saydamlik eklerini korur.
+ */
+const v = (name) => `rgb(var(--ops-${name}) / <alpha-value>)`;
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
         ops: {
-          bg: '#0E1419',
-          panel: '#141C23',
-          sunken: '#0B1014',
-          line: '#1E2A33',
-          line2: '#2A3A45',
-          text: '#C8D6DF',
-          dim: '#788B98',
-          faint: '#4A5B66',
-          nominal: '#2FBF87',
-          soft: '#D9A02B',
-          warn: '#EF7B3A',
-          hard: '#E24A5F',
-          ai: '#A184F5',
-          aiDim: '#6B54B0',
+          bg: v('bg'),
+          panel: v('panel'),
+          sunken: v('sunken'),
+          line: v('line'),
+          line2: v('line2'),
+          text: v('text'),
+          dim: v('dim'),
+          faint: v('faint'),
+          nominal: v('nominal'),
+          soft: v('soft'),
+          warn: v('warn'),
+          hard: v('hard'),
+          ai: v('ai'),
+          aiDim: v('aiDim'),
         },
       },
       fontFamily: {

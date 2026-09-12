@@ -91,11 +91,17 @@ export default function AlarmQueue() {
               key={a.id}
               onClick={() => selectAlarm(a.id)}
               title="Detay penceresini aç"
+              aria-label={
+                (a.source === 'AI_DERIVED' ? 'AI türetilmiş' : 'ST12 limit') + ' alarm, şiddet ' + s.label + ': ' + a.text
+              }
               className={
                 'card-in w-full text-left px-2 py-1.5 border-b border-ops-line border-l-[3px] ' +
                 src.border +
                 ' ' +
                 s.bg +
+                ' sev-pattern-' +
+                Math.max(0, Math.min(3, a.severity)) +
+                (a.source === 'AI_DERIVED' ? ' src-ai' : '') +
                 (isSel ? ' bg-white/[0.045]' : ' hover:bg-white/[0.025]') +
                 (a.acknowledged ? ' opacity-60' : '')
               }

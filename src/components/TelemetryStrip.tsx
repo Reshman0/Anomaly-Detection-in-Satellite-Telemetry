@@ -184,9 +184,10 @@ function drawStrip(
 }
 
 /**
- * min-h-[54px]: etiket sutunundaki uc satirin (ad / ham+muh / durum) okunabilir
- * kaldigi en kucuk yukseklik. Daha kisa pencerelerde serit kutusu kaydirir,
- * metni kirpmaz.
+ * min-h-[64px] + shrink-0: etiket sutunundaki uc satirin (ad / ham+muh / durum)
+ * ust uste binmeden sigdigi en kucuk yukseklik (13 + 27 + 12 px + bosluklar).
+ * Daha kisa pencerelerde serit kutusu kaydirir; seritler birbirinin ustune
+ * tasmaz (overflow-hidden).
  */
 export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -200,8 +201,8 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
   const [lo, hi] = range(p);
 
   return (
-    <div className="flex items-stretch flex-1 min-h-[54px] border-b border-ops-line">
-      <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between">
+    <div className="flex items-stretch flex-1 min-h-[64px] shrink-0 border-b border-ops-line overflow-hidden">
+      <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between overflow-hidden">
         <div className="flex items-center gap-1.5">
           {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
           <span className="num text-[13px] text-ops-text">{p.pid}</span>

@@ -11,7 +11,10 @@ import XaiPanel from './components/XaiPanel';
 import PassBoard from './components/PassBoard';
 import InfoPanel from './components/InfoPanel';
 import AlarmDetail from './components/AlarmDetail';
+import AccessibilityPanel from './components/AccessibilityPanel';
+import AlarmAnnouncer from './components/AlarmAnnouncer';
 import { SCENARIOS } from './engine/scenarioRunner';
+import { SCALE_STEPS } from './ui/a11y';
 
 /** Arayuz tazeleme araligi (ms). Gorev saati bundan bagimsiz ilerler. */
 const UI_INTERVAL_MS = 66;
@@ -26,13 +29,23 @@ export default function App() {
   const last = useRef(performance.now());
 
   // Sunucu kisayollari: 1/2/3 senaryo, N nominal, L/T kure gorunumu, F takip, 0 hiz 1x.
+  // Ek kisayollar: A erisilebilirlik, M 3B/2B harita, Ctrl +/-/0 arayuz olcegi.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const st = useConsole.getState();
+      // Arayuz olcegi: tarayici yakinlastirmasi yerine konsolun kendi olcegi (WCAG 1.4.4).
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '0')) {
+        const i = SCALE_STEPS.indexOf(st.a11y.scale as (typeof SCALE_STEPS)[number]);
+        const cur = i < 0 ? 1 : i;
+        const next = e.key === '0' ? 1 : e.key === '-' ? Math.max(0, cur - 1) : Math.min(SCALE_STEPS.length - 1, cur + 1);
+        st.setA11y({ scale: SCALE_STEPS[next] });
+        e.preventDefault();
+        return;
+      }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-      const st = useConsole.getState();
-      if (st.selectedAlarmId !== null) return; // alarm detay penceresi acik
+      if (st.selectedAlarmId !== null || st.a11yOpen) return; // pencere acik: Esc oradan islenir
       if (e.key === 'p' || e.key === 'P') {
         st.setPacketOpen(!st.packetOpen);
         e.preventDefault();
@@ -40,6 +53,14 @@ export default function App() {
       }
       if (st.packetOpen) return; // paket denetleyici penceresi acik
       switch (e.key) {
+        case 'a':
+        case 'A':
+          st.setA11yOpen(true);
+          break;
+        case 'm':
+        case 'M':
+          st.setMapMode(st.mapMode === '3D' ? '2D' : '3D');
+          break;
         case '1':
         case '2':
         case '3': {
@@ -108,7 +129,9 @@ export default function App() {
           <StatusBand />
         </div>
       </main>
-      <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,430px)_minmax(0,700px)] gap-px">
+      {/* Alt sira oransal: 1920'de eski sabit genisliklere (300/490/430/700) denk gelir,
+          1536'da alarm kuyrugu 100 px'e sikismaz. */}
+      <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,22%)_minmax(0,36%)] gap-px">
         <ScenarioConsole />
         <AlarmQueue />
         <PassBoard />
@@ -116,6 +139,8 @@ export default function App() {
       </div>
       <PacketInspector />
       <AlarmDetail />
+      <AccessibilityPanel />
+      <AlarmAnnouncer />
     </div>
   );
 }

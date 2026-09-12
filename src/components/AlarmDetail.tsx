@@ -4,14 +4,56 @@ import { MIB, apidLabel, param, subsystemName } from '../engine/mib';
 import { evaluate, stateLabel } from '../engine/limitChecker';
 import { fmtTime } from '../engine/missionClock';
 import { COLOR, alpha, stateHex } from '../ui/colors';
+import { buildDossier, type DossierRow } from '../engine/alarmInfo';
 import type { Alarm, Sample } from '../engine/types';
 
 /**
- * Alarm detay penceresi — kuyruktaki karta tiklaninca acilir.
- *   zaman · kaynak · parametre baglami (MIB tanimi + alarm aninin etrafinda mini serit)
- *   · alarmi tasiyan TM paketi · iliskili XAI kaniti · onay (ACK)
- * Esc ya da disina tiklama kapatir.
+ * Alarm detay penceresi — kuyruktaki karta tiklaninca acilir. Uc sekme:
+ *   OZET      zaman · kaynak · parametre baglami (MIB + alarm aninin mini seridi)
+ *             · alarmi tasiyan TM paketi · iliskili XAI kaniti
+ *   STANDART  ECSS-E-ST-70-41C alanlari (TM[5,x] / TM[12,12]), PMON tanimi,
+ *             OOL bilgisi (ECSS-E-ST-70-11C)
+ *   EYLEM     operasyonel sonuc, prosedur (FOP, ECSS-E-ST-70-32C bicimi),
+ *             iliskili parametreler, ESA-ADB siniflandirmasi
+ * Baslikta alarm yasam dongusu (yukseltildi → onay → temizlendi). Onay (ACK)
+ * yalnizca operator kaydidir. Esc ya da disina tiklama kapatir.
  */
+
+type DetailTab = 'OZET' | 'STANDART' | 'EYLEM';
+
+const TONE_CLS: Record<NonNullable<DossierRow['tone']>, string> = {
+  nominal: 'text-ops-nominal',
+  soft: 'text-ops-soft',
+  warn: 'text-ops-warn',
+  hard: 'text-ops-hard',
+  ai: 'text-ops-ai',
+  dim: 'text-ops-dim',
+};
+
+function DRow({ r }: { r: DossierRow }) {
+  return (
+    <div className="flex justify-between gap-3 text-[11px] leading-[16px] py-[1px]">
+      <span className="text-ops-faint shrink-0">
+        {r.k}
+        {r.ref && <span className="block text-[8px] leading-[10px] text-ops-faint/70 tracking-[0.06em]">{r.ref}</span>}
+      </span>
+      <span className={'text-right ' + (r.tone ? TONE_CLS[r.tone] : 'text-ops-text')}>{r.v}</span>
+    </div>
+  );
+}
+
+function DSection({ title, rows }: { title: string; rows: DossierRow[] }) {
+  return (
+    <div className="mb-3">
+      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1">{title}</div>
+      {rows.map((r, i) => (
+        <DRow key={i} r={r} />
+      ))}
+    </div>
+  );
+}
+
+const URGENCY_CLS = { izle: 'border-ops-nominal text-ops-nominal', planlı: 'border-ops-soft text-ops-soft', acil: 'border-ops-hard text-ops-hard' } as const;
 
 const SEVERITY_TEXT = ['bilgi', 'düşük', 'orta', 'yüksek'];
 const SEV_CLS = ['text-ops-nominal', 'text-ops-soft', 'text-ops-warn', 'text-ops-hard'];
@@ -127,6 +169,7 @@ export default function AlarmDetail() {
   const selectedId = useConsole((s) => s.selectedAlarmId);
   const selectAlarm = useConsole((s) => s.selectAlarm);
   const ackAlarm = useConsole((s) => s.ackAlarm);
+  const setPacketOpen = useConsole((s) => s.setPacketOpen);
   useConsole((s) => s.version);
 
   const alarm: Alarm | undefined = selectedId === null ? undefined : sim.alarms.find((a) => a.id === selectedId);
@@ -134,6 +177,7 @@ export default function AlarmDetail() {
   // Ref degil state: cizim basarisi yeniden cizimi tetiklemeli, yoksa
   // "tampon disinda" uyarisi dolu bir seridin ustunde asili kalir.
   const [hasContext, setHasContext] = useState(false);
+  const [tab, setTab] = useState<DetailTab>('OZET');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -149,7 +193,13 @@ export default function AlarmDetail() {
     setHasContext((prev) => (prev === ok ? prev : ok));
   });
 
+  // Yeni alarm acilinca ozet sekmesine don.
+  useEffect(() => {
+    setTab('OZET');
+  }, [selectedId]);
+
   if (!alarm) return null;
+  const dossier = buildDossier(alarm, sim);
 
   const p = param(alarm.pid);
   const buf = sim.buffers.get(alarm.pid) ?? [];
@@ -168,7 +218,7 @@ export default function AlarmDetail() {
         aria-modal="true"
         aria-label="Alarm detayı"
         onClick={(e) => e.stopPropagation()}
-        className="card-in w-[860px] max-h-[86vh] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
+        className="card-in w-[960px] max-w-[96vw] h-[600px] max-h-[88vh] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
       >
         {/* Baslik */}
         <div className={'flex items-center gap-3 px-3 py-2 border-b border-ops-line2 border-l-4 ' + (isAi ? 'border-l-ops-ai' : 'border-l-ops-hard')}>
@@ -190,7 +240,116 @@ export default function AlarmDetail() {
 
         <div className="px-3 py-2 text-[12px] text-ops-text leading-snug border-b border-ops-line">{alarm.text}</div>
 
-        <div className="grid grid-cols-[1fr_1fr_1.3fr] gap-px flex-1 min-h-0 overflow-hidden">
+        {/* Yasam dongusu seridi + sekmeler */}
+        <div className="flex items-center gap-2 px-3 py-1 border-b border-ops-line bg-ops-sunken">
+          <span className="text-3xs uppercase tracking-[0.14em] text-ops-faint">Yaşam döngüsü</span>
+          {[
+            { label: 'YÜKSELTİLDİ', on: true, cls: 'text-ops-text' },
+            { label: 'ONAY', on: dossier.lifecycle.acknowledged, cls: 'text-ops-nominal' },
+            { label: dossier.lifecycle.state === 'BİLGİ' ? 'BİLGİ' : 'TEMİZLENDİ', on: dossier.lifecycle.state !== 'AKTİF', cls: dossier.lifecycle.state === 'AKTİF' ? 'text-ops-hard' : 'text-ops-nominal' },
+          ].map((step, i) => (
+            <span key={i} className="flex items-center gap-1 num text-3xs tracking-[0.1em]">
+              {i > 0 && <span className="text-ops-faint">→</span>}
+              <span className={'inline-block w-[6px] h-[6px] ' + (step.on ? 'bg-current' : 'border border-ops-line2')} />
+              <span className={step.on ? step.cls : 'text-ops-faint'}>{step.label}</span>
+            </span>
+          ))}
+          <span className={'num text-3xs ml-2 ' + TONE_CLS[dossier.lifecycle.stateTone]}>{dossier.lifecycle.state}</span>
+          <span className="num text-3xs text-ops-faint">· yaş {dossier.lifecycle.rows[2].v}</span>
+          <span className={'ml-auto num text-3xs px-1.5 border ' + URGENCY_CLS[dossier.procedure.urgency]}>
+            {dossier.procedure.urgency.toUpperCase()} · {dossier.procedure.id}
+          </span>
+          <div className="flex gap-[3px] ml-2" role="tablist" aria-label="Alarm detay sekmeleri">
+            {(['OZET', 'STANDART', 'EYLEM'] as DetailTab[]).map((t) => (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={
+                  'num text-2xs px-[8px] py-[2px] border tracking-[0.08em] ' +
+                  (tab === t ? 'border-ops-text text-ops-text bg-ops-panel' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
+                }
+              >
+                {t === 'OZET' ? 'ÖZET' : t === 'STANDART' ? 'STANDART ALANLAR' : 'OPERATÖR EYLEMİ'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === 'STANDART' && (
+          <div className="grid grid-cols-3 gap-px flex-1 min-h-0 overflow-hidden">
+            <div className="px-3 py-2 border-r border-ops-line overflow-y-auto">
+              <DSection title={dossier.pus.title} rows={dossier.pus.rows} />
+              <DSection title="Sınıflandırma · ESA-ADB" rows={dossier.classification} />
+            </div>
+            <div className="px-3 py-2 border-r border-ops-line overflow-y-auto">
+              {dossier.monitoring ? (
+                <DSection title={dossier.monitoring.title} rows={dossier.monitoring.rows} />
+              ) : (
+                <div className="mb-3">
+                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1">PMON tanımı</div>
+                  <div className="text-3xs text-ops-faint leading-snug">
+                    Yer türetilmiş parametre: on-board izleme tanımı (PMON) yoktur. Eşikler yer segmentinde, MIB'deki türetilmiş parametre kaydında tutulur.
+                  </div>
+                </div>
+              )}
+              <DSection title="Yaşam döngüsü" rows={dossier.lifecycle.rows} />
+            </div>
+            <div className="px-3 py-2 overflow-y-auto">
+              {dossier.ool && <DSection title={dossier.ool.title} rows={dossier.ool.rows} />}
+              <div className="text-3xs text-ops-faint leading-snug mt-2 border-t border-ops-line pt-2">
+                Alan adları ECSS-E-ST-70-41C PUS-C sözlüğüne göredir; değerler konsolun kendi MIB ve tamponundan hesaplanır. ST[12] durum adları:
+                WITHIN LIMITS · BELOW LOW LIMIT · ABOVE HIGH LIMIT.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'EYLEM' && (
+          <div className="grid grid-cols-[1.2fr_1fr] gap-px flex-1 min-h-0 overflow-hidden">
+            <div className="px-3 py-2 border-r border-ops-line overflow-y-auto">
+              <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1">Prosedür · ECSS-E-ST-70-32C biçimi</div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="num text-[12px] text-ops-text">{dossier.procedure.id}</span>
+                <span className={'num text-3xs px-1.5 border ' + URGENCY_CLS[dossier.procedure.urgency]}>{dossier.procedure.urgency.toUpperCase()}</span>
+              </div>
+              <div className="text-[12px] text-ops-text leading-snug">{dossier.procedure.title}</div>
+              <div className={'text-[11px] leading-snug mt-1 ' + TONE_CLS[dossier.procedure.urgency === 'acil' ? 'hard' : dossier.procedure.urgency === 'planlı' ? 'soft' : 'nominal']}>
+                {dossier.procedure.action}
+              </div>
+              <ol className="mt-2 text-[11px] text-ops-dim leading-snug list-decimal pl-5 space-y-[3px]">
+                {dossier.procedure.steps.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ol>
+              <div className="text-3xs text-ops-faint mt-2 leading-snug">Kaynak: {dossier.procedure.source}. Konsol komut göndermez; adımlar operatör içindir.</div>
+
+              <div className="mt-3">
+                <DSection title={dossier.operability.title} rows={dossier.operability.rows} />
+              </div>
+            </div>
+            <div className="px-3 py-2 overflow-y-auto">
+              <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1">İlişkili parametreler · {dossier.operability.rows[0].v.split(' · ')[0]}</div>
+              {dossier.related.map((r) => (
+                <div key={r.pid} className={'flex items-center gap-2 text-[11px] leading-[18px] ' + (r.isTarget ? 'bg-white/[0.04] -mx-1 px-1' : '')}>
+                  <span className={'num w-[100px] ' + (r.isTarget ? 'text-ops-text' : 'text-ops-dim')}>{r.pid}</span>
+                  <span className="num text-ops-text w-[80px] text-right">{r.eng === null ? '—' : (r.eng >= 0 ? '+' : '') + r.eng.toFixed(3)}</span>
+                  <span className={'num text-3xs ' + (r.state === 'NOMINAL' ? 'text-ops-nominal' : r.state.startsWith('HARD') ? 'text-ops-hard' : 'text-ops-soft')}>{stateLabel(r.state)}</span>
+                  {r.isTarget && <span className="text-3xs text-ops-faint ml-auto">alarm kanalı</span>}
+                </div>
+              ))}
+              <div className="text-3xs text-ops-faint leading-snug mt-2">
+                Aynı alt sistemin kanalları ve AI skoru — tek kanal mı, alt sistem geneli mi sorusu için (ECSS-E-ST-70-11C: alarm bağlamı).
+              </div>
+              <div className="mt-3">
+                <DSection title="Sınıflandırma" rows={dossier.classification} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className={'grid grid-cols-[1fr_1fr_1.3fr] gap-px flex-1 min-h-0 overflow-hidden' + (tab === 'OZET' ? '' : ' hidden')}>
           {/* Zaman + kaynak */}
           <div className="px-3 py-2 border-r border-ops-line overflow-y-auto">
             <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1">Zaman</div>
@@ -243,7 +402,16 @@ export default function AlarmDetail() {
 
           {/* Paket + kanit */}
           <div className="px-3 py-2 overflow-y-auto">
-            <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1">Taşıyan paket</div>
+            <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mb-1 flex items-center">
+              Taşıyan paket
+              <button
+                onClick={() => setPacketOpen(true)}
+                className="ml-auto normal-case tracking-normal num text-3xs px-1.5 border border-ops-line2 text-ops-dim hover:text-ops-text"
+                title="Paket denetleyici penceresini aç (canlı akış)"
+              >
+                denetleyici ↗
+              </button>
+            </div>
             {alarm.packet ? (
               <>
                 <div className="num text-[11px] text-ops-nominal">{alarm.packet.label}</div>
