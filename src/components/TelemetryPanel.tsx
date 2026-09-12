@@ -21,8 +21,13 @@ export default function TelemetryPanel() {
 
   // 1920x1080'de 8 serit x ~56 px tam sigar. Daha kisa pencerelerde once paket
   // denetleyici daralir (o esneyebilir); yine yetmezse serit kutusu kaydirir.
+  //
+  // Alt sinir 344'ten 200 px'e indi: 864 px yuksekliginde sag sutun 38 px
+  // tasiyor ve en alttaki Durum paneli (NOMINAL / ALARM karsitligi) kirpiliyordu.
+  // Seritler zaten kendi icinde kaydigi icin kisa pencerede Durum gorunur kalir;
+  // 1920x1080'de panel ~520 px oldugundan bu deger orada hicbir seyi degistirmez.
   return (
-    <section className="panel flex flex-col flex-1 min-h-[344px]">
+    <section className="panel flex flex-col flex-1 min-h-[200px]">
       <div className="panel-title flex items-center justify-between">
         <span>Telemetri şeritleri · TM[3,25] HK Parameter Report</span>
         <span className="normal-case tracking-normal text-ops-faint">

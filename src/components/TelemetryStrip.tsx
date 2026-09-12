@@ -184,9 +184,11 @@ function drawStrip(
 }
 
 /**
- * min-h-[54px]: etiket sutunundaki uc satirin (ad / ham+muh / durum) okunabilir
- * kaldigi en kucuk yukseklik. Daha kisa pencerelerde serit kutusu kaydirir,
- * metni kirpmaz.
+ * Etiket sutunu IKI satirdir: ad + kunye, deger + durum. Onceden uc satirdi
+ * (ad / ham+muh / durum) ve toplami ~62 px tutuyordu; seritler 54 px'e
+ * sikistiginda durum etiketi alttaki seridin kanal adinin ustune biniyordu.
+ * Iki satir ~44 px'e sigar. Dar kalan kunye kirpilir ama tamami fareyle
+ * uzerine gelince (title) okunur, bilgi kaybolmaz.
  */
 export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -198,41 +200,35 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
 
   const last = buf[buf.length - 1];
   const [lo, hi] = range(p);
+  const kunye = p.derived
+    ? p.subsystem + ' · APID ' + p.apid + ' · GND türetilmiş · ' + p.source_model
+    : p.subsystem + ' · APID ' + p.apid + ' · ' + subsystemName(p.subsystem) + ' · ' + p.sampling_period_s + ' s';
 
   return (
     <div className="flex items-stretch flex-1 min-h-[54px] border-b border-ops-line">
-      <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between">
-        <div className="flex items-center gap-1.5">
-          {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
-          <span className="num text-[13px] text-ops-text">{p.pid}</span>
-          <span className="text-3xs text-ops-faint">
-            {p.subsystem} · APID {p.apid}
-          </span>
+      <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-center gap-[5px] min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 leading-[16px]" title={p.pid + ' · ' + kunye}>
+          {p.derived && <span className="text-ops-ai text-[11px] shrink-0">◆</span>}
+          <span className="num text-[13px] text-ops-text shrink-0">{p.pid}</span>
+          <span className="text-3xs text-ops-faint truncate min-w-0">{kunye}</span>
           {attention && (
-            <span className="ml-auto text-3xs tracking-[0.1em] text-ops-ai border border-ops-ai/50 px-1 leading-[13px]">
+            <span className="ml-auto shrink-0 text-3xs tracking-[0.1em] text-ops-ai border border-ops-ai/50 px-1 leading-[13px]">
               XAI #{attentionRank}
             </span>
           )}
         </div>
-        <div className="flex items-baseline gap-2">
-          <div className="flex flex-col">
-            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">ham</span>
-            <span className="num text-[12px] text-ops-dim leading-tight">
-              {last && last.raw !== null ? String(last.raw).padStart(5, ' ') : '—'}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-3xs uppercase tracking-wider text-ops-faint leading-none">müh.</span>
-            <span className={'num text-[14px] leading-tight ' + stateTextClass(state)}>
-              {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
-              <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className={'text-3xs uppercase tracking-[0.12em] ' + stateTextClass(state)}>{stateLabel(state)}</span>
-          <span className="text-3xs text-ops-faint">
-            {p.derived ? 'GND türetilmiş · ' + p.source_model : subsystemName(p.subsystem) + ' · ' + p.sampling_period_s + ' s'}
+        <div className="flex items-baseline gap-1.5 min-w-0 leading-[18px]">
+          <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0">ham</span>
+          <span className="num text-[12px] text-ops-dim shrink-0">
+            {last && last.raw !== null ? String(last.raw).padStart(5, ' ') : '—'}
+          </span>
+          <span className="text-3xs uppercase tracking-wider text-ops-faint shrink-0 ml-1">müh.</span>
+          <span className={'num text-[14px] shrink-0 ' + stateTextClass(state)}>
+            {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
+            <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
+          </span>
+          <span className={'ml-auto shrink-0 text-3xs uppercase tracking-[0.12em] ' + stateTextClass(state)}>
+            {stateLabel(state)}
           </span>
         </div>
       </div>

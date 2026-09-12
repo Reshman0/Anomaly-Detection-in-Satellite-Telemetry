@@ -85,11 +85,11 @@ const TEX_W = 4096;
 const TEX_H = 2048;
 
 const TEX_COLORS = {
-  ocean: '#14242f',
-  land: '#22384a',
-  coast: '#8fb8cd',
-  border: '#4a6979',
-  trFill: '#3c6079',
+  ocean: '#08203A',
+  land: '#17385A',
+  coast: '#8FB3D6',
+  border: '#2F5A84',
+  trFill: '#2E5E8C',
   trStroke: '#e6f4fd',
 };
 
@@ -350,7 +350,7 @@ const TR_LABEL_POS = { lat: 39.0, lon: 35.2 };
 
 /** Tema basina cizgi/halka renkleri ve etiket gorunurlugu. */
 const THEME_STYLE: Record<EarthTheme, { rim: number; graticule: number; graticuleOpacity: number; label: boolean; belt: number }> = {
-  ops: { rim: 0x33566a, graticule: 0x2e4653, graticuleOpacity: 0.5, label: true, belt: 0x2b3d49 },
+  ops: { rim: 0x255081, graticule: 0x17385a, graticuleOpacity: 0.5, label: true, belt: 0x1b3f63 },
   political: { rim: 0x7f95a6, graticule: 0x5b6b78, graticuleOpacity: 0.28, label: false, belt: 0x3a4d5a },
   physical: { rim: 0x4d6f86, graticule: 0xdde8f0, graticuleOpacity: 0.22, label: true, belt: 0x3a4d5a },
 };
@@ -785,11 +785,15 @@ export default function GlobeView() {
           ))}
         </div>
 
+        {/* Okuma satiri kurenin basladigi yerden (liste 196 px) baslar: onceden
+            left-2 idi ve uydu listesinin alt kartinin ustune biniyordu. Aciklama
+            kutusu da sag alttan sag uste, gorunum dugmelerinin altina alindi;
+            ikisi alt kenarda yan yana sigmiyordu. */}
         <div
           ref={readout}
-          className="absolute left-2 bottom-2 num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
+          className="absolute left-[204px] bottom-2 max-w-[calc(100%-212px)] truncate num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
         />
-        <div className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right">
+        <div className="absolute right-2 top-[52px] max-w-[calc(100%-212px)] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right">
           <div>
             <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
             {GROUND_STATION.min_elevation_deg}°

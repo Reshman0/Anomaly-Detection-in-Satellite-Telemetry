@@ -63,9 +63,11 @@ export default function AlarmQueue() {
 
   return (
     <section className="panel flex flex-col min-h-0">
-      <div className="panel-title flex items-center justify-between">
-        <span>Alarm kuyruğu</span>
-        <span className="normal-case tracking-normal num flex items-center gap-2">
+      {/* Sayaclar baslik boyutunu miras almasin: 13 px'lik baslikla ayni satira
+          sigmayip alta kiriliyordu. Kendi boyutlari ve tek satir. */}
+      <div className="panel-title flex items-center justify-between gap-3">
+        <span className="whitespace-nowrap shrink-0">Alarm kuyruğu</span>
+        <span className="normal-case tracking-normal font-normal text-2xs num flex items-center gap-1.5 whitespace-nowrap min-w-0 overflow-hidden">
           {[3, 2, 1, 0].map((i) => (
             <span key={i} className={'flex items-center gap-1 ' + (counts[i] ? SEVERITY[i].text : 'text-ops-faint')}>
               <span className={'inline-block w-[6px] h-[6px] ' + (counts[i] ? SEVERITY[i].dot : 'bg-ops-line2')} />

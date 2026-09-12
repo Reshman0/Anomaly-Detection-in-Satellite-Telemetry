@@ -5,11 +5,16 @@ import { GROUND_STATION, elevationAt, isVisible, nextPassEvent, satByNorad } fro
 import { useMemo, useRef } from 'react';
 import UyduBilgiPenceresi from './UyduBilgiPenceresi';
 
+/**
+ * Etiket ve deger tek satirda kalir, sigmazsa "…" ile kisalir. Dar pencerede
+ * alanlar daralinca ikincil yazi (tarih, koordinat, esik) alt satira kiriliyor
+ * ve komsu satirin ustune biniyordu. Kisalan etiketin tamami title'da.
+ */
 function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
   return (
-    <div className={'flex flex-col justify-center px-3 border-r border-ops-line ' + (w ?? '')}>
-      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none">{label}</div>
-      <div className="num text-[13px] leading-tight mt-[3px]">{children}</div>
+    <div className={'flex flex-col justify-center px-3 border-r border-ops-line min-w-0 ' + (w ?? '')} title={label}>
+      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-[12px] truncate">{label}</div>
+      <div className="num text-[13px] leading-[17px] mt-[3px] whitespace-nowrap overflow-hidden text-ellipsis">{children}</div>
     </div>
   );
 }

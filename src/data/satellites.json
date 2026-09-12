@@ -5,9 +5,9 @@
   "default_norad": "56178",
   "groups": [
     { "id": "turksat", "name": "TÜRKSAT A.Ş.", "note": "GEO haberleşme", "color": "#4FA3D1" },
-    { "id": "obs", "name": "Yer gözlem", "note": "MSB · TÜBİTAK UZAY", "color": "#2FBF87" },
-    { "id": "plans", "name": "Plan-S Connecta", "note": "LEO IoT takımyıldızı", "color": "#D9A02B" },
-    { "id": "academic", "name": "Üniversite / amatör", "note": "", "color": "#A184F5" }
+    { "id": "obs", "name": "Yer gözlem", "note": "MSB · TÜBİTAK UZAY", "color": "#449E4A" },
+    { "id": "plans", "name": "Plan-S Connecta", "note": "LEO IoT takımyıldızı", "color": "#D6A361" },
+    { "id": "academic", "name": "Üniversite / amatör", "note": "", "color": "#9B7ACF" }
   ],
   "satellites": [
     { "norad": "23200", "name": "TÜRKSAT 1B", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
