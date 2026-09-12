@@ -3,6 +3,7 @@ import { MIB } from '../engine/mib';
 import { SPEED_OPTIONS, fmtCountdown, fmtDate, fmtTime, fmtTimeMs } from '../engine/missionClock';
 import { GROUND_STATION, elevationAt, isVisible, nextPassEvent, satByNorad } from '../engine/orbit';
 import { useMemo, useRef } from 'react';
+import UyduBilgiPenceresi from './UyduBilgiPenceresi';
 
 function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
   return (
@@ -150,6 +151,7 @@ export default function TopBar() {
         >
           Erişim{a11yActive ? ' ●' : ''}
         </button>
+        <UyduBilgiPenceresi />
         <div className="border border-ops-soft/60 text-ops-soft text-[10px] tracking-[0.14em] uppercase px-2 py-[3px] leading-none whitespace-nowrap" title="Simüle veri — kavramsal gösterim">
           Simüle veri
         </div>

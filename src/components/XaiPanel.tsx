@@ -1,46 +1,37 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useConsole } from '../store';
-import { drawAttribution, drawResidual, drawSpectrogram, summarize } from '../ui/xaiRender';
-import type { XaiEvidence } from '../engine/types';
+import { injectedChannels, scenarioByAsset } from '../engine/xaiFigures';
+import XaiFigure from './XaiFigure';
+import KanitBuyutec, { type BuyutulenKanit } from './KanitBuyutec';
 
 /**
- * XAI paneli — uc seviyeli sekme. Her seviye farkli bir soruya cevap verir:
- *   1 Artik      NE ZAMAN?      AI skoru, esik gecisleri, ST[12]'ye onculuk
- *   2 Katki      HANGI KANAL?   isaretli kanal katkilari
- *   3 Grad-CAM   HANGI FREKANS? zaman x frekans spektrogrami, kanit bandi
+ * XAI paneli — uc seviyeli sekme. Her seviye farkli bir soruya cevap verir ve
+ * BILEREK farkli bir gorsel dil kullanir:
+ *   1 Nerede saptı   cizgi   — modelin bekledigi seri, olculen seri, aradaki fark
+ *   2 Hangi kanal    cubuk   — sapmanin kanallara dagilimi
+ *   3 Isı haritası   harita  — tum kanallar x zaman ve sapmanin zaman profili
+ * Ayni veriyi iki kez gosterirlerse panelin uc adimi birbirinden ayirt edilemiyor.
  *
- * Oncelik: `src/assets/xai/` altinda gercek PNG varsa o gosterilir; yoksa
- * konsolun kendi telemetrisinden hesaplanan cizim (ui/xaiRender.ts).
+ * Gorseller calisma aninda cizilir (bkz. XaiFigure); gorsele tiklayinca ekranin
+ * ortasinda buyutulmus hali acilir.
  */
-const ASSETS = import.meta.glob('../assets/xai/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
-function assetUrl(rel: string): string | null {
-  const name = rel.replace(/^xai\//, '');
-  const key = Object.keys(ASSETS).find((k) => k.endsWith('/' + name));
-  return key ? ASSETS[key] : null;
-}
-
-const LEVELS: Record<1 | 2 | 3, { title: string; question: string }> = {
-  1: { title: 'Artık', question: 'ne zaman?' },
-  2: { title: 'Kanal katkısı', question: 'hangi kanal?' },
-  3: { title: 'Grad-CAM', question: 'hangi frekans?' },
+const LEVEL_TITLES: Record<1 | 2 | 3, string> = {
+  1: '1 · Nerede saptı',
+  2: '2 · Hangi kanal',
+  3: '3 · Isı haritası',
 };
 
-function SyntheticFigure({ ev }: { ev: XaiEvidence }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const sim = useConsole((s) => s.sim);
-  const version = useConsole((s) => s.version);
-
-  useEffect(() => {
-    const cv = ref.current;
-    if (!cv) return;
-    if (ev.level === 1) drawResidual(cv, sim.buffers, ev, sim.alarms);
-    else if (ev.level === 2) drawAttribution(cv, sim.buffers, ev);
-    else drawSpectrogram(cv, sim.buffers, ev);
-  }, [ev, sim, Math.floor(version / 8)]);
-
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full" />;
-}
+/**
+ * Yan sutundaki "ne gosteriyor" metni seviyeden gelir, senaryo basligindan
+ * degil: cizilen sey her senaryoda ayni turdendir ve basligin gorselle
+ * birebir ortusmesi gerekir.
+ */
+const LEVEL_ANLAM: Record<1 | 2 | 3, string> = {
+  1: 'Model ne bekliyordu, ne ölçüldü',
+  2: 'Hangi kanal ne kadar pay aldı',
+  3: 'Sapma zamanla nasıl yayıldı',
+};
 
 export default function XaiPanel() {
   const sim = useConsole((s) => s.sim);
@@ -48,73 +39,102 @@ export default function XaiPanel() {
   const setLevel = useConsole((s) => s.setXaiLevel);
   useConsole((s) => s.version);
 
+  const [buyuk, setBuyuk] = useState<BuyutulenKanit | null>(null);
+  const kapat = useCallback(() => setBuyuk(null), []);
+
   const evidence = sim.xai;
   const current = evidence.find((e) => e.level === level) ?? null;
-  const url = current ? assetUrl(current.asset) : null;
+  const scenario = current ? scenarioByAsset(current.asset) : null;
+  const channels = scenario ? injectedChannels(scenario) : (current?.top_channels ?? []);
+
+  /*
+   * Yeni kanit geldiginde panel kendiliginden o adima gecer; sunucunun sekmeye
+   * tiklamasi gerekmez. Elle secilen adim, yeni kanit gelene kadar korunur.
+   */
+  const sonSayi = useRef(evidence.length);
+  useEffect(() => {
+    if (evidence.length > sonSayi.current) {
+      setLevel(evidence[evidence.length - 1].level);
+    }
+    sonSayi.current = evidence.length;
+  }, [evidence.length, evidence, setLevel]);
 
   return (
     <section className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
-        <span>XAI paneli · açıklanabilirlik</span>
-        <span className="normal-case tracking-normal text-ops-faint">{evidence.length}/3 seviye hazır</span>
+        <span>Model neden alarm verdi</span>
+        <span className="normal-case tracking-normal text-ops-faint">{evidence.length}/3 kanıt hazır</span>
       </div>
 
       <div className="flex border-b border-ops-line">
         {([1, 2, 3] as const).map((l) => {
           const ready = evidence.some((e) => e.level === l);
-          const active = level === l;
           return (
             <button
               key={l}
               onClick={() => setLevel(l)}
               className={
-                'flex-1 text-[11px] py-[3px] border-r border-ops-line last:border-r-0 transition-colors leading-tight ' +
-                (active ? 'text-ops-ai bg-ops-ai/10' : ready ? 'text-ops-dim hover:text-ops-text' : 'text-ops-faint')
+                'flex-1 text-[13px] font-semibold py-1 border-r border-ops-line last:border-r-0 transition-colors ' +
+                (level === l ? 'text-ops-ai bg-ops-ai/10' : ready ? 'text-ops-dim hover:text-ops-text' : 'text-ops-faint')
               }
             >
-              <div>
-                {l} · {LEVELS[l].title}
-                {ready && <span className="ml-1 text-ops-ai">•</span>}
-              </div>
-              <div className={'text-3xs ' + (active ? 'text-ops-ai/80' : 'text-ops-faint')}>{LEVELS[l].question}</div>
+              {LEVEL_TITLES[l]}
+              {ready && <span className="ml-1 text-ops-ai">•</span>}
             </button>
           );
         })}
       </div>
 
       <div className="flex-1 min-h-0 flex">
-        <div className="relative flex-1 min-w-0 bg-ops-sunken">
+        <div className="flex-1 min-w-0 p-2 flex items-center justify-center bg-ops-sunken">
           {!current ? (
-            <div className="absolute inset-0 flex items-center justify-center text-[11px] text-ops-faint text-center px-3 leading-relaxed">
-              Bu seviye için kanıt yok.
+            <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
+              Bu adımda henüz bir şey gelmedi.
               <br />
-              Bir senaryo çalıştırın; model çıktıları zaman çizelgesine göre yüklenir.
+              Bir senaryo başlatın, model çıktıları sırayla gelir.
             </div>
-          ) : url ? (
-            <div className="absolute inset-0 p-2 flex items-center justify-center">
-              <img src={url} alt={current.caption} className="max-w-full max-h-full object-contain" />
+          ) : !scenario ? (
+            <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
+              Bu kanıtın ait olduğu senaryo bulunamadı.
             </div>
           ) : (
-            <SyntheticFigure ev={current} />
+            <button
+              onClick={() =>
+                setBuyuk({ scenario, channels, level: current.level, model: current.model, baslik: LEVEL_TITLES[current.level] })
+              }
+              title="Büyütmek için tıklayın"
+              className="w-full h-full min-h-0 flex items-center justify-center cursor-zoom-in group"
+            >
+              <XaiFigure
+                scenario={scenario}
+                channels={channels}
+                level={current.level}
+                model={current.model}
+                className="max-w-full max-h-full object-contain transition-opacity group-hover:opacity-80"
+              />
+            </button>
           )}
         </div>
 
-        <div className="w-[190px] shrink-0 border-l border-ops-line p-2 flex flex-col gap-2">
+        <div className="w-[190px] shrink-0 border-l border-ops-line p-2 flex flex-col gap-2 overflow-hidden">
           {current ? (
             <>
               <div>
-                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Bu seviye</div>
-                <div className="text-[11px] text-ops-ai leading-snug mt-[2px]">{summarize(current.level, sim.buffers, current, sim.alarms)}</div>
+                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Ne gösteriyor</div>
+                <div className="text-[13px] text-ops-text leading-snug mt-1">{LEVEL_ANLAM[current.level]}</div>
               </div>
               <div>
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Model</div>
-                <div className="num text-[12px] text-ops-text mt-[2px]">{current.model}</div>
+                <div className="num text-[12px] text-ops-ai mt-[2px]">{current.model}</div>
               </div>
               <div>
-                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">En yüksek katkı</div>
+                <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sorumlu kanal</div>
                 <div className="flex flex-wrap gap-1 mt-[3px]">
-                  {current.top_channels.map((c, i) => (
-                    <span key={c} className={'num text-3xs px-1 py-[1px] border ' + (i === 0 ? 'border-ops-ai text-ops-ai' : 'border-ops-line2 text-ops-dim')}>
+                  {channels.map((c, i) => (
+                    <span
+                      key={c}
+                      className={'num text-3xs px-1 py-[1px] border ' + (i === 0 ? 'border-ops-ai text-ops-ai' : 'border-ops-line2 text-ops-dim')}
+                    >
                       {c}
                     </span>
                   ))}
@@ -122,17 +142,20 @@ export default function XaiPanel() {
               </div>
               {current.band && (
                 <div>
-                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Frekans bandı</div>
+                  <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sapmanın sıklığı</div>
                   <div className="num text-[12px] text-ops-text mt-[2px]">{current.band}</div>
                 </div>
               )}
-              <div className="mt-auto text-3xs text-ops-faint leading-snug">{url ? 'bildiri görseli' : 'gerçek görsel için: src/assets/' + current.asset}</div>
             </>
           ) : (
-            <div className="text-3xs text-ops-faint leading-relaxed">Kanıt yüklendiğinde seviyenin cevabı, model adı, en yüksek katkılı kanallar ve frekans bandı burada listelenir.</div>
+            <div className="text-3xs text-ops-faint leading-relaxed">
+              Kanıt gelince model adını, öne çıkan kanalları ve frekans bandını burada göreceksiniz.
+            </div>
           )}
         </div>
       </div>
+
+      <KanitBuyutec kanit={buyuk} onClose={kapat} />
     </section>
   );
 }
