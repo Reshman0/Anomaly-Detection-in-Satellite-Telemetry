@@ -1,5 +1,6 @@
 import { MIB, PARAMETERS, apidLabel, param, subsystemName } from './mib';
 import { REPETITION_NUMBER, ecssStatus, evaluate, isHard, stateLabel } from './limitChecker';
+import { satByNorad } from './orbit';
 import { SCENARIOS, targetPid, type Scenario } from './scenarioRunner';
 import type { Simulation } from './simulation';
 import type { Alarm, LimitState, MibParameter, Sample } from './types';
@@ -355,6 +356,14 @@ export function buildDossier(alarm: Alarm, sim: Simulation): AlarmDossier {
     { k: 'Kaynak', v: isAi ? 'AI türetilmiş · ' + (alarm.model ?? '—') : 'ST[12] uçuş yazılımı sabit limit', tone: isAi ? 'ai' : undefined },
     { k: 'Senaryo', v: sc ? sc.name + ' (' + sc.model + ')' : 'nominal akış', tone: 'dim' },
     { k: 'Kanal', v: alarm.pid + ' · ' + p.description, tone: 'dim', ref: 'ESA-ADB anonim kanal adı' },
+    {
+      k: 'Telemetri kaynağı',
+      v:
+        (alarm.norad ? satName(alarm.norad) + ' · ' : '') +
+        'AZS-DEMO referans modeli örneği (SCID 171, NORAD tohumlu)',
+      tone: 'dim',
+      ref: 'yönerge §0',
+    },
   ];
 
   return {
@@ -367,6 +376,19 @@ export function buildDossier(alarm: Alarm, sim: Simulation): AlarmDossier {
     related,
     classification,
   };
+}
+
+/**
+ * Katalog adi. Gercek uydularin ucus MIB'leri kamuya acik olmadigi icin
+ * telemetri her uyduda ayni referans modelin (AZS-DEMO) bir ornegidir; alarm
+ * dosyasi bunu acikca yazar (yonerge §0).
+ */
+function satName(norad: string): string {
+  try {
+    return satByNorad(norad).name;
+  } catch {
+    return norad;
+  }
 }
 
 /** Şiddet 0..3 → yumuşak/sert mantığıyla ton. */

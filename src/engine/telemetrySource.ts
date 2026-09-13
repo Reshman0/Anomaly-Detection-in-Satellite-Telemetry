@@ -20,8 +20,40 @@ export interface StepSample {
   sample: Sample;
 }
 
-const seeds = new Map<string, number>();
-for (const p of PARAMETERS) seeds.set(p.pid, hashSeed(MIB.mission + ':' + p.pid));
+/**
+ * Ornekleme izgarasinin ortak katsayisi: `sampling_period_s` degerlerinin
+ * en kucuk ortak kati (bugun ch_58 = 4 s, digerleri 1 s). Bir kaynak keyfi bir
+ * gorev saatinden baslatilirken indeks bunun katina oturtulur, boylece her
+ * uyduda ayni parametre ayni fazda orneklenir.
+ */
+const GRID_STEPS = PARAMETERS.reduce(
+  (acc, p) => lcm(acc, Math.max(1, Math.round(p.sampling_period_s / BASE_PERIOD_S))),
+  1,
+);
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+function lcm(a: number, b: number): number {
+  return (a / gcd(a, b)) * b;
+}
+
+export interface SourceOptions {
+  /**
+   * Tohum tuzu — uydu NORAD'i. Ayni referans modeli (AZS-DEMO) her uyduda
+   * farkli bir gurultu gerceklemesiyle kosar. Bos birakilirsa bugunku tek
+   * uydulu akis birebir yeniden uretilir.
+   */
+  seedSalt?: string;
+  /** Baslangic temel adim indeksi; `indexForEndT` ile hesaplanir. */
+  startIndex?: number;
+}
+
+/** Bir parametrenin kac temel adimda bir orneklendigi. */
+function periodSteps(p: MibParameter): number {
+  return Math.max(1, Math.round(p.sampling_period_s / BASE_PERIOD_S));
+}
 
 function nominalEng(p: MibParameter, arValue: number, missionT: number): number {
   const s = p.sim;
@@ -34,11 +66,19 @@ export class TelemetrySource {
   private index = 0;
   private ar = new Map<string, number>();
   private arSteps = new Map<string, number>();
+  private seeds = new Map<string, number>();
 
-  constructor() {
+  constructor(options: SourceOptions = {}) {
+    const start = Math.max(0, Math.floor(options.startIndex ?? 0));
+    this.index = start - (start % GRID_STEPS);
+    const base = MIB.mission + (options.seedSalt ? ':' + options.seedSalt : '');
     for (const p of PARAMETERS) {
+      this.seeds.set(p.pid, hashSeed(base + ':' + p.pid));
       this.ar.set(p.pid, 0);
-      this.arSteps.set(p.pid, 0);
+      // Gurultu ornek sayacindan turetilir (noiseAt(seed, n)). Sayac indeksten
+      // tohumlanmazsa ayni gorev saatine iki kez uyanmak iki farkli pencere
+      // verir; boylece uyandirma gorev saatinde idempotent olur.
+      this.arSteps.set(p.pid, Math.floor(this.index / periodSteps(p)));
     }
   }
 
@@ -48,6 +88,14 @@ export class TelemetrySource {
 
   static missionTForIndex(index: number): number {
     return -PREFILL_S + index * BASE_PERIOD_S;
+  }
+
+  /**
+   * `endT` gorev saniyesinde biten PREFILL_S uzunlugunda bir pencere uretmek
+   * icin gereken baslangic indeksi. `endT = 0` bugunku acilisi birebir verir.
+   */
+  static indexForEndT(endT: number): number {
+    return Math.max(0, Math.floor(endT / BASE_PERIOD_S));
   }
 
   /** Sonraki temel adimin gorev saati. */
@@ -64,13 +112,12 @@ export class TelemetrySource {
     const out: StepSample[] = [];
 
     for (const p of PARAMETERS) {
-      const periodSteps = Math.max(1, Math.round(p.sampling_period_s / BASE_PERIOD_S));
-      if (this.index % periodSteps !== 0) continue;
+      if (this.index % periodSteps(p) !== 0) continue;
 
       // AR(1): duragan standart sapma tam olarak sim.sd olacak sekilde olceklenir.
       const n = this.arSteps.get(p.pid)!;
       const prev = this.ar.get(p.pid)!;
-      const shock = p.sim.sd * Math.sqrt(1 - p.sim.ar1 * p.sim.ar1) * noiseAt(seeds.get(p.pid)!, n);
+      const shock = p.sim.sd * Math.sqrt(1 - p.sim.ar1 * p.sim.ar1) * noiseAt(this.seeds.get(p.pid)!, n);
       const next = p.sim.ar1 * prev + shock;
       this.ar.set(p.pid, next);
       this.arSteps.set(p.pid, n + 1);

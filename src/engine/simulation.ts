@@ -1,7 +1,7 @@
 import { LimitChecker, isHard, isSoft, stateLabel, type CheckTransition } from './limitChecker';
 import { MIB, PARAMETERS, apidLabel, param, subsystemName } from './mib';
 import { BASE_PERIOD_S, MissionClock, PREFILL_S, fmtTimeMs } from './missionClock';
-import { buildTmPacket, concatBytes, resetCounters, u16, type BuiltPacket, type PacketField } from './packetBuilder';
+import { PacketCounters, buildTmPacket, concatBytes, u16, type BuiltPacket, type PacketField } from './packetBuilder';
 import { DEFAULT_SEVERITY_INDEX, NOMINAL_SCENARIO, ScenarioRunner, targetPid, type Scenario } from './scenarioRunner';
 import { TelemetrySource } from './telemetrySource';
 import { detectBreak, fitNominal, type NominalModel } from './changePoint';
@@ -20,6 +20,23 @@ const SPACECRAFT_APIDS = Array.from(
   new Set(PARAMETERS.filter((p) => !p.derived).map((p) => p.apid)),
 ).sort((a, b) => a - b);
 
+/**
+ * Alarm ve not kimlikleri filo genelinde tekildir: bir alarm karti hangi
+ * uydudan gelirse gelsin kendi kimligiyle bulunabilsin diye sayaclar modul
+ * duzeyinde tutulur.
+ */
+let alarmSeq = 0;
+let noteSeq = 0;
+
+export interface SimOptions {
+  /** Yer istasyonunun ortak gorev saati. Verilmezse kendi saatini kurar (testler). */
+  clock?: MissionClock;
+  /** Uydu NORAD kimligi; telemetri tohumunu tuzlar ve alarmlari damgalar. */
+  norad?: string;
+  /** On-doldurma penceresinin bitecegi gorev saniyesi (varsayilan 0 = acilis). */
+  startAtT?: number;
+}
+
 export interface SimSnapshot {
   missionT: number;
   utcMs: number;
@@ -35,10 +52,23 @@ export interface SimSnapshot {
 }
 
 export class Simulation {
-  readonly clock = new MissionClock();
-  private source = new TelemetrySource();
+  /** Uydu kimligi; '' = tuzsuz referans ornegi (birim testleri). */
+  readonly norad: string;
+  private readonly _clock: MissionClock;
+  private source: TelemetrySource;
   private limits = new LimitChecker();
   private runner: ScenarioRunner | null = null;
+
+  /** Uydu basina CCSDS sekans sayaclari (APID x uzay araci). */
+  readonly counters = new PacketCounters();
+
+  /**
+   * Gorev saati. Filoda tum uydular ayni saati paylasir (tek yer istasyonu,
+   * tek UTC). Bir `Simulation` bu saati asla yazmaz - yalnizca okur.
+   */
+  get clock(): MissionClock {
+    return this._clock;
+  }
 
   buffers = new Map<string, Sample[]>();
   alarms: Alarm[] = [];
@@ -65,21 +95,27 @@ export class Simulation {
    */
   private nominalModels = new Map<string, NominalModel>();
 
-  private alarmSeq = 0;
-  private noteSeq = 0;
   private pendingSteps = 0;
 
-  constructor() {
+  constructor(options: SimOptions = {}) {
+    this._clock = options.clock ?? new MissionClock();
+    this.norad = options.norad ?? '';
+    this.source = new TelemetrySource({
+      seedSalt: this.norad,
+      startIndex: TelemetrySource.indexForEndT(options.startAtT ?? 0),
+    });
     for (const p of PARAMETERS) this.buffers.set(p.pid, []);
     this.prefill();
   }
 
-  /** Acilista 10 dakikalik gecmis (yonerge §5) — bos grafikle acilmaz. */
+  /**
+   * 10 dakikalik temiz gecmis (yonerge §5) — bos grafikle acilmaz.
+   * Pencerenin nerede bittigini kaynagin baslangic indeksi belirler; bu metot
+   * gorev saatini YAZMAZ.
+   */
   private prefill(): void {
     const steps = Math.round(PREFILL_S / BASE_PERIOD_S);
     for (let i = 0; i < steps; i++) this.runStep(true);
-    this.clock.missionT = 0;
-    // Onceden doldurma sirasinda uretilen paket kaydini gosterme; sayaclar kalir.
     this.packets = [];
     // Temiz gecmisten nominal modeller (kirilma dedektoru icin).
     this.nominalModels.clear();
@@ -124,6 +160,61 @@ export class Simulation {
     this.structuralBreak = null;
   }
 
+  /**
+   * Uyandirma: uydu uyurken gecen sureyi yeniden oynatmak yerine telemetri
+   * penceresini `endT`de bitecek sekilde yeniden kurar.
+   *
+   * KORUNUR (anomali hafizasi): alarms, notifications, runCounts,
+   * serviceCounts, packetCount, severityIndex.
+   * SIFIRLANIR (canli durum): buffers, packets, xai, infoNotes,
+   * structuralBreak, aktif senaryo, limit durum makinesi.
+   */
+  resync(endT: number): void {
+    this.runner = null;
+    this.xai = [];
+    this.infoNotes = [];
+    this.structuralBreak = null;
+    this.notifiedRun = false;
+    this.packets = [];
+    this.lastTransition = null;
+    // Sira onemli: limit durum makinesi on-doldurmadan ONCE sifirlanmali,
+    // yoksa uyanisin ilk canli ornegi sahte bir "limit icine dondu" uretir.
+    this.limits.reset();
+    this.source = new TelemetrySource({
+      seedSalt: this.norad,
+      startIndex: TelemetrySource.indexForEndT(endT),
+    });
+    for (const p of PARAMETERS) this.buffers.set(p.pid, []);
+    this.prefill();
+  }
+
+  /** Uretilmis son ornegin gorev saati. */
+  get lastSampleT(): number {
+    return this.source.nextMissionT() - BASE_PERIOD_S;
+  }
+
+  /** Ortak gorev saatinin ne kadar gerisinde kaldigi (saniye). */
+  get behindS(): number {
+    return Math.max(0, this._clock.missionT - this.source.nextMissionT());
+  }
+
+  get alarmCount(): number {
+    return this.alarms.length;
+  }
+
+  get unackCount(): number {
+    let n = 0;
+    for (const a of this.alarms) if (!a.acknowledged) n++;
+    return n;
+  }
+
+  /** Kuyruktaki en yuksek ESA-ADB onem derecesi; alarm yoksa -1. */
+  get worstSeverity(): number {
+    let worst = -1;
+    for (const a of this.alarms) if (a.severity > worst) worst = a.severity;
+    return worst;
+  }
+
   setSeverity(index: number): void {
     this.severityIndex = index;
   }
@@ -142,26 +233,33 @@ export class Simulation {
     this.notifications = [];
     this.notifiedRun = false;
     this.limits.reset();
-    resetCounters();
-    this.source = new TelemetrySource();
+    this.counters.reset();
+    this.source = new TelemetrySource({ seedSalt: this.norad });
     for (const p of PARAMETERS) this.buffers.set(p.pid, []);
     this.prefill();
   }
 
-  /** Gercek gecen sureyi gorev saatine cevirip gereken temel adimlari isler. */
-  advance(realDtMs: number, maxSteps = 400): void {
-    this.clock.advance(realDtMs);
-    const target = this.clock.missionT;
+  /**
+   * Verilen gorev saatine kadar temel adimlari isler ve islenen adim sayisini
+   * dondurur. Gorev saatini YAZMAZ: filoda saat ortaktir, tek bir uydunun adim
+   * siniri tum yer istasyonunun saatini geri alamaz. Sinir asilirsa karar
+   * cagirana (Fleet) birakilir.
+   */
+  catchUp(targetMissionT: number, maxSteps = 400): number {
     let guard = 0;
-    while (this.source.nextMissionT() <= target && guard < maxSteps) {
+    while (this.source.nextMissionT() <= targetMissionT && guard < maxSteps) {
       this.runStep(false);
       guard++;
     }
-    // Kaynak adim siniri nedeniyle geride kaldiysa gorev saatini uretilen son
-    // ornekle esitle; aksi halde saat ile seritler kalici olarak ayrisir.
-    if (guard >= maxSteps) this.clock.missionT = this.source.nextMissionT();
     this.pendingSteps = guard;
-    if (this.runner && this.runner.isFinished(this.clock.missionT)) this.runner = null;
+    if (this.runner && this.runner.isFinished(this._clock.missionT)) this.runner = null;
+    return guard;
+  }
+
+  /** Kendi saatini surup yetisir (tek uydulu kullanim ve birim testleri). */
+  advance(realDtMs: number, maxSteps = 400): void {
+    this._clock.advance(realDtMs);
+    this.catchUp(this._clock.missionT, maxSteps);
   }
 
   get lastBatchSteps(): number {
@@ -189,7 +287,9 @@ export class Simulation {
     const unixMs = MIB.epoch ? Date.parse(MIB.epoch) + missionT * 1000 : missionT * 1000;
 
     // --- ST[03] Housekeeping: APID basina TM[3,25] ---
-    for (const apid of SPACECRAFT_APIDS) {
+    // On-doldurmada paket kaydi zaten atiliyor; kurmak da bosuna (adim basina
+    // 3 paket x 600 adim = 1800 CRC). Uyandirma maliyetinin buyuk kismi budur.
+    for (const apid of prefilling ? [] : SPACECRAFT_APIDS) {
       const ps = PARAMETERS.filter((p) => p.apid === apid && !p.derived && byPid.has(p.pid));
       if (ps.length === 0) continue;
       const sid = ps[0].sid;
@@ -210,8 +310,9 @@ export class Simulation {
         unixMs,
         userData: concatBytes(parts),
         userDataFields: fields,
+        counters: this.counters,
       });
-      if (!prefilling) this.pushPacket(pkt);
+      this.pushPacket(pkt);
     }
 
     // --- ST[12] On-board monitoring: gercek limit kontrolu ---
@@ -237,12 +338,14 @@ export class Simulation {
         unixMs,
         userData: concatBytes([u16(1), u16(hash16(pid)), u16(tr.checkId), new Uint8Array([stateCode(tr.from), stateCode(tr.to)]), u16(tr.raw ?? 0)]),
         userDataFields: fields,
+        counters: this.counters,
       });
       this.pushPacket(pkt);
 
       const severity = isHard(tr.to) ? 3 : isSoft(tr.to) ? 1 : 0;
       this.pushAlarm({
-        id: ++this.alarmSeq,
+        id: ++alarmSeq,
+        norad: this.norad,
         service: [12, 12],
         severity,
         source: 'ST12_LIMIT',
@@ -283,10 +386,12 @@ export class Simulation {
               { name: 'Model', bits: 0, value: step.model ?? '—', group: 'data' },
               { name: 'Confidence ×1000', bits: 16, value: String(Math.round((step.confidence ?? 0) * 1000)), group: 'data' },
             ],
+            counters: this.counters,
           });
           this.pushPacket(pkt);
           this.pushAlarm({
-            id: ++this.alarmSeq,
+            id: ++alarmSeq,
+            norad: this.norad,
             service: [5, subtype],
             severity: step.severity,
             source: 'AI_DERIVED',
@@ -349,7 +454,8 @@ export class Simulation {
             'σ (CUSUM)';
           this.pushNote('stat', 'Yapısal kırılma hesaplandı', text, missionT, unixMs);
           this.pushAlarm({
-            id: ++this.alarmSeq,
+            id: ++alarmSeq,
+            norad: this.norad,
             service: [5, 1],
             severity: 0,
             source: 'AI_DERIVED',
@@ -384,7 +490,7 @@ export class Simulation {
     if (!last || last.t < runner.startMissionT || last.eng < (ai.limits.hard_high ?? 5)) return;
     this.notifiedRun = true;
     this.notifications.unshift({
-      id: ++this.noteSeq,
+      id: ++noteSeq,
       missionT,
       utc: fmtTimeMs(unixMs).slice(0, 8),
       scenarioId: sc.id,
@@ -399,7 +505,7 @@ export class Simulation {
   }
 
   private pushNote(kind: InfoNote['kind'], title: string, text: string, missionT: number, unixMs: number): void {
-    this.infoNotes.push({ id: ++this.noteSeq, missionT, utc: fmtTimeMs(unixMs).slice(0, 8), kind, title, text });
+    this.infoNotes.push({ id: ++noteSeq, missionT, utc: fmtTimeMs(unixMs).slice(0, 8), kind, title, text });
     if (this.infoNotes.length > 30) this.infoNotes.splice(0, this.infoNotes.length - 30);
   }
 

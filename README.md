@@ -295,6 +295,16 @@ alt sistem, model adı ve güven skoru. Kartlar iki bağımsız renk ekseni taş
 Panel başlığında şiddet başına canlı sayaçlar ve AI/ST[12] toplamı var; kuyruk
 okunmadan "kim söylüyor" ve "ne kadar ciddi" ayrı ayrı seçilir.
 
+**Kuyruk uyduya aittir.** Başlıktaki `SEÇİLİ UYDU` / `TÜM FİLO` sekmeleri
+kapsamı değiştirir. Her uydunun kendi alarm kuyruğu ve anomali hafızası vardır;
+senaryo her zaman **seçili uyduya** enjekte edilir (senaryo konsolu başlığında
+`hedef: <uydu>` yazar). `TÜM FİLO` örneklenmiş bütün uyduları tek listede
+birleştirir ve kartlara uydu adı + grup rengi ekler; başka uydunun alarmına
+tıklandığında detay penceresi o uydunun tamponundan okur ve başlıkta `○` ile
+uykuda olduğunu belirtir. Sol katalogda her satır bir durum noktası taşır:
+içi boş = henüz örneklenmedi · sönük dolu = örneklendi, alarm yok · şiddet
+renginde dolu + desen = en yüksek şiddet, yanında `onaysız/toplam alarm`.
+
 Karta tıklamak **alarm detay penceresini** açar: UTC/OBT/görev saati, kaynak
 (APID, parametre, alt sistem, model, güven, ST[12] geçişi), parametrenin MIB
 tanımı (kalibrasyon, limitler, örnekleme) ve anlık değeri, alarm anının
@@ -816,7 +826,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-40 test, dört dosyada: `src/engine/limitChecker.test.ts` (26), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
+62 test, beş dosyada: `src/engine/limitChecker.test.ts` (30), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -830,6 +840,14 @@ npm test
 | Sekans sayacı APID başına artar, 16383'te sarar | kabul kriteri |
 | Yalnızca ST[03]/ST[05]/ST[12] kullanılır | kabul kriteri |
 | Senaryo dosyalarındaki `service` ↔ `severity` tutarlılığı | yanlış `TM[5,x]` etiketini önler |
+| Bir uyduya enjekte edilen anomali diğerinin kuyruğuna düşmez | uydu başına hafızanın ana iddiası |
+| Her alarm kendi uydusunun NORAD'ıyla damgalanır (ST[12], ST[05], CUSUM) | filo kuyruğunun doğru atfı |
+| Uydu değişimi ortak görev saatini geri almaz | tek yer istasyonu, tek UTC |
+| Aynı referans model farklı NORAD'da farklı gerçekleme üretir | uydu başına tohumlama |
+| Tuzsuz örnek bugünkü tek uydulu akışı birebir üretir | eski eşik testlerinin geçerliliği |
+| Uyanış hafızayı korur, canlı durumu sıfırlar | anomali hafızasının tanımı |
+| Uyanışın ilk canlı örneği sahte limit alarmı üretmez | `limits.reset()` sırası |
+| Görüntüleme yolları uyuyan uyduyu var etmez | tembel yaratma (başarım) |
 
 ---
 
@@ -880,6 +898,29 @@ canlı hesap; simülasyon uyarısı üst şeritteki `SİMÜLE VERİ` rozetiyle
 taşınıyor. PNG konulduğu anda öncelik ona geçer. Kanıtların `top_channels` alanı da gerçekten
 enjekte edilen kanallarla eşitlendi ki iddia ile hesap çelişmesin.
 
+**6. Uydu başına anomali hafızası ve tek MIB.** Şartname §11 "ikinci bir uydu
+misyonu"nu kapsam dışı bırakır. Ekip talebiyle katalogdaki 32 uydunun her biri
+artık **kendi alarm kuyruğuna ve anomali hafızasına** sahip; senaryo her zaman
+**seçili uyduya** enjekte edilir. Gerçek uyduların uçuş MIB'leri kamuya açık
+olmadığı için her uydu, AZS-DEMO referans parametre setinin NORAD ile
+tohumlanmış bir **örneğini** koşar: izler uydudan uyduya farklıdır ama hiçbir
+gerçek uyduya uydurma SCID veya uydurma parametre adı atanmaz (§0). Ekran bunu
+üç yerde açıkça yazar: katalog başlığı (`telemetri: AZS-DEMO referans modeli ·
+NORAD tohumlu`), üst şerit (`model AZS-DEMO`) ve alarm detayının STANDART
+sekmesindeki `Telemetri kaynağı` satırı.
+
+**Yalnızca seçili uydu telemetri üretir.** 32 uydunun tamamını canlı koşturmak
+açılışta 32×600 ön-doldurma adımı ve karede 32 kat paket üretimi demekti.
+Seçilmemiş uydu uykudadır (kare başına maliyeti sıfır); geri seçildiğinde
+*kaldığı yerden değil, güncel görev saatinden* devam eder. Uyanışta alarmlar,
+bildirimler, koşu sayaçları ve servis sayaçları **korunur**; tampon, paketler,
+XAI kanıtı ve varsa koşan senaryo sıfırlanır. Kısa bir ara (≤ 10 görev saniyesi)
+senaryoyu düşürmez — kazara tıklayıp geri dönen operatör anomalisini
+kaybetmesin diye. Alarm kuyruğunun `TÜM FİLO` sekmesi ve kataloğun satır
+rozetleri, bakılmayan uydudaki anomalinin gözden kaçmasını önler; kuyruk
+altbilgisi kaç uydunun örneklendiğini yazar ki boş bir filo kuyruğu "hiçbir
+uyduda anomali yok" diye okunmasın.
+
 **3. Kanal adları.** `ch_42` ve `ch_75` yönergede geçtiği gibi bırakıldı.
 Konsolun dolu görünmesi için ESA-ADB adlandırma şemasına uygun `ch_11`, `ch_12`,
 `ch_58` eklendi. Bildirinizde gerçekten geçen kanallarla değiştirmek isterseniz
@@ -922,8 +963,10 @@ Aşağıdakiler bilinçli olarak yapılmadı; her biri demonun ana mesajını su
 gerçek ML modeli ve çıkarım · backend, veritabanı, WebSocket, kullanıcı hesabı ·
 transfer frame kodlaması, Reed-Solomon, RF katmanı · playback/geri sarma modu ·
 çoklu operatör, alarm atama, yorum yazma · çalışmayan katman aç/kapa düğmeleri ·
-terminator çizgisi, bulut dokusu, atmosfer efekti · ikinci bir uydu misyonu ya
-da ikinci ekran · karanlık/aydınlık tema geçişi
+terminator çizgisi, bulut dokusu, atmosfer efekti · ikinci ekran ·
+karanlık/aydınlık tema geçişi · uydu başına **gerçek** MIB (katalogdaki her uydu
+AZS-DEMO referans modelinin bir örneğini koşar, bkz. §10 madde 6) · aynı anda
+birden fazla uydudan canlı telemetri
 
 ---
 

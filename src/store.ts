@@ -1,8 +1,10 @@
 import { create } from 'zustand';
-import { Simulation } from './engine/simulation';
+import { Fleet } from './engine/fleet';
+import type { Simulation } from './engine/simulation';
 import type { Speed } from './engine/missionClock';
 import { DEFAULT_SEVERITY_INDEX, NOMINAL_SCENARIO, type Scenario } from './engine/scenarioRunner';
 import { DEFAULT_NORAD } from './engine/orbit';
+import type { Alarm } from './engine/types';
 import { applyA11y, buildPalette, clearA11y, loadA11y, saveA11y, type A11ySettings } from './ui/a11y';
 import { setPalette } from './ui/colors';
 
@@ -12,6 +14,15 @@ export type GlobeView = 'LEO' | 'ALL';
 export type EarthTheme = 'ops' | 'political' | 'physical';
 /** Dunya gorunumu: 3B kure ya da 2B esdikdortgen harita. */
 export type MapMode = '3D' | '2D';
+/** Alarm kuyrugu kapsami: yalnizca secili uydu ya da tum filo. */
+export type AlarmScope = 'sat' | 'fleet';
+
+/**
+ * Filo tek ornektir ve gorev saatini o tutar. `sim` alani her zaman secili
+ * uydunun simulasyonunu gosterir; boylece `useConsole((s) => s.sim)` yapan
+ * bilesenler degismeden secili uydunun verisini okur.
+ */
+export const fleet = new Fleet(DEFAULT_NORAD);
 
 interface ConsoleState {
   sim: Simulation;
@@ -20,6 +31,9 @@ interface ConsoleState {
   speed: Speed;
   severityIndex: number;
   selectedAlarmId: number | null;
+  /** Secili alarmin uydusu — alarm baska bir uydunun kuyrugundan gelmis olabilir. */
+  selectedAlarmNorad: string | null;
+  alarmScope: AlarmScope;
   xaiLevel: 1 | 2 | 3;
   /** Ust seritteki AOS/LOS, yorunge izi ve gorus vektorunu suren uydu. */
   selectedNorad: string;
@@ -43,8 +57,9 @@ interface ConsoleState {
   setSeverity: (i: number) => void;
   runScenario: (s: Scenario) => void;
   backToNominal: () => void;
-  selectAlarm: (id: number | null) => void;
-  ackAlarm: (id: number) => void;
+  selectAlarm: (a: Alarm | null) => void;
+  ackAlarm: (id: number, norad: string) => void;
+  setAlarmScope: (scope: AlarmScope) => void;
   setXaiLevel: (l: 1 | 2 | 3) => void;
   selectSatellite: (norad: string) => void;
   setGlobeView: (v: GlobeView) => void;
@@ -65,11 +80,13 @@ const initialA11y = loadA11y();
 }
 
 export const useConsole = create<ConsoleState>((set, get) => ({
-  sim: new Simulation(),
+  sim: fleet.active,
   version: 0,
   speed: 1,
   severityIndex: DEFAULT_SEVERITY_INDEX,
   selectedAlarmId: null,
+  selectedAlarmNorad: null,
+  alarmScope: 'sat',
   xaiLevel: 1,
   selectedNorad: DEFAULT_NORAD,
   globeView: 'ALL',
@@ -83,12 +100,12 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   paletteVersion: 1,
 
   tick: (realDtMs) => {
-    get().sim.advance(realDtMs);
+    fleet.advance(realDtMs);
     set((s) => ({ version: s.version + 1 }));
   },
 
   setSpeed: (speed) => {
-    get().sim.clock.setSpeed(speed);
+    fleet.clock.setSpeed(speed);
     set({ speed });
   },
 
@@ -111,14 +128,29 @@ export const useConsole = create<ConsoleState>((set, get) => ({
     set({ selectedAlarmId: null });
   },
 
-  selectAlarm: (selectedAlarmId) => set({ selectedAlarmId }),
-  ackAlarm: (id) => {
-    get().sim.acknowledge(id);
+  selectAlarm: (a) => set({ selectedAlarmId: a?.id ?? null, selectedAlarmNorad: a?.norad ?? null }),
+  ackAlarm: (id, norad) => {
+    fleet.peek(norad)?.acknowledge(id);
     set((s) => ({ version: s.version + 1 }));
   },
+  setAlarmScope: (alarmScope) => set({ alarmScope }),
   setXaiLevel: (xaiLevel) => set({ xaiLevel }),
 
-  selectSatellite: (selectedNorad) => set({ selectedNorad }),
+  // Uydu secimi artik simulasyonu da secer: senaryo bu uyduya enjekte edilir,
+  // alarm kuyrugu bu uydunun hafizasini gosterir.
+  selectSatellite: (selectedNorad) => {
+    if (selectedNorad === fleet.selectedNorad) return;
+    const sim = fleet.select(selectedNorad);
+    // Siddet carpani konsolda tek kaydiraktir; yeni uydu da onu kullansin.
+    sim.setSeverity(get().severityIndex);
+    set((s) => ({
+      selectedNorad,
+      sim,
+      selectedAlarmId: null,
+      selectedAlarmNorad: null,
+      version: s.version + 1,
+    }));
+  },
   setGlobeView: (globeView) => set((s) => ({ globeView, globeFitNonce: s.globeFitNonce + 1, followSat: false })),
   setFollow: (followSat) => set({ followSat }),
   setEarthTheme: (earthTheme) => set({ earthTheme }),

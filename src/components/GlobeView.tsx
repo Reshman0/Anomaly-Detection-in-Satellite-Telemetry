@@ -625,7 +625,7 @@ export default function GlobeView() {
             </div>
             <div>ince yeşil çizgiler: istasyondan görünen uydulara görüş vektörü</div>
             <div>irtifa görsel olarak sıkıştırılmıştır · okunan km değerleri gerçek</div>
-            <div>katalog durumsal farkındalık içindir · telemetri akışı AZS-DEMO görevine aittir</div>
+            <div>her uydunun kendi anomali hafızası vardır · telemetri AZS-DEMO referans modelinin NORAD tohumlu örneğidir</div>
             {earthTheme === 'physical' && <div>zemin: NASA Blue Marble NG, Aralık 2004 · kamu malı</div>}
             {earthTheme === 'political' && <div>zemin: Natural Earth 110m · Türkçe adlar NAME_TR</div>}
           </div>

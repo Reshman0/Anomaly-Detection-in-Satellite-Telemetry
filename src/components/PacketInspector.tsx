@@ -119,6 +119,13 @@ export default function PacketInspector() {
   const [frozen, setFrozen] = useState(false);
   const frozenRef = useRef<{ pkt: BuiltPacket; index: number } | null>(null);
 
+  // Uydu degisince dondurulmus cerceve cozulur: eski paket yeni uydunun
+  // cerceve sayacina yamanmasin.
+  useEffect(() => {
+    setFrozen(false);
+    frozenRef.current = null;
+  }, [sim]);
+
   const live = sim.packets[sim.packets.length - 1];
   if (frozen && !frozenRef.current && live) frozenRef.current = { pkt: live, index: sim.packetCount };
   if (!frozen) frozenRef.current = null;

@@ -16,6 +16,14 @@ export default function AlarmAnnouncer() {
   const lastId = useRef<number>(sim.alarms[0]?.id ?? 0);
   const [msg, setMsg] = useState('');
 
+  // Uydu degisince yeni kuyrugun kimlik uzayi alakasizdir; sifirlanmazsa
+  // her gecis o uydunun en son ESKI alarmini yeniymis gibi okur ve bipler.
+  // Bu effect duyuru effect'inden ONCE tanimli olmali: ayni commit icinde
+  // effect'ler tanim sirasiyla kosar.
+  useEffect(() => {
+    lastId.current = sim.alarms[0]?.id ?? 0;
+  }, [sim]);
+
   useEffect(() => {
     const top = sim.alarms[0];
     if (!top || top.id === lastId.current) return;

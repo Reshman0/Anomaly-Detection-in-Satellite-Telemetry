@@ -49,33 +49,55 @@ export const PUS_VERSION = 2; // PUS-C
 export const SEQ_COUNT_MAX = 16383; // 14 bit
 const CCSDS_EPOCH_MS = Date.UTC(1958, 0, 1); // CCSDS 301.0-B CUC ajans epogu
 
-const seqCounters = new Map<number, number>();
-const msgTypeCounters = new Map<string, number>();
+/**
+ * CCSDS 133.0-B-2 paket sekans sayaci APID *ve uzay araci* basinadir: iki
+ * farkli uydunun ayni APID'si bagimsiz sayar. Bu yuzden sayaclar modul
+ * genelinde degil, ornekte tutulur; her `Simulation` kendi ornegini kullanir.
+ */
+export class PacketCounters {
+  private seq = new Map<number, number>();
+  private msgType = new Map<string, number>();
 
-export function resetCounters(): void {
-  seqCounters.clear();
-  msgTypeCounters.clear();
+  /** APID basina artan, 16383'te saran paket sekans sayaci. */
+  next(apid: number): number {
+    const cur = this.seq.get(apid);
+    const value = cur === undefined ? 0 : (cur + 1) % (SEQ_COUNT_MAX + 1);
+    this.seq.set(apid, value);
+    return value;
+  }
+
+  peek(apid: number): number {
+    return this.seq.get(apid) ?? 0;
+  }
+
+  /** Ayni APID + servis + alt tip icin artan mesaj tipi sayaci. */
+  nextMsgType(apid: number, service: number, subtype: number): number {
+    const key = apid + '|' + service + '|' + subtype;
+    const cur = this.msgType.get(key);
+    const value = cur === undefined ? 0 : (cur + 1) % 0x10000;
+    this.msgType.set(key, value);
+    return value;
+  }
+
+  reset(): void {
+    this.seq.clear();
+    this.msgType.clear();
+  }
 }
 
-/** APID basina artan, 16383'te saran paket sekans sayaci. */
+/** `counters` verilmeyen cagrilarin kullandigi ortak sayac (testler, tek uydulu kullanim). */
+const DEFAULT_COUNTERS = new PacketCounters();
+
+export function resetCounters(): void {
+  DEFAULT_COUNTERS.reset();
+}
+
 export function nextSequenceCount(apid: number): number {
-  const cur = seqCounters.get(apid);
-  const next = cur === undefined ? 0 : (cur + 1) % (SEQ_COUNT_MAX + 1);
-  seqCounters.set(apid, next);
-  return next;
+  return DEFAULT_COUNTERS.next(apid);
 }
 
 export function peekSequenceCount(apid: number): number {
-  return seqCounters.get(apid) ?? 0;
-}
-
-/** Ayni APID + servis + alt tip icin artan mesaj tipi sayaci. */
-function nextMsgTypeCounter(apid: number, service: number, subtype: number): number {
-  const key = apid + '|' + service + '|' + subtype;
-  const cur = msgTypeCounters.get(key);
-  const next = cur === undefined ? 0 : (cur + 1) % 0x10000;
-  msgTypeCounters.set(key, next);
-  return next;
+  return DEFAULT_COUNTERS.peek(apid);
 }
 
 /** CCSDS 301.0-B CUC: 4 oktet kaba saniye + 2 oktet ince alt-saniye. */
@@ -107,13 +129,16 @@ export interface BuildOptions {
   unixMs: number;
   userData: Uint8Array;
   userDataFields?: PacketField[];
+  /** Uydu basina sekans sayaclari; verilmezse ortak sayac kullanilir. */
+  counters?: PacketCounters;
 }
 
 export function buildTmPacket(o: BuildOptions): BuiltPacket {
   const destinationId = o.destinationId ?? 0x0001;
   const timeRefStatus = o.timeRefStatus ?? 0;
-  const seq = nextSequenceCount(o.apid);
-  const mtc = nextMsgTypeCounter(o.apid, o.service, o.subtype);
+  const counters = o.counters ?? DEFAULT_COUNTERS;
+  const seq = counters.next(o.apid);
+  const mtc = counters.nextMsgType(o.apid, o.service, o.subtype);
   const cuc = toCuc(o.unixMs);
 
   // --- ikincil baslik (13 oktet) ---

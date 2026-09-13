@@ -1,4 +1,5 @@
-import { useConsole } from '../store';
+import { fleet, useConsole } from '../store';
+import { severityStyle } from '../ui/severity';
 import {
   GROUND_STATION,
   SATELLITES,
@@ -30,6 +31,9 @@ export default function SatelliteList() {
   const selectSatellite = useConsole((s) => s.selectSatellite);
   useConsole((s) => s.version);
 
+  // Render basina bir kez: yalnizca ornegi olan uydular icin ozet uretir,
+  // uyuyan bir uyduyu yaratmaz.
+  const summaries = fleet.summaries();
   const utcMs = sim.clock.utcMs();
   const selSat = satByNorad(selected);
   const el = elementsOf(selSat);
@@ -41,6 +45,12 @@ export default function SatelliteList() {
         <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Uydu kataloğu</div>
         <div className="text-3xs text-ops-faint mt-[1px]">
           gerçek zamanlı yükselti · ≥{GROUND_STATION.min_elevation_deg}° görünür
+        </div>
+        <div
+          className="text-3xs text-ops-faint mt-[1px]"
+          title="Gerçek uyduların uçuş MIB'leri kamuya açık değildir. Her uydu, AZS-DEMO referans parametre setinin NORAD ile tohumlanmış bir örneğini koşar; uydurma SCID veya parametre adı kullanılmaz (yönerge §0)."
+        >
+          telemetri: AZS-DEMO referans modeli · NORAD tohumlu
         </div>
       </div>
 
@@ -62,17 +72,43 @@ export default function SatelliteList() {
               const visible = el >= GROUND_STATION.min_elevation_deg;
               const isSel = sat.norad === selected;
               const b = badge(sat);
+              // Uc durum: hic orneklenmedi (ici bos) · orneklendi, temiz (sonuk
+              // dolu) · alarmi var (en yuksek siddet rengi + desen).
+              const sum = summaries.get(sat.norad);
+              const sv = sum && sum.worstSeverity >= 0 ? severityStyle(sum.worstSeverity) : null;
               return (
                 <button
                   key={sat.norad}
                   onClick={() => selectSatellite(sat.norad)}
                   title={sat.operator + ' · ' + sat.mission + ' · ' + sat.intlDes}
+                  aria-label={
+                    sat.name +
+                    ', yükselti ' +
+                    el.toFixed(0) +
+                    ' derece' +
+                    (sum
+                      ? sum.alarms > 0
+                        ? ', ' + sum.alarms + ' alarm, en yüksek şiddet ' + severityStyle(sum.worstSeverity).label
+                        : ', örneklendi, alarm yok'
+                      : ', henüz örneklenmedi')
+                  }
                   className={
                     'w-full text-left px-2 py-[3px] border-b border-ops-line/60 transition-colors ' +
                     (isSel ? 'bg-white/[0.07]' : 'hover:bg-white/[0.03]')
                   }
                 >
                   <div className="flex items-baseline gap-1">
+                    <span
+                      title={sum ? sum.alarms + ' alarm · ' + sum.unacked + ' onaysız' : 'henüz örneklenmedi'}
+                      className={
+                        'inline-block w-[6px] h-[6px] shrink-0 self-center ' +
+                        (sv
+                          ? sv.dot + ' sev-pattern-' + sum!.worstSeverity
+                          : sum
+                            ? 'bg-ops-nominal/50'
+                            : 'border border-ops-line2')
+                      }
+                    />
                     <span
                       className={'text-[11px] leading-tight truncate ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}
                     >
@@ -91,6 +127,11 @@ export default function SatelliteList() {
                     <span className="num">{sat.orbitClass}</span>
                     <span className="num">{sat.launchYear}</span>
                     {b ? <span className={b.cls}>{b.text}</span> : <span className="num">{sat.periodMin.toFixed(0)} dk</span>}
+                    {sum && sum.alarms > 0 && (
+                      <span className={'num ml-auto shrink-0 ' + sv!.text}>
+                        {sum.unacked > 0 ? sum.unacked + '/' + sum.alarms : sum.alarms} alarm
+                      </span>
+                    )}
                   </div>
                 </button>
               );

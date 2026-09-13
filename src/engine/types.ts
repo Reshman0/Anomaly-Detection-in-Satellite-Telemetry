@@ -87,6 +87,8 @@ export type AlarmSource = 'ST12_LIMIT' | 'AI_DERIVED';
 
 export interface Alarm {
   id: number;
+  /** Alarmi ureten uydunun NORAD kimligi (katalogdaki `SatelliteRecord.norad`). */
+  norad: string;
   /** ECSS servis/alt tip cifti, orn. [5,4] */
   service: [number, number];
   /** ESA-ADB onem derecesi 0..3 */
