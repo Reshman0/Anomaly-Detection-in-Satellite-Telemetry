@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useConsole } from '../store';
+import { satByNorad } from '../engine/orbit';
+import { fleet, useConsole } from '../store';
 import { MIB, apidLabel, param, subsystemName } from '../engine/mib';
 import { evaluate, stateLabel } from '../engine/limitChecker';
 import { fmtTime } from '../engine/missionClock';
@@ -165,14 +166,22 @@ function Row({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
 }
 
 export default function AlarmDetail() {
-  const sim = useConsole((s) => s.sim);
+  const activeSim = useConsole((s) => s.sim);
   const selectedId = useConsole((s) => s.selectedAlarmId);
+  const selectedNorad = useConsole((s) => s.selectedAlarmNorad);
   const selectAlarm = useConsole((s) => s.selectAlarm);
   const ackAlarm = useConsole((s) => s.ackAlarm);
   const setPacketOpen = useConsole((s) => s.setPacketOpen);
   useConsole((s) => s.version);
 
-  const alarm: Alarm | undefined = selectedId === null ? undefined : sim.alarms.find((a) => a.id === selectedId);
+  // Alarm filo kuyrugundan secilmis olabilir: tampon, senaryo ve XAI kaniti
+  // aktif uydudan degil, alarmi ureten uydudan okunur.
+  const alarmSim = selectedNorad === null ? activeSim : fleet.peek(selectedNorad);
+  const sim = alarmSim ?? activeSim;
+  const dormant = alarmSim !== undefined && alarmSim !== activeSim;
+  const satName = selectedNorad ? satByNorad(selectedNorad).name : null;
+  const alarm: Alarm | undefined =
+    selectedId === null || !alarmSim ? undefined : alarmSim.alarms.find((a) => a.id === selectedId);
   const cvRef = useRef<HTMLCanvasElement>(null);
   // Ref degil state: cizim basarisi yeniden cizimi tetiklemeli, yoksa
   // "tampon disinda" uyarisi dolu bir seridin ustunde asili kalir.
@@ -232,7 +241,13 @@ export default function AlarmDetail() {
             {isAi ? '◆ AI TÜRETİLMİŞ' : '▲ ST[12] LİMİT'}
           </span>
           {alarm.acknowledged && <span className="text-3xs tracking-[0.12em] text-ops-nominal border border-ops-nominal px-1">✓ ONAYLANDI</span>}
-          <span className="ml-auto text-3xs text-ops-faint num">alarm #{alarm.id}</span>
+          {satName && (
+            <span className="ml-auto flex items-center gap-1.5 text-3xs">
+              <span className={dormant ? 'text-ops-soft' : 'text-ops-nominal'}>{dormant ? '○' : '●'}</span>
+              <span className="text-ops-dim">{satName}</span>
+            </span>
+          )}
+          <span className={(satName ? '' : 'ml-auto ') + 'text-3xs text-ops-faint num'}>alarm #{alarm.id}</span>
           <button onClick={() => selectAlarm(null)} className="text-ops-dim hover:text-ops-text text-[13px] leading-none px-1" title="Kapat (Esc)">
             ✕
           </button>
@@ -445,9 +460,19 @@ export default function AlarmDetail() {
         </div>
 
         <div className="flex items-center gap-2 px-3 py-2 border-t border-ops-line2">
-          <span className="text-3xs text-ops-faint">Esc kapatır · onay yalnızca operatör kaydıdır, uyduya komut gönderilmez</span>
+          <span className="text-3xs text-ops-faint">
+            Esc kapatır · onay yalnızca operatör kaydıdır, uyduya komut gönderilmez
+            {dormant && (
+              <>
+                {' · '}
+                <span className="text-ops-soft">
+                  bu uydu şu an örneklenmiyor — son telemetri t = {Math.round(sim.lastSampleT)} s
+                </span>
+              </>
+            )}
+          </span>
           <button
-            onClick={() => ackAlarm(alarm.id)}
+            onClick={() => ackAlarm(alarm.id, alarm.norad)}
             disabled={!!alarm.acknowledged}
             className={
               'ml-auto num text-2xs px-3 py-[3px] border tracking-[0.1em] transition-colors ' +

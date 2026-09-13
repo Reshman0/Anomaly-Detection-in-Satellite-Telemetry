@@ -1,5 +1,6 @@
 import { useConsole } from '../store';
 import { NOMINAL_SCENARIO, SCENARIOS, SEVERITY_STEPS } from '../engine/scenarioRunner';
+import { satByNorad } from '../engine/orbit';
 
 const SEVERITY_GLYPHS = ['▁', '▂', '▃', '▄', '▅'];
 
@@ -9,14 +10,22 @@ export default function ScenarioConsole() {
   const backToNominal = useConsole((s) => s.backToNominal);
   const severityIndex = useConsole((s) => s.severityIndex);
   const setSeverity = useConsole((s) => s.setSeverity);
+  const selectedNorad = useConsole((s) => s.selectedNorad);
   useConsole((s) => s.version);
 
   const active = sim.activeScenario;
   const progress = sim.scenarioProgress;
+  // Enjeksiyon her zaman SECILI uyduya gider; hedef basligin sagi'nda yazar.
+  const target = satByNorad(selectedNorad);
 
   return (
     <section className="panel flex flex-col min-h-0">
-      <div className="panel-title">Senaryo konsolu</div>
+      <div className="panel-title flex items-center justify-between">
+        <span>Senaryo konsolu</span>
+        <span className="normal-case tracking-normal text-ops-faint">
+          hedef: <span className="text-ops-dim">{target.name}</span>
+        </span>
+      </div>
       <div className="p-2 flex flex-col gap-1.5 min-h-0">
         {SCENARIOS.map((s) => {
           const isActive = active?.id === s.id;

@@ -1,6 +1,8 @@
-import { useConsole } from '../store';
+import { fleet, useConsole } from '../store';
+import { SATELLITES, SAT_GROUPS, satByNorad } from '../engine/orbit';
 import { apidLabel, subsystemName } from '../engine/mib';
 import { stateLabel } from '../engine/limitChecker';
+import { SEVERITY, sev } from '../ui/severity';
 import type { Alarm } from '../engine/types';
 
 /**
@@ -11,17 +13,6 @@ import type { Alarm } from '../engine/types';
  *
  * Boylece kart okunmadan "kim soyluyor" ve "ne kadar ciddi" ayri ayri secilir.
  */
-
-const SEVERITY = [
-  { label: 'bilgi', text: 'text-ops-nominal', borderL: 'border-l-ops-nominal', bg: '', dot: 'bg-ops-nominal' },
-  { label: 'düşük', text: 'text-ops-soft', borderL: 'border-l-ops-soft', bg: '', dot: 'bg-ops-soft' },
-  { label: 'orta', text: 'text-ops-warn', borderL: 'border-l-ops-warn', bg: 'bg-ops-warn/[0.06]', dot: 'bg-ops-warn' },
-  { label: 'yüksek', text: 'text-ops-hard', borderL: 'border-l-ops-hard', bg: 'bg-ops-hard/[0.09]', dot: 'bg-ops-hard' },
-] as const;
-
-function sev(a: Alarm) {
-  return SEVERITY[Math.max(0, Math.min(3, a.severity))];
-}
 
 function source(a: Alarm): { border: string; label: string; text: string; glyph: string } {
   if (a.source === 'AI_DERIVED') {
@@ -47,13 +38,24 @@ function SeverityBar({ a }: { a: Alarm }) {
   );
 }
 
+const SAT_COUNT = SATELLITES.length;
+
+/** Filo kipinde kart uzerinde uydunun grup rengi. */
+function groupColor(group: string): string {
+  return SAT_GROUPS.find((g) => g.id === group)?.color ?? '#8892A0';
+}
+
 export default function AlarmQueue() {
   const sim = useConsole((s) => s.sim);
   const selected = useConsole((s) => s.selectedAlarmId);
   const selectAlarm = useConsole((s) => s.selectAlarm);
+  const scope = useConsole((s) => s.alarmScope);
+  const setScope = useConsole((s) => s.setAlarmScope);
   useConsole((s) => s.version);
 
-  const alarms = sim.alarms;
+  // 'sat' = yalnizca secili uydunun hafizasi, 'fleet' = ornegi olan tum uydular.
+  const alarms = scope === 'fleet' ? fleet.fleetAlarms() : sim.alarms;
+  const fleetCount = fleet.fleetAlarms().length;
   const counts = [0, 0, 0, 0];
   let aiCount = 0;
   for (const a of alarms) {
@@ -64,7 +66,26 @@ export default function AlarmQueue() {
   return (
     <section className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
-        <span>Alarm kuyruğu</span>
+        <span className="flex items-center gap-2">
+          <span>Alarm kuyruğu</span>
+          {(['sat', 'fleet'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setScope(t)}
+              aria-pressed={scope === t}
+              title={t === 'sat' ? 'Yalnızca seçili uydunun alarmları' : 'Örneklenmiş tüm uyduların alarmları'}
+              className={
+                'normal-case tracking-[0.08em] text-2xs px-[7px] py-[1px] border transition-colors ' +
+                (scope === t
+                  ? 'border-ops-text text-ops-text bg-ops-sunken'
+                  : 'border-ops-line2 text-ops-dim hover:text-ops-text')
+              }
+            >
+              {t === 'sat' ? 'SEÇİLİ UYDU' : 'TÜM FİLO'}
+              {t === 'fleet' && fleetCount > 0 && <span className="ml-1 num text-ops-soft">{fleetCount}</span>}
+            </button>
+          ))}
+        </span>
         <span className="normal-case tracking-normal num flex items-center gap-2">
           {[3, 2, 1, 0].map((i) => (
             <span key={i} className={'flex items-center gap-1 ' + (counts[i] ? SEVERITY[i].text : 'text-ops-faint')}>
@@ -80,7 +101,11 @@ export default function AlarmQueue() {
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {alarms.length === 0 && (
-          <div className="px-2 py-3 text-[11px] text-ops-faint">Alarm yok — tüm parametreler nominal.</div>
+          <div className="px-2 py-3 text-[11px] text-ops-faint">
+            {scope === 'fleet'
+              ? 'Filoda alarm yok — yalnızca seçilmiş uydular örneklenir.'
+              : 'Alarm yok — tüm parametreler nominal.'}
+          </div>
         )}
         {alarms.map((a) => {
           const src = source(a);
@@ -89,7 +114,7 @@ export default function AlarmQueue() {
           return (
             <button
               key={a.id}
-              onClick={() => selectAlarm(a.id)}
+              onClick={() => selectAlarm(a)}
               title="Detay penceresini aç"
               aria-label={
                 (a.source === 'AI_DERIVED' ? 'AI türetilmiş' : 'ST12 limit') + ' alarm, şiddet ' + s.label + ': ' + a.text
@@ -123,6 +148,14 @@ export default function AlarmQueue() {
                 {a.text}
               </div>
               <div className="flex flex-wrap items-center gap-x-2 text-3xs text-ops-faint mt-[3px]">
+                {scope === 'fleet' && a.norad && (
+                  <span className="flex items-center gap-1">
+                    <span style={{ color: groupColor(satByNorad(a.norad).group) }} className="text-[9px] leading-none">
+                      ●
+                    </span>
+                    <span className="text-ops-dim">{satByNorad(a.norad).name}</span>
+                  </span>
+                )}
                 <span className="num">APID {a.apid}</span>
                 <span>{apidLabel(a.apid)}</span>
                 <span className="num text-ops-dim">{a.pid}</span>
@@ -151,6 +184,12 @@ export default function AlarmQueue() {
           şiddet: <span className="text-ops-nominal">bilgi</span> · <span className="text-ops-soft">düşük</span> ·{' '}
           <span className="text-ops-warn">orta</span> · <span className="text-ops-hard">yüksek</span> ↔ TM[5,1..4]
         </span>
+        {scope === 'fleet' && (
+          <span>
+            <span className="num">{fleet.size}</span>/<span className="num">{SAT_COUNT}</span> uydu örneklendi ·
+            seçilmemiş uydular telemetri üretmez
+          </span>
+        )}
       </div>
     </section>
   );

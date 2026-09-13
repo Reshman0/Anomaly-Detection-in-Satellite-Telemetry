@@ -125,7 +125,7 @@ export default function TopBar() {
       <Field label={'Seçili uydu · NORAD ' + sat.norad}>
         <span className="text-ops-text">{sat.name}</span>
         <span className="text-ops-faint ml-2 text-[11px]">
-          {sat.orbitClass} · TLE {tleAge} gün · {sat.intlDes}
+          {sat.orbitClass} · TLE {tleAge} gün · {sat.intlDes} · model AZS-DEMO
         </span>
       </Field>
 
