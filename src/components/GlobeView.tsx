@@ -1,12 +1,9 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import land from '../data/land_110m.json';
-import borders from '../data/borders_110m.json';
-import turkiye from '../data/turkiye_110m.json';
-import countries from '../data/countries_110m.json';
-import bmngUrl from '../assets/earth/bmng_2048.jpg';
 import { useConsole, type EarthTheme } from '../store';
+import { earthCanvas, onBmng } from '../ui/earthTexture';
+import MapView2D from './MapView2D';
 import {
   GROUND_STATION,
   SATELLITES,
@@ -70,231 +67,8 @@ function circleOnSphere(latDeg: number, lonDeg: number, radiusDeg: number, r: nu
   return pts;
 }
 
-/**
- * Dunya dokusunu tarayicida uretir — hazir bir goruntu dosyasi yuklenmez,
- * dolayisiyla calisma zamaninda ag istegi olmaz (yonerge §1).
- *
- * Kitalar dolu sekiller olarak cizilir; tel kafes anahat operatorun ulke
- * secmesini zorlastiriyordu. Turkiye ayrica vurgulanir.
- *
- * Eslesme `toVec` ile tutarli olacak sekilde turetilmistir. SphereGeometry
- * UV'si phi = 180° + lon verir; px = (lon + 180) / 360 — standart
- * esdikdortgen (equirectangular) duzen, -180 solda.
- */
-const TEX_W = 4096;
-const TEX_H = 2048;
-
-const TEX_COLORS = {
-  ocean: '#14242f',
-  land: '#22384a',
-  coast: '#8fb8cd',
-  border: '#4a6979',
-  trFill: '#3c6079',
-  trStroke: '#e6f4fd',
-};
-
-function lonToPx(lon: number): number {
-  return ((lon + 180) / 360) * TEX_W;
-}
-
-function latToPx(lat: number): number {
-  return ((90 - lat) / 180) * TEX_H;
-}
-
-/** Bir halkayi cizer; boylam sarmasinda kopan parcalar ayri yol olarak gecilir. */
-function tracePolyline(g: CanvasRenderingContext2D, flat: number[], close: boolean): void {
-  let started = false;
-  let prevX = 0;
-  g.beginPath();
-  for (let i = 0; i + 1 < flat.length; i += 2) {
-    const x = lonToPx(flat[i]);
-    const y = latToPx(flat[i + 1]);
-    if (started && Math.abs(x - prevX) > TEX_W / 2) {
-      // antimeridyeni gecti: dokunun uzerinde yatay leke birakmamak icin yolu kes
-      if (close) g.closePath();
-      g.moveTo(x, y);
-    } else if (!started) {
-      g.moveTo(x, y);
-    } else {
-      g.lineTo(x, y);
-    }
-    started = true;
-    prevX = x;
-  }
-  if (close) g.closePath();
-}
-
-interface CountryRec {
-  n: string;
-  a3: string;
-  c: [number, number];
-  s: number;
-  rings: number[][];
-}
-
-/** Siyasi harita paleti — komsu ulkeler ayrissin diye 8 pastel ton, indeksle. */
-const POLITICAL_FILLS = ['#e9d6a8', '#cfe1b9', '#f1c9b4', '#c9dbe9', '#e4cbe3', '#d8e6c3', '#f0d9c0', '#cddfe0'];
-
-/** Fiziki tema: NASA Blue Marble Next Generation (Aralik 2004, topografya + batimetri), kamu mali. */
-const bmngImage = new Image();
-let bmngReady = false;
-const bmngWaiters: (() => void)[] = [];
-bmngImage.onload = () => {
-  bmngReady = true;
-  bmngWaiters.splice(0).forEach((f) => f());
-};
-bmngImage.src = bmngUrl; // derlemede base64 olarak gomulur; ag istegi yok
-
-function onBmng(cb: () => void): void {
-  if (bmngReady) cb();
-  else bmngWaiters.push(cb);
-}
-
-function newCanvas(): { cv: HTMLCanvasElement; g: CanvasRenderingContext2D } {
-  const cv = document.createElement('canvas');
-  cv.width = TEX_W;
-  cv.height = TEX_H;
-  const g = cv.getContext('2d')!;
-  g.lineJoin = 'round';
-  g.lineCap = 'round';
-  return { cv, g };
-}
-
+/** Tema canvas'ini three.js dokusuna sarar (bkz. src/ui/earthTexture.ts). */
 function toTexture(cv: HTMLCanvasElement): THREE.CanvasTexture {
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
-}
-
-/** Turkiye dolgusu + anahati; her temada ustte durur. */
-function drawTurkiyeOverlay(g: CanvasRenderingContext2D, fill: string | null, stroke: string, width: number): void {
-  const trRings = (turkiye as { rings: number[][] }).rings;
-  if (fill) {
-    g.fillStyle = fill;
-    for (const ring of trRings) {
-      tracePolyline(g, ring, true);
-      g.fill();
-    }
-  }
-  g.strokeStyle = stroke;
-  g.lineWidth = width;
-  for (const ring of trRings) {
-    tracePolyline(g, ring, true);
-    g.stroke();
-  }
-}
-
-/** Siyasi harita: ulke dolgulari, sinirlar, Turkce ulke adlari. */
-function buildPoliticalTexture(): THREE.CanvasTexture {
-  const { cv, g } = newCanvas();
-  g.fillStyle = '#b9d3e6';
-  g.fillRect(0, 0, TEX_W, TEX_H);
-
-  const list = (countries as unknown as { countries: CountryRec[] }).countries;
-  list.forEach((c, i) => {
-    g.fillStyle = c.a3 === 'TUR' ? '#f0b83a' : POLITICAL_FILLS[i % POLITICAL_FILLS.length];
-    for (const ring of c.rings) {
-      tracePolyline(g, ring, true);
-      g.fill();
-    }
-  });
-  g.strokeStyle = '#5b6b78';
-  g.lineWidth = 2;
-  for (const c of list) {
-    for (const ring of c.rings) {
-      tracePolyline(g, ring, true);
-      g.stroke();
-    }
-  }
-  drawTurkiyeOverlay(g, null, '#2a3540', 5);
-
-  // Ulke adlari: buyuklukle olcekli, kucuk ulkeler atlanir (okunmaz).
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  for (const c of list) {
-    if (c.s < 5) continue;
-    const size = c.s > 30 ? 46 : c.s > 15 ? 34 : c.s > 8 ? 26 : 20;
-    g.font = (c.a3 === 'TUR' ? '700 ' : '600 ') + size + 'px "Segoe UI", Arial, sans-serif';
-    const x = lonToPx(c.c[0]);
-    const y = latToPx(c.c[1]);
-    g.lineWidth = 4;
-    g.strokeStyle = 'rgba(255,255,255,0.75)';
-    g.strokeText(c.n, x, y);
-    g.fillStyle = c.a3 === 'TUR' ? '#1a2430' : '#2c3a47';
-    g.fillText(c.n, x, y);
-  }
-  return toTexture(cv);
-}
-
-/** Fiziki: Blue Marble goruntusu + ince sinirlar + Turkiye anahati. */
-function buildPhysicalTexture(): THREE.CanvasTexture {
-  const { cv, g } = newCanvas();
-  g.drawImage(bmngImage, 0, 0, TEX_W, TEX_H);
-  const borderLines = (borders as { lines: number[][] }).lines;
-  g.strokeStyle = 'rgba(255,255,255,0.45)';
-  g.lineWidth = 1.5;
-  for (const line of borderLines) {
-    tracePolyline(g, line, false);
-    g.stroke();
-  }
-  drawTurkiyeOverlay(g, 'rgba(240,184,58,0.18)', '#ffe08a', 5);
-  return toTexture(cv);
-}
-
-function buildEarthTexture(): THREE.CanvasTexture {
-  const cv = document.createElement('canvas');
-  cv.width = TEX_W;
-  cv.height = TEX_H;
-  const g = cv.getContext('2d')!;
-
-  g.fillStyle = TEX_COLORS.ocean;
-  g.fillRect(0, 0, TEX_W, TEX_H);
-  g.lineJoin = 'round';
-  g.lineCap = 'round';
-
-  const landRings = (land as { rings: number[][] }).rings;
-  const trRings = (turkiye as { rings: number[][] }).rings;
-  const borderLines = (borders as { lines: number[][] }).lines;
-
-  // 1) kara dolgusu
-  g.fillStyle = TEX_COLORS.land;
-  for (const ring of landRings) {
-    tracePolyline(g, ring, true);
-    g.fill();
-  }
-
-  // 2) Turkiye dolgusu — kara renginden belirgin sekilde ayrilir
-  g.fillStyle = TEX_COLORS.trFill;
-  for (const ring of trRings) {
-    tracePolyline(g, ring, true);
-    g.fill();
-  }
-
-  // 3) ulke kara sinirlari (sonuk)
-  g.strokeStyle = TEX_COLORS.border;
-  g.lineWidth = 2.5;
-  for (const line of borderLines) {
-    tracePolyline(g, line, false);
-    g.stroke();
-  }
-
-  // 4) kiyi cizgisi (parlak)
-  g.strokeStyle = TEX_COLORS.coast;
-  g.lineWidth = 3;
-  for (const ring of landRings) {
-    tracePolyline(g, ring, true);
-    g.stroke();
-  }
-
-  // 5) Turkiye anahati — ekrandaki en parlak yer cizgisi
-  g.strokeStyle = TEX_COLORS.trStroke;
-  g.lineWidth = 5;
-  for (const ring of trRings) {
-    tracePolyline(g, ring, true);
-    g.stroke();
-  }
-
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
@@ -402,9 +176,16 @@ export default function GlobeView() {
   const setEarthTheme = useConsole((s) => s.setEarthTheme);
   const visibleCount = useRef<HTMLSpanElement>(null);
   const applyTheme = useRef<((t: EarthTheme) => void) | null>(null);
+  const mapMode = useConsole((s) => s.mapMode);
+  const setMapMode = useConsole((s) => s.setMapMode);
+  const paletteVersion = useConsole((s) => s.paletteVersion);
+  const a11y = useConsole((s) => s.a11y);
+  // Erisilebilirlik paleti degisince bir kez kurulan three.js renkleri guncellenir.
+  const applyPalette = useRef<(() => void) | null>(null);
 
   // Kamerayi yeniden cerceveleyecek callback; efekt icinde doldurulur.
   const refit = useRef<(() => void) | null>(null);
+  const setDamping = useRef<((on: boolean) => void) | null>(null);
 
   useEffect(() => {
     const el = host.current;
@@ -423,7 +204,7 @@ export default function GlobeView() {
     renderer.domElement.style.height = '100%';
 
     const trLabel = makeLabel('TÜRKİYE', '#dff0fa', 0.032);
-    const earthMat = new THREE.MeshBasicMaterial({ map: buildEarthTexture() });
+    const earthMat = new THREE.MeshBasicMaterial({ map: toTexture(earthCanvas('ops')!) });
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), earthMat));
     // Kure siluetini ayirmak icin ince bir kenar halkasi (ic yuzu cizilen buyuk kure).
     const rimMat = new THREE.MeshBasicMaterial({ color: THEME_STYLE.ops.rim, side: THREE.BackSide });
@@ -446,7 +227,7 @@ export default function GlobeView() {
       const swap = () => {
         let tex = textures.get(t);
         if (!tex) {
-          tex = t === 'political' ? buildPoliticalTexture() : buildPhysicalTexture();
+          tex = toTexture(earthCanvas(t)!);
           textures.set(t, tex);
         }
         earthMat.map = tex;
@@ -530,8 +311,20 @@ export default function GlobeView() {
     );
     scene.add(halo);
 
+    applyPalette.current = () => {
+      renderer.setClearColor(new THREE.Color(COLOR.sunken), 1);
+      (gsDot.material as THREE.MeshBasicMaterial).color.set(COLOR.nominal);
+      (cone.material as THREE.LineBasicMaterial).color.set(COLOR.nominal);
+      (los.material as THREE.LineBasicMaterial).color.set(COLOR.nominal);
+      (halo.material as THREE.MeshBasicMaterial).color.set(COLOR.text);
+      for (const m of markers) (m.losLine.material as THREE.LineBasicMaterial).color.set(COLOR.nominal);
+    };
+
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    controls.enableDamping = !useConsole.getState().a11y.reduceMotion;
+    setDamping.current = (on: boolean) => {
+      controls.enableDamping = on;
+    };
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
     controls.minDistance = 1.35;
@@ -586,6 +379,8 @@ export default function GlobeView() {
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const state = useConsole.getState();
+      // 2B harita acikken kure gizlidir; WebGL cizimi atlanir, sahne canli kalir.
+      if (state.mapMode === '2D') return;
       const utcMs = state.sim.clock.utcMs();
       const selected = state.selectedNorad;
 
@@ -702,6 +497,8 @@ export default function GlobeView() {
       renderer.dispose();
       refit.current = null;
       applyTheme.current = null;
+      applyPalette.current = null;
+      setDamping.current = null;
       el.removeChild(renderer.domElement);
     };
   }, []);
@@ -709,6 +506,14 @@ export default function GlobeView() {
   useEffect(() => {
     applyTheme.current?.(earthTheme);
   }, [earthTheme]);
+
+  useEffect(() => {
+    applyPalette.current?.();
+  }, [paletteVersion]);
+
+  useEffect(() => {
+    setDamping.current?.(!a11y.reduceMotion);
+  }, [a11y.reduceMotion]);
 
   // Gorunum onayari degistiginde kamerayi yeniden cerceveler.
   useEffect(() => {
@@ -718,7 +523,7 @@ export default function GlobeView() {
   return (
     <section className="panel flex flex-col flex-1 min-h-[200px]">
       <div className="panel-title flex items-center justify-between">
-        <span>Dünya · SGP4 · Türkiye uydu kataloğu</span>
+        <span>Dünya · SGP4 · Türkiye uydu kataloğu · {mapMode === '2D' ? '2B eşdikdörtgen' : '3B küre'}</span>
         <span className="normal-case tracking-normal text-ops-faint num">
           {SATELLITES.length} uydu · istasyondan görünen{' '}
           <span ref={visibleCount} className="text-ops-nominal">
@@ -728,16 +533,35 @@ export default function GlobeView() {
       </div>
       <div className="relative flex-1 min-h-0">
         {/* Canvas listenin sagindan baslar: kure bindirmenin altinda kalmasin. */}
-        <div ref={host} className="absolute inset-y-0 right-0 left-[196px]" />
+        <div ref={host} className={'absolute inset-y-0 right-0 left-[196px]' + (mapMode === '2D' ? ' invisible' : '')} aria-hidden={mapMode === '2D'} />
+        {mapMode === '2D' && <MapView2D />}
 
         <SatelliteList />
 
         <div className="absolute right-2 top-2 flex gap-[3px]">
+          {(['3D', '2D'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMapMode(m)}
+              aria-pressed={mapMode === m}
+              title={m === '3D' ? '3B küre (M ile geçiş)' : '2B eşdikdörtgen harita: yer izi, görüş dairesi, tüm filo (M ile geçiş)'}
+              className={
+                'num text-2xs px-[6px] py-[2px] border transition-colors ' +
+                (mapMode === m
+                  ? 'border-ops-text text-ops-text bg-ops-sunken'
+                  : 'border-ops-line2 text-ops-dim bg-ops-sunken/80 hover:text-ops-text')
+              }
+            >
+              {m === '3D' ? '3B' : '2B'}
+            </button>
+          ))}
+          <span className="w-1" />
           {(['LEO', 'ALL'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setGlobeView(v)}
-              title={v === 'LEO' ? 'Alçak yörüngeye yakınlaş' : 'GEO kuşağı dahil tüm filoyu sığdır'}
+              disabled={mapMode === '2D'}
+              title={v === 'LEO' ? 'Alçak yörüngeye yakınlaş (yalnızca 3B)' : 'GEO kuşağı dahil tüm filoyu sığdır (yalnızca 3B)'}
               className={
                 'num text-2xs px-[6px] py-[2px] border transition-colors ' +
                 (globeView === v
@@ -750,7 +574,8 @@ export default function GlobeView() {
           ))}
           <button
             onClick={() => setFollow(!followSat)}
-            title="Kamera seçili uyduyu takip eder; dünya altında döner (F)"
+            disabled={mapMode === '2D'}
+            title="Kamera seçili uyduyu takip eder; dünya altında döner (F, yalnızca 3B)"
             className={
               'num text-2xs px-[6px] py-[2px] border transition-colors ml-1 ' +
               (followSat
@@ -787,19 +612,33 @@ export default function GlobeView() {
 
         <div
           ref={readout}
-          className="absolute left-2 bottom-2 num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
+          className={
+            'absolute left-2 bottom-2 num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
+            (mapMode === '2D' ? ' hidden' : '')
+          }
         />
-        <div className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right">
-          <div>
-            <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
-            {GROUND_STATION.min_elevation_deg}°
+        {mapMode === '3D' ? (
+          <div className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[60%]">
+            <div>
+              <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
+              {GROUND_STATION.min_elevation_deg}°
+            </div>
+            <div>ince yeşil çizgiler: istasyondan görünen uydulara görüş vektörü</div>
+            <div>irtifa görsel olarak sıkıştırılmıştır · okunan km değerleri gerçek</div>
+            <div>katalog durumsal farkındalık içindir · telemetri akışı AZS-DEMO görevine aittir</div>
+            {earthTheme === 'physical' && <div>zemin: NASA Blue Marble NG, Aralık 2004 · kamu malı</div>}
+            {earthTheme === 'political' && <div>zemin: Natural Earth 110m · Türkçe adlar NAME_TR</div>}
           </div>
-          <div>ince yeşil çizgiler: istasyondan görünen uydulara görüş vektörü</div>
-          <div>irtifa görsel olarak sıkıştırılmıştır · okunan km değerleri gerçek</div>
-          <div>katalog durumsal farkındalık içindir · telemetri akışı AZS-DEMO görevine aittir</div>
-          {earthTheme === 'physical' && <div>zemin: NASA Blue Marble NG, Aralık 2004 · kamu malı</div>}
-          {earthTheme === 'political' && <div>zemin: Natural Earth 110m · Türkçe adlar NAME_TR</div>}
-        </div>
+        ) : (
+          /* 2B: harita alani degerli, lejand tek satir; ayrintisi title'da. */
+          <div
+            className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-[2px] pointer-events-none whitespace-nowrap"
+            title="Eşdikdörtgen izdüşüm · sürükle: kaydır · tekerlek: yakınlaş · çift tık: sıfırla · uyduya tıkla: seç · kesikli daire: istasyon görüş konisi · terminator/bulut bilerek yok"
+          >
+            <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · kesikli daire görüş konisi ≥{GROUND_STATION.min_elevation_deg}° ·{' '}
+            {earthTheme === 'physical' ? 'NASA Blue Marble' : earthTheme === 'political' ? 'Natural Earth' : 'OPS zemini'} · sürükle / tekerlek / çift tık
+          </div>
+        )}
       </div>
     </section>
   );

@@ -418,6 +418,8 @@ export class Simulation {
   }
 
   private pushAlarm(a: Alarm): void {
+    // Alarm aninda kosan senaryo, detay penceresinde prosedur ve sinif icin saklanir.
+    if (this.runner && a.scenarioId === undefined) a.scenarioId = this.runner.scenario.id;
     this.alarms.unshift(a);
     if (this.alarms.length > 40) this.alarms.length = 40;
   }

@@ -6,9 +6,10 @@ import { useMemo, useRef } from 'react';
 
 function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
   return (
-    <div className={'flex flex-col justify-center px-3 border-r border-ops-line ' + (w ?? '')}>
-      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none">{label}</div>
-      <div className="num text-[13px] leading-tight mt-[3px]">{children}</div>
+    <div className={'flex flex-col justify-center px-3 border-r border-ops-line min-w-0 ' + (w ?? '')}>
+      {/* Dar pencerede alanlar alt satira kaymaz, kirpilir: ust serit tek satir kalir. */}
+      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none whitespace-nowrap overflow-hidden text-ellipsis">{label}</div>
+      <div className="num text-[13px] leading-tight mt-[3px] whitespace-nowrap overflow-hidden text-ellipsis">{children}</div>
     </div>
   );
 }
@@ -18,6 +19,11 @@ export default function TopBar() {
   const setSpeed = useConsole((s) => s.setSpeed);
   const sim = useConsole((s) => s.sim);
   const selectedNorad = useConsole((s) => s.selectedNorad);
+  const setPacketOpen = useConsole((s) => s.setPacketOpen);
+  const setA11yOpen = useConsole((s) => s.setA11yOpen);
+  const a11y = useConsole((s) => s.a11y);
+  const a11yActive =
+    a11y.contrast !== 'normal' || a11y.colorVision !== 'normal' || a11y.scale !== 1 || a11y.reduceMotion || a11y.boldText || a11y.patternCoding;
   useConsole((s) => s.version);
 
   const utcMs = sim.clock.utcMs();
@@ -123,11 +129,29 @@ export default function TopBar() {
         </span>
       </Field>
 
-      <div className="flex-1 border-r border-ops-line" />
+      <div className="flex-1 min-w-0 border-r border-ops-line" />
 
-      <div className="flex items-center px-3">
-        <div className="border border-ops-soft/60 text-ops-soft text-[10px] tracking-[0.14em] uppercase px-2 py-[3px] leading-none">
-          Simüle veri — kavramsal gösterim
+      <div className="flex items-center gap-2 px-3 shrink-0">
+        <button
+          onClick={() => setPacketOpen(true)}
+          title="Paket denetleyici penceresi: CADU · FRAME · PACKET (P)"
+          className="num text-[10px] tracking-[0.12em] uppercase px-2 py-[3px] border border-ops-line2 text-ops-dim hover:text-ops-text leading-none"
+        >
+          Paket
+        </button>
+        <button
+          onClick={() => setA11yOpen(true)}
+          title="Erişilebilirlik: kontrast, renk görme, ölçek, hareket, ses (A)"
+          aria-label="Erişilebilirlik ayarları"
+          className={
+            'num text-[10px] tracking-[0.12em] uppercase px-2 py-[3px] border leading-none ' +
+            (a11yActive ? 'border-ops-nominal text-ops-nominal' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
+          }
+        >
+          Erişim{a11yActive ? ' ●' : ''}
+        </button>
+        <div className="border border-ops-soft/60 text-ops-soft text-[10px] tracking-[0.14em] uppercase px-2 py-[3px] leading-none whitespace-nowrap" title="Simüle veri — kavramsal gösterim">
+          Simüle veri
         </div>
       </div>
     </header>
