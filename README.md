@@ -690,13 +690,21 @@ npm run imagery
 ```
 
 Betik (`scripts/fetch-imagery.mjs`) dünden başlayıp üç güne kadar geri yürür ve
-bir günü ancak üç koşulu birden sağlarsa kabul eder: `Data-Present: true`,
-dosya ≥ 400 kB, ilk baytlar `FF D8 FF`. Neden üçü birden:
+bir günü ancak **dört** koşulu birden sağlarsa kabul eder: `Data-Present: true`,
+dosya ≥ 400 kB, ilk baytlar `FF D8 FF`, ve Türkiye kırpması ≥ 5 kB. Neden dördü
+birden:
 
 - **Boyut tabanı** aynı günün yarım kalmış mozaiğini eler. Ölçülen: aynı gün
   263 kB (eksik kaplama), bir önceki gün 609 kB (tam).
 - **Sihirli bayt** kontrolü, otel/salon wifi'sindeki *captive portal*'ın 200 ile
   döndürdüğü HTML sayfasını yakalar.
+- **Türkiye kırpması** günlük üretimdeki *eksik şeridi* yakalar. Bu, boyut
+  tabanının **yakalayamadığı** durumdur: ölçülen bir örnekte (2026-03-13)
+  Avrupa–Ortadoğu–Afrika'yı kaplayan dev bir boşluk vardı, ama dosya 521 kB ile
+  tabanı geçiyordu. Kürede Türkiye'nin üstünde siyah bir kama ile demoya çıkmak
+  kabul edilemez. Denetim kod çözücü gerektirmez: aynı günün Türkiye kırpması
+  ayrıca istenir ve boş (düz siyah) bir bölge JPEG'de neredeyse hiç yer
+  kaplamaz — dolu günler ~28 000 bayt, boşluklu gün 908 bayt.
 
 Hiçbir gün geçerli gelmezse betik sıfırdan farklı çıkar ve **mevcut dosyalara
 dokunmaz** — elde çalışan bir görüntü varken onu bozmak, hiç görüntü
@@ -876,7 +884,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-90 test, altı dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (28), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
+94 test, altı dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (32), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -903,6 +911,7 @@ npm test
 | Eksik kaplama (263 kB) elenir, tam mozaik (609 kB) kabul edilir | ölçülen iki gerçek vaka sabit olarak |
 | Zaman aşımı, HTTP hatası ve eksik başlık doğru ayrışır | salon wifi'sinde asılı kalmamak |
 | Gömülü `gibs_current.json` biçimi ve katman adı doğru | yarım yazılmış çekimi CI yakalar |
+| Türkiye'nin üstü boş olan gün elenir (908 bayt ↔ 28 000 bayt) | eksik şeritle demoya çıkmamak; boyut tabanı bunu yakalamaz |
 
 ---
 

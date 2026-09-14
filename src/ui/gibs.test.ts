@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   GIBS_LAYER,
+  AOI_BBOX,
+  MIN_AOI_BYTES,
   MIN_SNAPSHOT_BYTES,
   SNAPSHOT_HEIGHT,
   SNAPSHOT_WIDTH,
   fetchSnapshot,
   fmtTrDate,
+  aoiCropUrl,
+  isAoiCovered,
   isPlausibleSnapshot,
   latestAvailableDate,
   snapshotUrl,
@@ -92,6 +96,40 @@ describe('GIBS — yanıt geçerliliği', () => {
   it('eşik MIN_SNAPSHOT_BYTES’ta keskin', () => {
     expect(isPlausibleSnapshot(MIN_SNAPSHOT_BYTES - 1, true)).toBe(false);
     expect(isPlausibleSnapshot(MIN_SNAPSHOT_BYTES, true)).toBe(true);
+  });
+});
+
+describe('GIBS — eksik şerit (ilgi alanı kaplaması)', () => {
+  it('Türkiye’nin üstü boş olan günü eler', () => {
+    // Olculen gercek degerler. 2026-03-13 mozaiginde Avrupa-Ortadogu-Afrika'yi
+    // kaplayan dev bir bosluk var ama dosya 521 kB ile boyut tabanini asiyor:
+    // tam mozaik boyutu bu durumu YAKALAMAZ, ilgi alani kirpmasi yakalar.
+    expect(isAoiCovered(908)).toBe(false); // 2026-03-13 — eksik şerit
+    expect(isAoiCovered(28_207)).toBe(true); // 2026-09-13 — dolu
+    expect(isAoiCovered(27_883)).toBe(true); // 2026-09-06 — dolu
+  });
+
+  it('boyut tabanı tek başına yetmez — bu yüzden ikinci denetim var', () => {
+    // 2026-03-13: 521 537 bayt, boyut tabanini gecer…
+    expect(isPlausibleSnapshot(521_537, true)).toBe(true);
+    // …ama ilgi alani bos.
+    expect(isAoiCovered(908)).toBe(false);
+  });
+
+  it('eşik MIN_AOI_BYTES’ta keskin', () => {
+    expect(isAoiCovered(MIN_AOI_BYTES - 1)).toBe(false);
+    expect(isAoiCovered(MIN_AOI_BYTES)).toBe(true);
+  });
+
+  it('kırpma URL’i Türkiye’yi kapsar', () => {
+    const u = new URL(aoiCropUrl('2026-09-13'));
+    expect(u.searchParams.get('BBOX')).toBe(AOI_BBOX);
+    const [latMin, lonMin, latMax, lonMax] = AOI_BBOX.split(',').map(Number);
+    // Kahramankazan yer istasyonu (40.161°N, 32.679°E) kırpmanın içinde olmalı.
+    expect(latMin).toBeLessThan(40.161);
+    expect(latMax).toBeGreaterThan(40.161);
+    expect(lonMin).toBeLessThan(32.679);
+    expect(lonMax).toBeGreaterThan(32.679);
   });
 });
 

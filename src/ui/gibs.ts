@@ -23,6 +23,23 @@ export const MIN_SNAPSHOT_BYTES = 400_000;
 export const SNAPSHOT_WIDTH = 2048;
 export const SNAPSHOT_HEIGHT = 1024;
 
+/**
+ * Ilgi alani: Turkiye ve cevresi (enlem 35..43, boylam 25..45).
+ *
+ * Tam mozaik boyutu, gunluk uretimdeki EKSIK SERITLERI yakalamaz: olculen bir
+ * ornekte (2026-03-13) Avrupa-Ortadogu-Afrika'yi kaplayan dev bir bosluk vardi
+ * ama dosya yine 521 kB geliyordu, yani boyut tabanini asiyordu. Turkiye'nin
+ * ustunde siyah bir kama ile demoya cikmak kabul edilemez.
+ *
+ * Cozum kod cozucu gerektirmez: ayni gunun Turkiye kirpmasi ayrica istenir.
+ * Bos (duz siyah) bir bolge JPEG'de neredeyse hic yer kaplamaz. Olculen:
+ * dolu gunler ~28 000 bayt, bosluklu gun 908 bayt.
+ */
+export const AOI_BBOX = '35,25,43,45';
+export const AOI_WIDTH = 512;
+export const AOI_HEIGHT = 205;
+export const MIN_AOI_BYTES = 5_000;
+
 /** Varsayilan zaman asimi: sahne wifi'sinde asili kalmasin. */
 export const DEFAULT_TIMEOUT_MS = 8000;
 
@@ -72,9 +89,29 @@ export function fmtTrDate(iso: string): string {
   return Number(m[3]) + ' ' + TR_MONTHS[month - 1] + ' ' + m[1];
 }
 
+/** Ilgi alani kirpmasinin URL'i — eksik serit denetimi icin. */
+export function aoiCropUrl(date: string): string {
+  const q = new URLSearchParams({
+    REQUEST: 'GetSnapshot',
+    TIME: date,
+    BBOX: AOI_BBOX,
+    CRS: 'EPSG:4326',
+    LAYERS: GIBS_LAYER,
+    FORMAT: 'image/jpeg',
+    WIDTH: String(AOI_WIDTH),
+    HEIGHT: String(AOI_HEIGHT),
+  });
+  return GIBS_ENDPOINT + '?' + q.toString();
+}
+
 /** Yanit gercekten tam bir mozaik mi (bkz. MIN_SNAPSHOT_BYTES). */
 export function isPlausibleSnapshot(bytes: number, dataPresent: boolean): boolean {
   return dataPresent && bytes >= MIN_SNAPSHOT_BYTES;
+}
+
+/** Ilgi alani gercekten goruntulenmis mi (bkz. MIN_AOI_BYTES). */
+export function isAoiCovered(cropBytes: number): boolean {
+  return cropBytes >= MIN_AOI_BYTES;
 }
 
 export interface Snapshot {
