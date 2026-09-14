@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useConsole } from '../store';
-import { earthCanvas, onBmng } from '../ui/earthTexture';
+import { useConsole, type EarthTheme } from '../store';
+import { currentImagery, earthCanvas, isBmngFailed, isBmngReady } from '../ui/earthTexture';
 import { COLOR, alpha } from '../ui/colors';
 import {
   GROUND_STATION,
@@ -68,6 +68,27 @@ function circlePoints(latDeg: number, lonDeg: number, radiusDeg: number, n = 180
   return pts;
 }
 
+/**
+ * Zemin dokusunun durumu — her karede yeniden turetilir. Eskiden tek atislik
+ * bir callback'ten mandallanan bayrak kullaniliyordu; callback daha once
+ * ateslendiyse mesaj sonsuza kadar asili kaliyordu.
+ */
+function basemapNote(theme: EarthTheme): string | null {
+  if (theme === 'physical') {
+    if (isBmngFailed()) return 'gömülü doku çözülemedi';
+    if (!isBmngReady()) return 'Blue Marble yükleniyor…';
+    return null;
+  }
+  if (theme === 'current') {
+    const info = currentImagery();
+    if (info.refreshing) return 'GIBS’ten görüntü alınıyor…';
+    if (info.status === 'loading') return 'mozaik yükleniyor…';
+    if (info.status === 'failed') return info.error ?? 'mozaik yüklenemedi';
+    return null;
+  }
+  return null;
+}
+
 function rangeText(sat: SatelliteRecord, utcMs: number, rangeKm: number): string {
   const rr = rangeRateAt(sat, utcMs);
   const owlt = (rangeKm / C_KM_S) * 1000;
@@ -105,12 +126,6 @@ export default function MapView2D() {
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(el);
-
-    // Fiziki doku ilk kez istenirse Blue Marble'in yuklenmesini bekle.
-    let bmngPending = false;
-    onBmng(() => {
-      bmngPending = false;
-    });
 
     // Taban olcek: harita panel yuksekligini doldurur (istasyon cevresi buyuk gorunur);
     // tum dunyayi sigdirmak icin zoom minimuma (genislik/yukseklik oranina) indirilir.
@@ -172,11 +187,10 @@ export default function MapView2D() {
 
       // --- zemin: tema canvas'i, sarma icin uc kopya ---
       const theme = themeRef.current;
+      // Asenkron doku henuz cozulmediyse bu kare OPS zeminiyle cizilir; her
+      // kare yeniden soruldugu icin goruntu gelir gelmez kendiliginden gecer.
       let base = earthCanvas(theme);
-      if (!base) {
-        bmngPending = true;
-        base = earthCanvas('ops')!;
-      }
+      if (!base) base = earthCanvas('ops')!;
       const top = project(90, 0).y;
       const mapH = 180 * k;
       const mapW = 360 * k;
@@ -343,7 +357,7 @@ export default function MapView2D() {
           '   ALT ' + sp.altKm.toFixed(1) + ' km   LAT ' + sp.latDeg.toFixed(2) + '°   LON ' + sp.lonDeg.toFixed(2) +
           '°   AZ ' + ((la.azimuthDeg + 360) % 360).toFixed(1) + '°   EL ' + la.elevationDeg.toFixed(1) +
           '°   RANGE ' + la.rangeKm.toFixed(0) + ' km' + rangeText(sat, utcMs, la.rangeKm) +
-          '   ·   görünen ' + nVisible + '   ·   ' + (bmngPending ? 'Blue Marble yükleniyor…' : 'zoom ' + v.zoom.toFixed(1) + '×');
+          '   ·   görünen ' + nVisible + '   ·   ' + (basemapNote(theme) ?? 'zoom ' + v.zoom.toFixed(1) + '×');
       }
     };
     draw();

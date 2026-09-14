@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useConsole, type EarthTheme } from '../store';
-import { earthCanvas, onBmng } from '../ui/earthTexture';
+import { currentImagery, earthCanvas, onBmng, onImageryChange, refreshCurrentImagery } from '../ui/earthTexture';
+import { fmtTrDate } from '../ui/gibs';
 import MapView2D from './MapView2D';
 import {
   GROUND_STATION,
@@ -127,9 +128,60 @@ const THEME_STYLE: Record<EarthTheme, { rim: number; graticule: number; graticul
   ops: { rim: 0x33566a, graticule: 0x2e4653, graticuleOpacity: 0.5, label: true, belt: 0x2b3d49 },
   political: { rim: 0x7f95a6, graticule: 0x5b6b78, graticuleOpacity: 0.28, label: false, belt: 0x3a4d5a },
   physical: { rim: 0x4d6f86, graticule: 0xdde8f0, graticuleOpacity: 0.22, label: true, belt: 0x3a4d5a },
+  current: { rim: 0x4d6f86, graticule: 0xdde8f0, graticuleOpacity: 0.22, label: true, belt: 0x3a4d5a },
 };
 
-export const THEME_LABELS: Record<EarthTheme, string> = { ops: 'OPS', political: 'SİYASİ', physical: 'FİZİKİ' };
+export const THEME_LABELS: Record<EarthTheme, string> = {
+  ops: 'OPS',
+  political: 'SİYASİ',
+  physical: 'FİZİKİ',
+  current: 'GÜNCEL',
+};
+
+/**
+ * Tema basina metinler tek kayitta toplanir. Eskiden bunlar dugme ipucunda,
+ * 3B lejandinda ve 2B lejandinda ayri ayri ic ice ucluklerdi; yeni bir tema
+ * eklendiginde ucu de sessizce yanlis sonuc veriyordu (2B lejandi yeni temayi
+ * "OPS zemini" diye etiketliyordu). Record<EarthTheme, …> oldugu icin artik
+ * derleyici her temayi dort cagri yerinden de gecmeye zorlar.
+ */
+const THEME_META: Record<EarthTheme, { title: string; credit: string | null }> = {
+  ops: { title: 'Operasyon konsolu zemini', credit: null },
+  political: {
+    title: 'Siyasi harita: ülke dolguları ve adları (Natural Earth)',
+    credit: 'zemin: Natural Earth 110m · Türkçe adlar NAME_TR',
+  },
+  physical: {
+    title: 'Fiziki: NASA Blue Marble, topografya + batimetri',
+    credit: 'zemin: NASA Blue Marble NG, Aralık 2004 · kamu malı',
+  },
+  current: {
+    title:
+      'Güncel: NASA EOSDIS GIBS/Worldview · VIIRS SNPP günlük mozaik. ' +
+      'Pakete gömülü gelir, ağ isteği gerektirmez; ↻ ile elle tazelenir.',
+    credit: null, // tarihi degistigi icin asagida dinamik uretilir
+  },
+};
+
+/** 2B lejandinda yer dar: tek kelimelik kaynak adi. */
+const THEME_2D_LABEL: Record<EarthTheme, string> = {
+  ops: 'OPS zemini',
+  political: 'Natural Earth',
+  physical: 'NASA Blue Marble',
+  current: 'NASA GIBS VIIRS',
+};
+
+/** GUNCEL temanin lejandi: tarih ve kaynak her zaman ekranda. */
+function currentCredit(): string {
+  const info = currentImagery();
+  return (
+    'zemin: NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor · ' +
+    fmtTrDate(info.date) +
+    ' günlük mozaik (yörünge şeritlerinden dikilmiş, anlık görüntü değil)' +
+    (info.live ? ' · bu oturumda ağdan tazelendi' : ' · pakete gömülü') +
+    ' · siyah kuşak: kutup gecesi, görünür bantta veri yok'
+  );
+}
 
 function buildGraticule(color: number, opacity: number): THREE.LineSegments {
   const positions: number[] = [];
@@ -178,6 +230,10 @@ export default function GlobeView() {
   const applyTheme = useRef<((t: EarthTheme) => void) | null>(null);
   const mapMode = useConsole((s) => s.mapMode);
   const setMapMode = useConsole((s) => s.setMapMode);
+  // Goruntu durumu React disinda tutulur (modul duzeyinde); bu sayac onu
+  // yeniden cizime baglar.
+  const [imageryTick, setImageryTick] = useState(0);
+  const imagery = useMemo(() => currentImagery(), [imageryTick, earthTheme]);
   const paletteVersion = useConsole((s) => s.paletteVersion);
   const a11y = useConsole((s) => s.a11y);
   // Erisilebilirlik paleti degisince bir kez kurulan three.js renkleri guncellenir.
@@ -225,9 +281,15 @@ export default function GlobeView() {
       (belt.material as THREE.LineBasicMaterial).color.set(st.belt);
       trLabel.visible = st.label;
       const swap = () => {
+        // Asenkron dokular kuyruga yaziyor: FIZIKI'ye basip doku cozulmeden
+        // OPS'a donersen kuyruktaki eski swap sonradan kosar ve kure yanlis
+        // dokuda kalirdi. Gec kalan her swap once kendini dogrular.
+        if (useConsole.getState().earthTheme !== t) return;
         let tex = textures.get(t);
         if (!tex) {
-          tex = toTexture(earthCanvas(t)!);
+          const cv = earthCanvas(t);
+          if (!cv) return; // henuz cozulmedi; goruntu gelince yeniden cagrilir
+          tex = toTexture(cv);
           textures.set(t, tex);
         }
         earthMat.map = tex;
@@ -490,7 +552,21 @@ export default function GlobeView() {
     };
     loop();
 
+    // GUNCEL mozaik degistiginde (gomulu cozuldu ya da agdan tazelendi): canvas
+    // NESNESI ayni kalir, icine yeniden cizilir. Bu yuzden dokuyu atmak degil,
+    // yeniden yuklenmesini istemek yeterli. Abonelik mount'ta kurulur ki hangi
+    // tema aktif olursa olsun ateslensin.
+    const offImagery = onImageryChange(() => {
+      const tex = textures.get('current');
+      if (tex) tex.needsUpdate = true;
+      if (useConsole.getState().earthTheme === 'current') {
+        applyTheme.current?.('current');
+        renderer.render(scene, camera);
+      }
+    });
+
     return () => {
+      offImagery();
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
@@ -506,6 +582,10 @@ export default function GlobeView() {
   useEffect(() => {
     applyTheme.current?.(earthTheme);
   }, [earthTheme]);
+
+  // Goruntu durumu React disinda (modul duzeyinde) tutuluyor; degisimi tetikleyen
+  // ne olursa olsun (dugme, gomulu goruntunun cozulmesi, hata) arayuz tazelensin.
+  useEffect(() => onImageryChange(() => setImageryTick((n) => n + 1)), []);
 
   useEffect(() => {
     applyPalette.current?.();
@@ -587,17 +667,12 @@ export default function GlobeView() {
           </button>
         </div>
         <div className="absolute right-2 top-[26px] flex gap-[3px]">
-          {(['ops', 'political', 'physical'] as const).map((t) => (
+          {(['ops', 'political', 'physical', 'current'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setEarthTheme(t)}
-              title={
-                t === 'ops'
-                  ? 'Operasyon konsolu zemini'
-                  : t === 'political'
-                    ? 'Siyasi harita: ülke dolguları ve adları (Natural Earth)'
-                    : 'Fiziki: NASA Blue Marble, topografya + batimetri'
-              }
+              aria-pressed={earthTheme === t}
+              title={THEME_META[t].title}
               className={
                 'num text-2xs px-[6px] py-[2px] border transition-colors ' +
                 (earthTheme === t
@@ -608,6 +683,24 @@ export default function GlobeView() {
               {THEME_LABELS[t]}
             </button>
           ))}
+          {earthTheme === 'current' && (
+            <button
+              onClick={() => void refreshCurrentImagery()}
+              disabled={imagery.refreshing}
+              title={
+                'Mozaiği NASA GIBS’ten tazele. Tek ağ isteği; başarısız olursa gömülü görüntü korunur. ' +
+                'Gösterilen: ' + fmtTrDate(imagery.date) + (imagery.live ? ' (ağdan)' : ' (gömülü)')
+              }
+              className={
+                'num text-2xs px-[6px] py-[2px] border transition-colors ' +
+                (imagery.refreshing
+                  ? 'border-ops-line2 text-ops-faint'
+                  : 'border-ops-line2 text-ops-dim bg-ops-sunken/80 hover:text-ops-text')
+              }
+            >
+              {imagery.refreshing ? '…' : '↻'}
+            </button>
+          )}
         </div>
 
         <div
@@ -626,17 +719,28 @@ export default function GlobeView() {
             <div>ince yeşil çizgiler: istasyondan görünen uydulara görüş vektörü</div>
             <div>irtifa görsel olarak sıkıştırılmıştır · okunan km değerleri gerçek</div>
             <div>her uydunun kendi anomali hafızası vardır · telemetri AZS-DEMO referans modelinin NORAD tohumlu örneğidir</div>
-            {earthTheme === 'physical' && <div>zemin: NASA Blue Marble NG, Aralık 2004 · kamu malı</div>}
-            {earthTheme === 'political' && <div>zemin: Natural Earth 110m · Türkçe adlar NAME_TR</div>}
+            {earthTheme === 'current' ? (
+              <div>{currentCredit()}</div>
+            ) : (
+              THEME_META[earthTheme].credit && <div>{THEME_META[earthTheme].credit}</div>
+            )}
+            {earthTheme === 'current' && imagery.refreshing && <div className="text-ops-soft">GIBS’ten görüntü alınıyor…</div>}
+            {earthTheme === 'current' && imagery.error && (
+              <div className="text-ops-warn">Canlı görüntü alınamadı ({imagery.error}) — gömülü mozaik gösteriliyor</div>
+            )}
           </div>
         ) : (
           /* 2B: harita alani degerli, lejand tek satir; ayrintisi title'da. */
           <div
             className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-[2px] pointer-events-none whitespace-nowrap"
-            title="Eşdikdörtgen izdüşüm · sürükle: kaydır · tekerlek: yakınlaş · çift tık: sıfırla · uyduya tıkla: seç · kesikli daire: istasyon görüş konisi · terminator/bulut bilerek yok"
+            title={
+              'Eşdikdörtgen izdüşüm · sürükle: kaydır · tekerlek: yakınlaş · çift tık: sıfırla · uyduya tıkla: seç · ' +
+              'kesikli daire: istasyon görüş konisi · terminatör ve atmosfer efekti eklenmedi · ' +
+              'GÜNCEL temadaki bulutlar VIIRS ölçümünün kendisidir, eklenmiş katman değil'
+            }
           >
             <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · kesikli daire görüş konisi ≥{GROUND_STATION.min_elevation_deg}° ·{' '}
-            {earthTheme === 'physical' ? 'NASA Blue Marble' : earthTheme === 'political' ? 'Natural Earth' : 'OPS zemini'} · sürükle / tekerlek / çift tık
+            {THEME_2D_LABEL[earthTheme]} · sürükle / tekerlek / çift tık
           </div>
         )}
       </div>
