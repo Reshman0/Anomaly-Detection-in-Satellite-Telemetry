@@ -3,6 +3,9 @@ import borders from '../data/borders_110m.json';
 import turkiye from '../data/turkiye_110m.json';
 import countries from '../data/countries_110m.json';
 import bmngUrl from '../assets/earth/bmng_2048.jpg';
+import gibsUrl from '../assets/earth/gibs_current.jpg';
+import gibsMeta from '../assets/earth/gibs_current.json';
+import { DEFAULT_TIMEOUT_MS, fetchSnapshot, isPlausibleSnapshot, latestAvailableDate, snapshotUrl } from './gibs';
 import type { EarthTheme } from '../store';
 
 /**
@@ -71,8 +74,15 @@ const POLITICAL_FILLS = ['#e9d6a8', '#cfe1b9', '#f1c9b4', '#c9dbe9', '#e4cbe3', 
 const bmngImage = new Image();
 let bmngReady = false;
 const bmngWaiters: (() => void)[] = [];
+let bmngFailed = false;
 bmngImage.onload = () => {
   bmngReady = true;
+  bmngWaiters.splice(0).forEach((f) => f());
+};
+// Cozulemezse `bmngReady` sonsuza kadar false kalir ve fiziki tema kalici
+// olarak bozulur; bayrak en azindan durumu dogru yazdirir.
+bmngImage.onerror = () => {
+  bmngFailed = true;
   bmngWaiters.splice(0).forEach((f) => f());
 };
 bmngImage.src = bmngUrl; // derlemede base64 olarak gomulur; ag istegi yok
@@ -87,10 +97,135 @@ export function isBmngReady(): boolean {
   return bmngReady;
 }
 
-function newCanvas(): { cv: HTMLCanvasElement; g: CanvasRenderingContext2D } {
+export function isBmngFailed(): boolean {
+  return bmngFailed;
+}
+
+// ---------------------------------------------------------------------------
+// GUNCEL tema: NASA EOSDIS GIBS gunluk mozaigi
+// ---------------------------------------------------------------------------
+
+/**
+ * Iki kaynakli: derleme oncesi gomulen mozaik (ag istegi YOK, aninda acilir) ve
+ * operatorun elle tetikledigi canli tazeleme. Canli cekim ASLA acilista kosmaz.
+ *
+ * Onbellek geceersizlestirme yoktur: `'current'` canvas nesnesi sayfa omru
+ * boyunca tek kalir, icine yeniden cizilir. Boylece hem buradaki `cache` hem de
+ * GlobeView'daki THREE.Texture haritasi bayatlayamaz; kureye tek gereken
+ * `texture.needsUpdate = true`.
+ */
+export type ImageryStatus = 'loading' | 'ready' | 'failed';
+
+export interface ImageryInfo {
+  status: ImageryStatus;
+  /** Gosterilen mozaigin alim tarihi (ISO). */
+  date: string;
+  /** true: bu oturumda agdan tazelendi · false: pakete gomulu surum. */
+  live: boolean;
+  /** Son tazeleme denemesinin hatasi (Turkce); yoksa null. */
+  error: string | null;
+  /** Su an bir tazeleme suruyor mu. */
+  refreshing: boolean;
+}
+
+const BAKED_DATE = (gibsMeta as { date: string }).date;
+
+const gibsImage = new Image();
+let gibsStatus: ImageryStatus = 'loading';
+let gibsDate = BAKED_DATE;
+let gibsLive = false;
+let gibsError: string | null = null;
+let gibsRefreshing = false;
+const imageryWaiters: (() => void)[] = [];
+
+function notifyImagery(): void {
+  for (const cb of imageryWaiters.slice()) cb();
+}
+
+gibsImage.onload = () => {
+  if (gibsStatus === 'loading') gibsStatus = 'ready';
+  notifyImagery();
+};
+gibsImage.onerror = () => {
+  gibsStatus = 'failed';
+  gibsError = 'gömülü mozaik çözülemedi';
+  notifyImagery();
+};
+gibsImage.src = gibsUrl; // derlemede base64 olarak gomulur; ag istegi yok
+
+/**
+ * Tarayici hata metinleri Ingilizcedir ("Failed to fetch"); operator ekraninda
+ * Turkce ve anlasilir bir sebep gorunsun.
+ */
+function trReason(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.name === 'AbortError' || err.message.includes('zaman aşımı')) return 'zaman aşımı';
+    if (err instanceof TypeError) return 'ağa ulaşılamadı';
+    if (err.message.startsWith('GIBS HTTP')) return 'sunucu ' + err.message.replace('GIBS HTTP ', 'HTTP ') + ' döndü';
+    return err.message;
+  }
+  return 'canlı görüntü alınamadı';
+}
+
+/** Her karede okunabilir durum — mandallanmis bayrak yok, takilamaz. */
+export function currentImagery(): ImageryInfo {
+  return { status: gibsStatus, date: gibsDate, live: gibsLive, error: gibsError, refreshing: gibsRefreshing };
+}
+
+/** Goruntu degistiginde cagirir; aboneligi iptal eden fonksiyon doner. */
+export function onImageryChange(cb: () => void): () => void {
+  imageryWaiters.push(cb);
+  return () => {
+    const i = imageryWaiters.indexOf(cb);
+    if (i >= 0) imageryWaiters.splice(i, 1);
+  };
+}
+
+/**
+ * Mozaigi agdan tazeler. YALNIZCA operator dugmesinden cagrilir — acilista
+ * asla, boylece "acilista sifir ag istegi" harfiyen dogru kalir.
+ *
+ * Basarisizlik pikselleri ASLA bozmaz: gomulu goruntu ekranda kalir, yalnizca
+ * durum 'failed' olur ve sebep gorunur bicimde yazilir.
+ */
+export async function refreshCurrentImagery(): Promise<void> {
+  if (gibsRefreshing) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    gibsError = 'çevrimdışı — gömülü mozaik gösteriliyor';
+    notifyImagery();
+    return;
+  }
+
+  gibsRefreshing = true;
+  gibsError = null;
+  notifyImagery();
+
+  const date = latestAvailableDate(Date.now());
+  try {
+    const snap = await fetchSnapshot(snapshotUrl(date), { timeoutMs: DEFAULT_TIMEOUT_MS });
+    if (!isPlausibleSnapshot(snap.bytes, snap.dataPresent)) {
+      throw new Error('mozaik henüz tamamlanmamış (' + Math.round(snap.bytes / 1024) + ' kB)');
+    }
+    // createImageBitmap kokeni kirletmez: canvas WebGL'e guvenle yuklenir.
+    const bmp = await createImageBitmap(snap.blob);
+    redrawCurrent(bmp);
+    bmp.close();
+    gibsDate = snap.acquisitionDate ?? date;
+    gibsLive = true;
+    gibsStatus = 'ready';
+    gibsError = null;
+  } catch (err) {
+    gibsError = trReason(err);
+  } finally {
+    gibsRefreshing = false;
+    notifyImagery();
+  }
+}
+
+function newCanvas(w: number = TEX_W, h: number = TEX_H): { cv: HTMLCanvasElement; g: CanvasRenderingContext2D } {
   const cv = document.createElement('canvas');
-  cv.width = TEX_W;
-  cv.height = TEX_H;
+  cv.width = w;
+  cv.height = h;
   const g = cv.getContext('2d')!;
   g.lineJoin = 'round';
   g.lineCap = 'round';
@@ -172,6 +307,43 @@ function buildPhysicalCanvas(): HTMLCanvasElement {
   return cv;
 }
 
+/**
+ * GUNCEL tema canvas'i — GIBS kaynagi zaten 2048x1024 oldugu icin 4096'ya
+ * gerilmez: var olmayan bilgi interpolasyondan uydurulmaz ve doku ~34 MB yerine
+ * ~8 MB tutar. Bindirme koordinatlari TEX_W/TEX_H'ye gore hesaplandigindan
+ * yariya olceklenir; cizgi kalinliklari da olcekle birlikte kuculur, bu yuzden
+ * fiziki temadaki 1.5 / 5 sabitleri aynen korunur.
+ */
+const CURRENT_W = 2048;
+const CURRENT_H = 1024;
+let currentCanvas: HTMLCanvasElement | null = null;
+
+function redrawCurrent(src: CanvasImageSource): void {
+  if (!currentCanvas) currentCanvas = newCanvas(CURRENT_W, CURRENT_H).cv;
+  const g = currentCanvas.getContext('2d')!;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, CURRENT_W, CURRENT_H);
+  g.drawImage(src, 0, 0, CURRENT_W, CURRENT_H);
+
+  g.setTransform(CURRENT_W / TEX_W, 0, 0, CURRENT_H / TEX_H, 0, 0);
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  const borderLines = (borders as { lines: number[][] }).lines;
+  g.strokeStyle = 'rgba(255,255,255,0.45)';
+  g.lineWidth = 1.5;
+  for (const line of borderLines) {
+    tracePolyline(g, line, false);
+    g.stroke();
+  }
+  drawTurkiyeOverlay(g, 'rgba(240,184,58,0.18)', '#ffe08a', 5);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function buildCurrentCanvas(): HTMLCanvasElement {
+  redrawCurrent(gibsImage);
+  return currentCanvas!;
+}
+
 /** OPS: koyu operasyon zemini — dolu kitalar, kiyi, sinirlar, Turkiye vurgulu. */
 function buildOpsCanvas(): HTMLCanvasElement {
   const { cv, g } = newCanvas();
@@ -222,14 +394,23 @@ function buildOpsCanvas(): HTMLCanvasElement {
 const cache = new Map<EarthTheme, HTMLCanvasElement>();
 
 /**
- * Tema canvas'ini dondurur. Fiziki tema Blue Marble yuklenmeden istenirse
- * `null` doner; `onBmng` ile beklenir.
+ * Tema canvas'ini dondurur. Asenkron goruntuye dayanan temalar (fiziki, guncel)
+ * goruntu cozulmeden istenirse `null` doner; cagiran `onBmng` /
+ * `onImageryChange` ile bekler ya da bir sonraki karede yeniden sorar.
  */
 export function earthCanvas(theme: EarthTheme): HTMLCanvasElement | null {
   const hit = cache.get(theme);
   if (hit) return hit;
   if (theme === 'physical' && !bmngReady) return null;
-  const cv = theme === 'ops' ? buildOpsCanvas() : theme === 'political' ? buildPoliticalCanvas() : buildPhysicalCanvas();
+  if (theme === 'current' && gibsStatus !== 'ready') return null;
+  const cv =
+    theme === 'ops'
+      ? buildOpsCanvas()
+      : theme === 'political'
+        ? buildPoliticalCanvas()
+        : theme === 'current'
+          ? buildCurrentCanvas()
+          : buildPhysicalCanvas();
   cache.set(theme, cv);
   return cv;
 }

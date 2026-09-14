@@ -10,8 +10,11 @@ import { setPalette } from './ui/colors';
 
 /** Kure cerceveleme onayari: LEO'ya yakinlas ya da GEO halkasi dahil hepsini sigdir. */
 export type GlobeView = 'LEO' | 'ALL';
-/** Dunya zemini temasi: operasyon (koyu), siyasi harita, fiziki (NASA Blue Marble). */
-export type EarthTheme = 'ops' | 'political' | 'physical';
+/**
+ * Dunya zemini temasi: operasyon (koyu), siyasi harita, fiziki (NASA Blue
+ * Marble, Aralik 2004), guncel (NASA GIBS gunluk VIIRS mozaigi).
+ */
+export type EarthTheme = 'ops' | 'political' | 'physical' | 'current';
 /** Dunya gorunumu: 3B kure ya da 2B esdikdortgen harita. */
 export type MapMode = '3D' | '2D';
 /** Alarm kuyrugu kapsami: yalnizca secili uydu ya da tum filo. */

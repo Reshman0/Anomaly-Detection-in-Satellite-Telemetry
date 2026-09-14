@@ -50,9 +50,10 @@ anonimleştirilmiş adlandırmasından gelir; bu yüzden mühendislik birimi yok
 |---|---|
 | Gerçek CCSDS 133.0-B bit alanları üretir ve ekranda gösterir | PyTorch/ONNX yüklemez, çıkarım yapmaz |
 | MIB limitleriyle **gerçekten** limit kontrolü hesaplar | RF, SLE bağlantısı, çerçeve kodlaması kurmaz |
-| SGP4 ile gerçek yörünge yayılımı yapar | Ağdan TLE, doku veya font çekmez |
+| SGP4 ile gerçek yörünge yayılımı yapar | Açılışta ağdan hiçbir şey çekmez; TLE ve dokular gömülüdür |
 | Senaryoları tohumlu ve tekrarlanabilir oynatır | Playback/geri sarma, çoklu operatör, hesap yönetimi sunmaz |
 | Tek dosya, internetsiz çalışır | Backend, veritabanı, WebSocket kullanmaz |
+| GÜNCEL temada gerçek NASA GIBS mozaiği gösterir (gömülü) | Mozaiği açılışta çekmez — yalnızca operatör `↻` derse |
 
 Ekranın bir köşesinde `SİMÜLE VERİ — KAVRAMSAL GÖSTERİM` rozeti **sürekli
 görünür.** Kaldırmayın.
@@ -95,14 +96,20 @@ npm run preview
 
 ### Dağıtım çıktısı
 
-`npm run build` **tek bir `dist/index.html` dosyası** üretir (~860 kB). Tüm
-JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri ve XAI görselleri bu
-dosyanın içine gömülüdür.
+`npm run build` **tek bir `dist/index.html` dosyası** üretir (~2,3 MB). Tüm
+JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri, XAI görselleri ve iki
+dünya dokusu (Blue Marble ~280 kB + GIBS günlük mozaik ~595 kB) bu dosyanın
+içine gömülüdür.
 
 - İnternetsiz bir dizüstünde `file://` ile doğrudan açılır.
 - Basit bir statik sunucuyla da çalışır.
-- **Sıfır çalışma zamanı ağ isteği.** Doğrulandı: sayfa yüklenirken yalnızca
-  `index.html`'in kendisi istenir, başka hiçbir istek çıkmaz.
+- **Açılışta sıfır ağ isteği.** Doğrulandı: sayfa yüklenirken yalnızca
+  `index.html`'in kendisi istenir, başka hiçbir istek çıkmaz. Derlenen dosyada
+  `<link>` etiketi yoktur ve NASA adresi yalnızca bir **sabit dizgi** olarak
+  geçer — çağrılmaz.
+- Ağa çıkan **tek** kod yolu, GÜNCEL temasındaki `↻` düğmesidir: operatör
+  basmadıkça hiçbir istek oluşmaz, bastığında tek bir GET atılır ve
+  başarısız olursa gömülü mozaik ekranda kalır (bkz. §10 madde 6).
 - Fontlar sistem fontlarıdır (Consolas / Segoe UI ve yedekleri); indirilen font
   yoktur.
 
@@ -223,19 +230,32 @@ görünen uydu sayısını gösterir.
 **Kamera takibi.** `TAKİP` düğmesi (ya da `F`) kamerayı seçili uydunun üzerine
 kilitler; dünya altında döner. Fareyle müdahale takibi keser.
 
-**Zemin temaları.** Kürenin sağ üstündeki `OPS · SİYASİ · FİZİKİ` düğmeleri:
+**Zemin temaları.** Kürenin sağ üstündeki `OPS · SİYASİ · FİZİKİ · GÜNCEL` düğmeleri:
 
 | Tema | Ne gösterir | Kaynak |
 |---|---|---|
 | **OPS** | Koyu operasyon zemini: dolu kıtalar, kıyı çizgisi, ülke sınırları, Türkiye vurgulu | Natural Earth 110m, canvas'ta üretilir |
 | **SİYASİ** | Klasik siyasi harita: her ülke ayrı pastel dolgu, koyu sınırlar, **Türkçe ülke adları** (büyüklüğe göre ölçekli; küçük ülkeler okunmayacağı için atlanır), Türkiye amber | Natural Earth 110m, `NAME_TR` alanı |
 | **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
+| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi lejandda her zaman yazar | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
 
-Üç temada da uydular, görüş konisi, yörünge izi ve GEO kuşağı aynı kalır; yalnızca
-zemin, kenar halkası ve paralel/meridyen ağının rengi değişir. Dokular ilk
-seçimde bir kez üretilir, sonra anında anahtarlanır. Fiziki temada kabartma
-uydurulmaz — görüntü NASA'nın gerçek verisidir; §11'in yasakladığı bulut ve
-atmosfer efekti yoktur (BMNG bulutsuz bir üründür).
+Dört temada da uydular, görüş konisi, yörünge izi ve GEO kuşağı aynı kalır;
+yalnızca zemin, kenar halkası ve paralel/meridyen ağının rengi değişir. Dokular
+ilk seçimde bir kez üretilir, sonra anında anahtarlanır. Kabartma uydurulmaz —
+görüntüler NASA'nın gerçek verisidir.
+
+**GÜNCEL temada iki ayrım önemlidir.** (1) Bu bir **günlük mozaiktir**, anlık
+yayın değil: bir günün yörünge şeritlerinden dikilir, bu yüzden arayüzde
+hiçbir yerde "canlı" yazmaz — düğmenin yanında **alım tarihi** durur.
+(2) Kutup gecesindeki bölgelerde **veri yoktur**: VIIRS görünür bantta çalışır,
+aydınlanmayan enlemler siyah kalır. Bu boşluk 2004 dokusuyla **doldurulmaz** —
+iki farklı tarihli görüntüyü tek görüntü gibi birleştirmek §0'a aykırı olurdu;
+lejand siyah kuşağın kutup gecesi olduğunu yazar.
+
+Ekrandaki `SİMÜLE VERİ` rozeti **telemetri** içindir. GÜNCEL temadaki görüntü
+gerçek NASA ölçümüdür; üzerindeki bulutlar da §11'in dışladığı dekoratif bir
+bulut katmanı değil, ölçümün kendisidir. Terminatör ve atmosfer efekti hâlâ
+hiçbir temada yoktur.
 
 **2B harita.** Kürenin sağ üstündeki `3B | 2B` düğmesi (ya da `M`) dünyayı
 eşdikdörtgen (plate carrée) izdüşümde açar (`src/components/MapView2D.tsx`).
@@ -659,6 +679,36 @@ telemetriden hesaplanan etiketli çizimi gösterir; PNG konulunca o öne geçer.
 Panelin görsel alanı yaklaşık 520×170 px'dir; yatay (geniş) görseller en iyi
 oturur.
 
+### Dünya mozaiğini güncellemek
+
+GÜNCEL temasının zemini `src/assets/earth/gibs_current.jpg` dosyasıdır ve
+pakete gömülü gelir. TLE'lerle aynı idiom: **derleme zamanı** çekilir, çalışma
+zamanında açılışta ağ isteği yapılmaz.
+
+```bash
+npm run imagery
+```
+
+Betik (`scripts/fetch-imagery.mjs`) dünden başlayıp üç güne kadar geri yürür ve
+bir günü ancak üç koşulu birden sağlarsa kabul eder: `Data-Present: true`,
+dosya ≥ 400 kB, ilk baytlar `FF D8 FF`. Neden üçü birden:
+
+- **Boyut tabanı** aynı günün yarım kalmış mozaiğini eler. Ölçülen: aynı gün
+  263 kB (eksik kaplama), bir önceki gün 609 kB (tam).
+- **Sihirli bayt** kontrolü, otel/salon wifi'sindeki *captive portal*'ın 200 ile
+  döndürdüğü HTML sayfasını yakalar.
+
+Hiçbir gün geçerli gelmezse betik sıfırdan farklı çıkar ve **mevcut dosyalara
+dokunmaz** — elde çalışan bir görüntü varken onu bozmak, hiç görüntü
+olmamasından kötüdür. Betik bilerek `build`e bağlanmamıştır; bağlansaydı
+derleme internet ister, CI ve offline hikâyesi çökerdi.
+
+Yanındaki `gibs_current.json` alım tarihini taşır; arayüzdeki "13 Eylül 2026
+günlük mozaik" etiketi oradan gelir. Bir birim testi bu dosyanın biçimini ve
+katman adını doğrular, yani yarım yazılmış bir çekim CI'da yakalanır.
+
+**Sunumdan önce:** `npm run imagery && npm run build`.
+
 ### Uydu kataloğunu güncellemek
 
 TLE'ler `src/data/tle.txt` içinde standart üç satırlık biçimdedir (ad + iki
@@ -826,7 +876,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-62 test, beş dosyada: `src/engine/limitChecker.test.ts` (30), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
+90 test, altı dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (28), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -848,6 +898,11 @@ npm test
 | Uyanış hafızayı korur, canlı durumu sıfırlar | anomali hafızasının tanımı |
 | Uyanışın ilk canlı örneği sahte limit alarmı üretmez | `limits.reset()` sırası |
 | Görüntüleme yolları uyuyan uyduyu var etmez | tembel yaratma (başarım) |
+| GIBS tarih seçimi UTC dünü verir (ay/yıl/artık gün sınırları, yerel saat tuzağı) | yanlış gün istenirse mozaik yarım gelir |
+| Anlık görüntü URL'i `BBOX=-90,-180,90,180` ve `EPSG:4326` ile birebir kurulur | enlem-önce sırası kolay ters yazılır |
+| Eksik kaplama (263 kB) elenir, tam mozaik (609 kB) kabul edilir | ölçülen iki gerçek vaka sabit olarak |
+| Zaman aşımı, HTTP hatası ve eksik başlık doğru ayrışır | salon wifi'sinde asılı kalmamak |
+| Gömülü `gibs_current.json` biçimi ve katman adı doğru | yarım yazılmış çekimi CI yakalar |
 
 ---
 
@@ -855,7 +910,7 @@ npm test
 
 | Kriter | Durum |
 |---|---|
-| İnternetsiz makinede açılıyor, ağ isteği yok | ✅ tek dosya çıktı, sistem fontları, doğrulandı |
+| İnternetsiz makinede açılıyor, **açılışta** ağ isteği yok | ✅ tek dosya çıktı, sistem fontları, doğrulandı. Tek istisna operatörün elle bastığı GÜNCEL `↻` düğmesidir; basılmazsa hiçbir istek çıkmaz (§10 madde 6) |
 | Parametreler `mib.json`'dan geliyor, bileşende sabit değer yok | ✅ |
 | Sekans sayacı APID başına artıyor, 16383'te sarıyor | ✅ birim test |
 | Sadece ST[03], ST[05], ST[12] | ✅ birim test |
@@ -921,6 +976,24 @@ rozetleri, bakılmayan uydudaki anomalinin gözden kaçmasını önler; kuyruk
 altbilgisi kaç uydunun örneklendiğini yazar ki boş bir filo kuyruğu "hiçbir
 uyduda anomali yok" diye okunmasın.
 
+**7. GÜNCEL zemin teması ve §1.** Yönerge §1 "hiçbir çalışma zamanı ağ
+isteği" der. GÜNCEL teması bu kuralı **tek ve denetimli** bir noktada esnetir:
+mozaik pakete gömülü geldiği için tema açılışta ağa çıkmaz; ağa çıkan yegâne
+kod yolu operatörün bastığı `↻` düğmesidir. Yani "açılışta sıfır ağ isteği"
+iddiası harfiyen doğru kalır ve DevTools ile yanlışlanamaz.
+
+Başarısızlık hiçbir şeyi bozmaz: 8 saniyelik zaman aşımı, tek `try/catch`
+(CORS, DNS, çevrimdışı, iptal, bozuk JPEG), ve hata hâlinde **pikseller hiç
+değişmez** — gömülü mozaik ekranda kalır, lejandda Türkçe sebep görünür
+("ağa ulaşılamadı", "zaman aşımı"). `navigator.onLine === false` ise istek hiç
+atılmaz.
+
+Görüntü `createImageBitmap` ile çözülür: köken kirletmediği için canvas WebGL'e
+güvenle yüklenir. GÜNCEL canvas'ı 2048×1024'tür (kaynak da öyle — 4096'ya
+germek var olmayan bilgiyi uydururdu) ve **nesne olarak tekdir**: tazeleme aynı
+canvas'ın içine yeniden çizer, böylece hem doku önbelleği hem three.js dokusu
+bayatlayamaz.
+
 **3. Kanal adları.** `ch_42` ve `ch_75` yönergede geçtiği gibi bırakıldı.
 Konsolun dolu görünmesi için ESA-ADB adlandırma şemasına uygun `ch_11`, `ch_12`,
 `ch_58` eklendi. Bildirinizde gerçekten geçen kanallarla değiştirmek isterseniz
@@ -963,7 +1036,7 @@ Aşağıdakiler bilinçli olarak yapılmadı; her biri demonun ana mesajını su
 gerçek ML modeli ve çıkarım · backend, veritabanı, WebSocket, kullanıcı hesabı ·
 transfer frame kodlaması, Reed-Solomon, RF katmanı · playback/geri sarma modu ·
 çoklu operatör, alarm atama, yorum yazma · çalışmayan katman aç/kapa düğmeleri ·
-terminator çizgisi, bulut dokusu, atmosfer efekti · ikinci ekran ·
+terminator çizgisi, **dekoratif** bulut dokusu, atmosfer efekti · ikinci ekran ·
 karanlık/aydınlık tema geçişi · uydu başına **gerçek** MIB (katalogdaki her uydu
 AZS-DEMO referans modelinin bir örneğini koşar, bkz. §10 madde 6) · aynı anda
 birden fazla uydudan canlı telemetri
