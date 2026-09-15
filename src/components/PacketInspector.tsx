@@ -158,7 +158,7 @@ export default function PacketInspector() {
         aria-modal="true"
         aria-label="Paket denetleyici"
         onClick={(e) => e.stopPropagation()}
-        className="card-in w-[1220px] max-w-[95vw] h-[70vh] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
+        className="card-in w-[1220px] max-w-[calc(95vw/var(--ui-scale,1))] h-[calc(70vh/var(--ui-scale,1))] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
       >
         <div className="panel-title flex items-center justify-between">
           <span>Paket denetleyici · CCSDS</span>

@@ -703,15 +703,19 @@ export default function GlobeView() {
           )}
         </div>
 
+        {/* Okuma satiri kurenin basladigi yerden (uydu listesi 196 px) baslar:
+            left-2 iken listenin alt kartinin (yorunge elemanlari) ustune biniyordu.
+            3B aciklama kutusu da sag alttan sag uste, gorunum dugmelerinin altina
+            alindi; uzun okuma satiriyla alt kenarda yan yana sigmiyordu. */}
         <div
           ref={readout}
           className={
-            'absolute left-2 bottom-2 num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
+            'absolute left-[204px] bottom-2 max-w-[calc(100%-212px)] truncate num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
             (mapMode === '2D' ? ' hidden' : '')
           }
         />
         {mapMode === '3D' ? (
-          <div className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[60%]">
+          <div className="absolute right-2 top-[52px] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[min(60%,calc(100%-212px))]">
             <div>
               <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
               {GROUND_STATION.min_elevation_deg}°

@@ -1,8 +1,58 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useConsole } from '../store';
 import { NOMINAL_SCENARIO, SCENARIOS, SEVERITY_STEPS } from '../engine/scenarioRunner';
 import { satByNorad } from '../engine/orbit';
+import { arayuzOlcegi, portalHedefi } from './useModalKeys';
 
 const SEVERITY_GLYPHS = ['▁', '▂', '▃', '▄', '▅'];
+
+/** Aciklama kartinin genisligi ve pencere kenarindan birakacagi pay (olceksiz px). */
+const KART_W = 340;
+const KENAR_PAYI = 8;
+
+interface Ipucu {
+  ad: string;
+  metin: string;
+  model: string;
+  /** Konumlar #root'un zoom'u oncesi (olceksiz) koordinattadir. */
+  x: number;
+  y: number;
+}
+
+/**
+ * Senaryo aciklamasi dugmenin ICINDE degil, fareyle uzerine gelince yaninda
+ * acilan kartta durur. Dugmelerde iki satirlik aciklama varken uc dugme ve
+ * alttaki siddet blogu panele sigmiyor, siddet ayari alttan kirpiliyordu.
+ *
+ * Kart #root'a portal ile basilir (erisilebilirlik olcegini izler, panel
+ * kirpmasina takilmaz). Ekran koordinatlari olcege bolunur; kart pencere
+ * kenarina kelepcelenir.
+ */
+function AciklamaKarti({ ipucu }: { ipucu: Ipucu }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [ust, setUst] = useState(ipucu.y);
+  useLayoutEffect(() => {
+    const olcek = arayuzOlcegi();
+    const h = ref.current?.offsetHeight ?? 0;
+    setUst(Math.max(KENAR_PAYI, Math.min(ipucu.y, window.innerHeight / olcek - h - KENAR_PAYI)));
+  }, [ipucu]);
+  return createPortal(
+    <div
+      ref={ref}
+      role="tooltip"
+      className="fixed z-50 bg-ops-panel border border-ops-line2 shadow-2xl px-3 py-2 pointer-events-none"
+      style={{ left: ipucu.x, top: ust, width: KART_W }}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[12px] text-ops-ai">{ipucu.ad}</span>
+        <span className="num text-3xs text-ops-faint shrink-0">{ipucu.model}</span>
+      </div>
+      <div className="text-[11px] text-ops-dim leading-snug mt-1">{ipucu.metin}</div>
+    </div>,
+    portalHedefi(),
+  );
+}
 
 export default function ScenarioConsole() {
   const sim = useConsole((s) => s.sim);
@@ -17,6 +67,14 @@ export default function ScenarioConsole() {
   const progress = sim.scenarioProgress;
   // Enjeksiyon her zaman SECILI uyduya gider; hedef basligin sagi'nda yazar.
   const target = satByNorad(selectedNorad);
+  const [ipucu, setIpucu] = useState<Ipucu | null>(null);
+
+  const goster = (el: HTMLElement, ad: string, metin: string, model: string) => {
+    const olcek = arayuzOlcegi();
+    const r = el.getBoundingClientRect();
+    const x = Math.min(r.right / olcek + 10, window.innerWidth / olcek - KART_W - KENAR_PAYI);
+    setIpucu({ ad, metin, model, x, y: r.top / olcek });
+  };
 
   return (
     <section className="panel flex flex-col min-h-0">
@@ -33,7 +91,12 @@ export default function ScenarioConsole() {
             <button
               key={s.id}
               onClick={() => runScenario(s)}
+              onMouseEnter={(e) => goster(e.currentTarget, s.button, s.description, s.model)}
+              onMouseLeave={() => setIpucu(null)}
+              onFocus={(e) => goster(e.currentTarget, s.button, s.description, s.model)}
+              onBlur={() => setIpucu(null)}
               aria-label={s.button}
+              aria-description={s.description}
               className={
                 'text-left px-2 py-1.5 border transition-colors ' +
                 (isActive
@@ -41,11 +104,10 @@ export default function ScenarioConsole() {
                   : 'border-ops-line2 hover:border-ops-dim hover:bg-white/[0.02]')
               }
             >
-              <div className="flex items-center justify-between">
-                <span className={'text-[12px] ' + (isActive ? 'text-ops-ai' : 'text-ops-text')}>{s.button}</span>
-                <span className="num text-3xs text-ops-faint">{s.model}</span>
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className={'text-[12px] truncate ' + (isActive ? 'text-ops-ai' : 'text-ops-text')}>{s.button}</span>
+                <span className="num text-3xs text-ops-faint shrink-0">{s.model}</span>
               </div>
-              <div className="text-3xs text-ops-faint mt-[2px] leading-snug line-clamp-2">{s.description}</div>
               {isActive && (
                 <div className="h-[2px] bg-ops-line2 mt-1.5">
                   <div className="h-full bg-ops-ai" style={{ width: (progress * 100).toFixed(1) + '%' }} />
@@ -83,11 +145,16 @@ export default function ScenarioConsole() {
           >
             {NOMINAL_SCENARIO.button}
           </button>
-          <div className="num text-3xs text-ops-faint mt-1 text-center tracking-wide">
+          {/* Tek satir: iki satira kirildiginda yarisi panelin altindan kirpiliyordu. */}
+          <div
+            className="num text-3xs text-ops-faint mt-1 text-center tracking-wide truncate"
+            title="1 2 3 senaryo · N nominal · L T küre · F takip · 0 hız 1×"
+          >
             1 2 3 senaryo · N nominal · L T küre · F takip · 0 hız 1×
           </div>
         </div>
       </div>
+      {ipucu && <AciklamaKarti ipucu={ipucu} />}
     </section>
   );
 }
