@@ -601,7 +601,7 @@ export default function GlobeView() {
   }, [fitNonce, globeView]);
 
   return (
-    <section className="panel flex flex-col flex-1 min-h-[200px]">
+    <section className="panel flex flex-col flex-1 min-h-[300px]">
       <div className="panel-title flex items-center justify-between">
         <span>Dünya · SGP4 · Türkiye uydu kataloğu · {mapMode === '2D' ? '2B eşdikdörtgen' : '3B küre'}</span>
         <span className="normal-case tracking-normal text-ops-faint num">

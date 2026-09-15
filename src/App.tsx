@@ -111,15 +111,14 @@ export default function App() {
   }, [tick]);
 
   return (
-    /* Cok kisa pencerede paneller birbirinin ustune binmesin: konsol asgari
-       yuksekligin altina inmez, gerekirse sayfa kayar. */
-    <div className="h-full w-full min-h-[700px] flex flex-col bg-ops-bg gap-px">
+    <div className="h-full w-full flex flex-col bg-ops-bg gap-px">
       <TopBar />
       <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,42%)_minmax(0,1fr)] gap-px">
         {/* Kure tum sol sutunu alir. Paket denetleyici ust seritteki dugmeyle
             acilan bir pencere oldugu icin sag sutunda INFO paneline yer kaldi.
-            overflow-hidden hicbir panelin komsusunun ustune tasmamasini garanti eder. */}
-        <div className="flex flex-col min-h-0 overflow-hidden">
+            Sutun ancak kure asgari yuksekligine sigmadiginda (cok yuksek arayuz
+            olcegi) kendi icinde kayar; normalde ana ekran kaydirilmaz. */}
+        <div className="flex flex-col min-h-0 overflow-y-auto">
           <GlobeView />
         </div>
         {/* Sag sutun kendi icinde kayar: yuksek arayuz olceginde Durum seridi

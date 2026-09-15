@@ -6,7 +6,8 @@ import { useMemo, useRef } from 'react';
 import UyduBilgiPenceresi from './UyduBilgiPenceresi';
 
 /**
- * Ust serit alani: etiket, deger ve alt bilgi ALT ALTA yazilir.
+ * Ust serit alani: etiket, deger ve alt bilgi ALT ALTA yazilir. Alanlar artan
+ * bosluktan esit pay alir (grow), boylece serit sagda bos bir seride birakmaz.
  *
  * Onceden deger ile alt bilgi tek satirdaydi ve dar ekranda "..." ile
  * kirpiliyordu. Uc satirda en genis parca kadar yer kaplar, hicbir sey
@@ -14,7 +15,7 @@ import UyduBilgiPenceresi from './UyduBilgiPenceresi';
  */
 function Field({ label, sub, title, children }: { label: string; sub?: React.ReactNode; title?: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0 whitespace-nowrap" title={title}>
+    <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0 grow whitespace-nowrap" title={title}>
       <div className="text-3xs uppercase tracking-[0.14em] text-ops-faint leading-none">{label}</div>
       <div className="num text-[13px] leading-[15px] mt-[2px]">{children}</div>
       {sub !== undefined && <div className="num text-[10px] leading-[12px] text-ops-faint">{sub}</div>}
@@ -61,7 +62,7 @@ export default function TopBar() {
   // Serit sigmadiginda alanlar kirpilmaz, alt satira sarar.
   return (
     <header className="min-h-[52px] shrink-0 flex flex-wrap items-stretch bg-ops-panel border-b border-ops-line2">
-      <div className="flex flex-col justify-center px-3 border-r border-ops-line2 bg-ops-sunken shrink-0">
+      <div className="flex flex-col justify-center px-3 border-r border-ops-line2 bg-ops-sunken shrink-0 grow">
         <div className="text-3xs uppercase tracking-[0.18em] text-ops-faint leading-none">Görev</div>
         <div className="num text-[15px] leading-tight mt-[2px] text-ops-text">{MIB.mission}</div>
       </div>
@@ -75,7 +76,7 @@ export default function TopBar() {
       </Field>
 
       {/* Hiz dugmeleri iki satira dizilir: serit tek satirda kalsin diye. */}
-      <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0">
+      <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0 grow">
         <div className="text-3xs uppercase tracking-[0.14em] text-ops-faint leading-none">Hız</div>
         <div className="grid grid-cols-3 gap-[3px] mt-[3px]">
           {SPEED_OPTIONS.map((s) => (
@@ -134,8 +135,6 @@ export default function TopBar() {
           {sat.orbitClass} · TLE {tleAge} gün
         </span>
       </Field>
-
-      <div className="flex-1 min-w-[8px] border-r border-ops-line" />
 
       <div className="flex items-center gap-2 px-2 shrink-0 ml-auto">
         <button

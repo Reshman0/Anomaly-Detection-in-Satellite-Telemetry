@@ -32,12 +32,12 @@
     overflow: hidden;
   }
   /*
-   * Konsolun kendisi kaydirilabilir: yuksek arayuz olceginde ya da kisa
-   * pencerede duzen sikismak yerine kayar, boylece alttaki paneller kirpilmaz.
+   * Konsol pencereye sigar: ana ekran kaydirilmaz. Duzen sigmadiginda tek tek
+   * paneller kendi icinde kayar (telemetri seritleri, INFO sutunlari, sag sutun).
    */
   #root {
     height: 100%;
-    overflow: auto;
+    overflow: hidden;
   }
   body {
     @apply bg-ops-bg text-ops-text font-sans antialiased;
