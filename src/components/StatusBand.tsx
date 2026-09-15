@@ -43,7 +43,8 @@ export default function StatusBand() {
           <div className={'num text-[26px] leading-tight mt-1 ' + stateTextClass(limitState)}>
             {stateLabel(limitState)}
           </div>
-          <div className="text-[11px] text-ops-dim mt-0.5 h-[15px] truncate">
+          {/* Kirpilmaz: sigmayan liste ikinci satira sarar, kutu yuksekligi buyur. */}
+          <div className="text-[11px] text-ops-dim mt-0.5 min-h-[15px] leading-[15px]">
             {offenders.length > 0
               ? offenders.map((p) => p.pid + ' ' + stateLabel(states.get(p.pid)!)).join(' · ')
               : onboard.length + ' parametre limit içinde'}
@@ -62,7 +63,7 @@ export default function StatusBand() {
             {aiLabel(aiState)}
             {contrast && <span className="text-ops-ai text-[12px] ml-3 tracking-[0.16em] align-middle">← KONTRAST</span>}
           </div>
-          <div className="text-[11px] text-ops-dim mt-0.5 h-[15px] truncate">
+          <div className="text-[11px] text-ops-dim mt-0.5 min-h-[15px] leading-[15px]">
             {aiOffenders.length > 0
               ? aiOffenders.map((p) => p.pid + ' ' + stateLabel(states.get(p.pid)!)).join(' · ')
               : peak

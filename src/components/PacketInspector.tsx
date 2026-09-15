@@ -66,6 +66,14 @@ const HexDump = memo(function HexDump({ view }: { view: Framed }) {
  * bile son paketin etiketini, APID/sekansini ve oktet dizisini gosterir;
  * tiklaninca tam denetleyici penceresi acilir.
  */
+/** Serit onizlemesi: ilk 6 oktet ve kalan oktet sayisi. */
+function onIlkOktet(hex: string, adet = 6): string {
+  const parcalar = hex.split(' ').filter(Boolean);
+  const bas = parcalar.slice(0, adet).join(' ');
+  const kalan = parcalar.length - adet;
+  return kalan > 0 ? bas + '  · +' + kalan + ' oktet' : bas;
+}
+
 export function PacketInspectorBar() {
   const sim = useConsole((s) => s.sim);
   const open = useConsole((s) => s.packetOpen);
@@ -82,7 +90,8 @@ export function PacketInspectorBar() {
       aria-label="Paket denetleyici penceresini aç"
       title="CCSDS paket / çerçeve / CADU denetleyicisini aç (P)"
       className={
-        'panel shrink-0 h-[26px] flex items-center gap-3 px-2 text-left transition-colors ' +
+        // Sigmayan parcalar alt satira sarar: yuksek arayuz olceginde de hicbiri kirpilmaz.
+        'panel shrink-0 min-h-[26px] flex flex-wrap items-center gap-x-3 px-2 py-[2px] text-left transition-colors ' +
         (open ? 'border-ops-text bg-ops-sunken' : 'hover:bg-white/[0.035]')
       }
     >
@@ -96,12 +105,16 @@ export function PacketInspectorBar() {
           <span className={'num text-3xs shrink-0 ' + (pecOk ? 'text-ops-nominal' : 'text-ops-hard')} title="Packet Error Control: CRC-16-CCITT yeniden hesaplandı">
             PEC {pecOk ? 'OK' : 'HATA'}
           </span>
-          <span className="num text-3xs text-ops-dim truncate flex-1 min-w-0">{pkt.hex}</span>
+          {/* Serit dar: tam dokum pencerede. Burada ilk oktetler ve kalan sayisi
+              yazilir, yazi "..." ile yarida kesilmez. */}
+          <span className="num text-3xs text-ops-dim shrink-0">{onIlkOktet(pkt.hex)}</span>
         </>
       ) : (
         <span className="text-3xs text-ops-faint flex-1">paket bekleniyor…</span>
       )}
+      {/* Servis sayaclari dar seritte gizlenir (pencerede tam listesi var): serit tek satir, kirpilmadan. */}
       <span className="num text-3xs text-ops-faint shrink-0">{counts.map(([k, v]) => 'TM[' + k + ']:' + v).join('  ')}</span>
+      <span className="flex-1 min-w-[4px]" />
       <span className={'text-2xs tracking-[0.12em] shrink-0 ' + (open ? 'text-ops-text' : 'text-ops-nominal')}>
         {open ? '▾ AÇIK' : '▸ AÇ  ·  P'}
       </span>

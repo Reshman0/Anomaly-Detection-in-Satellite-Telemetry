@@ -27,7 +27,14 @@
 
 @layer base {
   html,
-  body,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+  /*
+   * Konsol pencereye sigar: ana ekran kaydirilmaz. Duzen sigmadiginda tek tek
+   * paneller kendi icinde kayar (telemetri seritleri, INFO sutunlari, sag sutun).
+   */
   #root {
     height: 100%;
     overflow: hidden;

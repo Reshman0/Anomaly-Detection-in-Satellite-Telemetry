@@ -462,7 +462,9 @@ export default function MapView2D() {
       <div ref={hoverRef} hidden className="absolute num text-3xs text-ops-text bg-ops-sunken/90 border border-ops-line2 px-1.5 py-[2px] pointer-events-none whitespace-nowrap" />
       <div
         ref={readout}
-        className="absolute left-2 top-2 max-w-[calc(100%-230px)] truncate num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
+        // Gorunum dugmelerinin ALTINDA durur; boylece tam genislik kullanip
+        // satira sigmayan okumayi alt satira sarabilir.
+        className="absolute left-2 top-[56px] max-w-[calc(100%-16px)] num text-3xs text-ops-dim leading-[13px] bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
       />
     </div>
   );

@@ -92,7 +92,7 @@ export default function InfoPanel() {
       ) : sc && story && st.stage >= 1 ? (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="grid grid-cols-[1.4fr_1fr_1.2fr] gap-px flex-1 min-h-0">
-            <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto">
+            <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto min-h-0">
               <Label>Tespit</Label>
               <div className="text-[11px] text-ops-text leading-snug mt-[2px] num">
                 {st.trigger === 'break' && st.brk && (
@@ -126,7 +126,7 @@ export default function InfoPanel() {
               )}
             </div>
 
-            <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto num">
+            <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto min-h-0 num">
               <Label>Geçmiş · imza kütüphanesi</Label>
               <div className="text-[13px] text-ops-text mt-[2px]">
                 {story.history.count} kez <span className="text-ops-dim text-[11px]">/ {story.history.window}</span>
@@ -169,7 +169,7 @@ export default function InfoPanel() {
               <div className="text-3xs text-ops-faint">ST[12]: {st.st12T !== null ? 'geçiş ' + utcOf(st.st12T) : 'sessiz — limit içinde'}</div>
             </div>
 
-            <div className="px-2 py-1.5 overflow-y-auto">
+            <div className="px-2 py-1.5 overflow-y-auto min-h-0">
               {st.stage === 2 ? (
                 <>
                   <div className="flex items-center gap-2">
@@ -268,7 +268,9 @@ function NominalNotes({ selectedNorad, monitoring, notes }: { selectedNorad: str
 
   return (
     <div className="flex-1 min-h-0 grid grid-cols-[1fr_1.6fr] gap-px">
-      <div className="px-2 py-1.5 border-r border-ops-line num">
+      {/* Sutunlar kendi icinde kayar: dar pencerede panel disina tasip
+          alttaki Durum seridinin ustune binmesin. */}
+      <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto min-h-0 num">
         <Label>Görev durumu</Label>
         <div className="text-[11px] text-ops-text mt-[2px]">Tüm alt sistemler nominal</div>
         <div className="text-3xs text-ops-faint mt-1">
@@ -286,7 +288,7 @@ function NominalNotes({ selectedNorad, monitoring, notes }: { selectedNorad: str
         </div>
         {!monitoring && <div className="text-3xs text-ops-faint mt-2">Bir senaryo başlatın; tespit geldikçe hikâye, geçmiş, yapısal kırılma ve ÖNERİ açılır.</div>}
       </div>
-      <div className="px-2 py-1.5 overflow-y-auto">
+      <div className="px-2 py-1.5 overflow-y-auto min-h-0">
         <Label>Operatör notları</Label>
         {[...notes].reverse().map((n) => (
           <div key={'n' + n.id} className={'card-in mt-1 px-2 py-[3px] border-l-2 text-[11px] leading-snug ' + KIND_CLS[n.kind]}>

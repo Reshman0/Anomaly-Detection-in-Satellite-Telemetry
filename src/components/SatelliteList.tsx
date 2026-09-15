@@ -97,7 +97,7 @@ export default function SatelliteList() {
                     (isSel ? 'bg-white/[0.07]' : 'hover:bg-white/[0.03]')
                   }
                 >
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-1 min-w-0">
                     <span
                       title={sum ? sum.alarms + ' alarm · ' + sum.unacked + ' onaysız' : 'henüz örneklenmedi'}
                       className={
@@ -110,7 +110,8 @@ export default function SatelliteList() {
                       }
                     />
                     <span
-                      className={'text-[11px] leading-tight truncate ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}
+                      // Uzun uydu adlari kirpilmaz, ikinci satira sarar.
+                      className={'text-[11px] leading-tight min-w-0 break-words ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}
                     >
                       {sat.name}
                     </span>
@@ -147,7 +148,7 @@ export default function SatelliteList() {
         <span className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Yörünge elemanları</span>
         <span className="num text-3xs text-ops-faint">{selSat.intlDes}</span>
       </div>
-      <div className="text-[11px] text-ops-text leading-tight mt-[2px] truncate">{selSat.name}</div>
+      <div className="text-[11px] text-ops-text leading-tight mt-[2px] break-words">{selSat.name}</div>
       <div className="grid grid-cols-2 gap-x-2 mt-1 num text-3xs leading-[13px]">
         <Row k="i" v={el.inclinationDeg.toFixed(3) + '°'} />
         <Row k="e" v={el.eccentricity.toFixed(6)} />
@@ -171,7 +172,7 @@ function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-1">
       <span className="text-ops-faint">{k}</span>
-      <span className="text-ops-dim truncate">{v}</span>
+      <span className="text-ops-dim">{v}</span>
     </div>
   );
 }

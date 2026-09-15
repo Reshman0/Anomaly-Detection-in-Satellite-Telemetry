@@ -17,6 +17,7 @@ import {
   type SatelliteRecord,
 } from '../engine/orbit';
 import { COLOR } from '../ui/colors';
+import { takipKonumu } from '../ui/kameraTakip';
 import SatelliteList from './SatelliteList';
 
 const D2R = Math.PI / 180;
@@ -494,11 +495,10 @@ export default function GlobeView() {
         const visible = la.elevationDeg >= GROUND_STATION.min_elevation_deg;
         const orbitPos = toVec(sp.latDeg, sp.lonDeg, displayRadius(sp.altKm));
 
-        // Takip: kamera uydunun uzerinde, ayni uzaklikta durur; dunya altinda doner.
+        // Takip: kamera uydunun uzerinde, AYNI UZAKLIKTA durur; dunya altinda
+        // doner (bkz. ui/kameraTakip.ts — uzaklik korunur, yalnizca yon doner).
         if (state.followSat) {
-          const dist = camera.position.length();
-          const target = orbitPos.clone().normalize().multiplyScalar(dist);
-          camera.position.lerp(target, 0.12);
+          camera.position.copy(takipKonumu(camera.position, orbitPos, 0.12));
           camera.lookAt(0, 0, 0);
         }
 
@@ -601,7 +601,7 @@ export default function GlobeView() {
   }, [fitNonce, globeView]);
 
   return (
-    <section className="panel flex flex-col flex-1 min-h-[200px]">
+    <section className="panel flex flex-col flex-1 min-h-[300px]">
       <div className="panel-title flex items-center justify-between">
         <span>Dünya · SGP4 · Türkiye uydu kataloğu · {mapMode === '2D' ? '2B eşdikdörtgen' : '3B küre'}</span>
         <span className="normal-case tracking-normal text-ops-faint num">
@@ -710,7 +710,7 @@ export default function GlobeView() {
         <div
           ref={readout}
           className={
-            'absolute left-[204px] bottom-2 max-w-[calc(100%-212px)] truncate num text-3xs text-ops-dim bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
+            'absolute left-[204px] bottom-2 max-w-[calc(100%-212px)] num text-3xs text-ops-dim leading-[13px] bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
             (mapMode === '2D' ? ' hidden' : '')
           }
         />
@@ -736,7 +736,8 @@ export default function GlobeView() {
         ) : (
           /* 2B: harita alani degerli, lejand tek satir; ayrintisi title'da. */
           <div
-            className="absolute right-2 bottom-2 text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-[2px] pointer-events-none whitespace-nowrap"
+            // Uydu listesinin (sol 196 px) ustune binmesin: sigmazsa alt satira sarar.
+            className="absolute right-2 bottom-2 max-w-[calc(100%-212px)] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-[2px] pointer-events-none leading-[13px]"
             title={
               'Eşdikdörtgen izdüşüm · sürükle: kaydır · tekerlek: yakınlaş · çift tık: sıfırla · uyduya tıkla: seç · ' +
               'kesikli daire: istasyon görüş konisi · terminatör ve atmosfer efekti eklenmedi · ' +

@@ -7,20 +7,30 @@ import { fmtTime } from '../engine/missionClock';
 import { COLOR, alpha, stateHex } from '../ui/colors';
 import { buildDossier, type DossierRow } from '../engine/alarmInfo';
 import type { Alarm, Sample } from '../engine/types';
+import AlarmXaiSekmesi from './AlarmXaiSekmesi';
 
 /**
- * Alarm detay penceresi — kuyruktaki karta tiklaninca acilir. Uc sekme:
+ * Alarm detay penceresi — kuyruktaki karta tiklaninca acilir. Dort sekme:
  *   OZET      zaman · kaynak · parametre baglami (MIB + alarm aninin mini seridi)
  *             · alarmi tasiyan TM paketi · iliskili XAI kaniti
  *   STANDART  ECSS-E-ST-70-41C alanlari (TM[5,x] / TM[12,12]), PMON tanimi,
  *             OOL bilgisi (ECSS-E-ST-70-11C)
  *   EYLEM     operasyonel sonuc, prosedur (FOP, ECSS-E-ST-70-32C bicimi),
  *             iliskili parametreler, ESA-ADB siniflandirmasi
+ *   XAI       alarmin dustugu senaryo kosusunun kanit sekilleri (kosu arsivinden;
+ *             canli panel yeni anomalide temizlense de burada kalir)
  * Baslikta alarm yasam dongusu (yukseltildi → onay → temizlendi). Onay (ACK)
  * yalnizca operator kaydidir. Esc ya da disina tiklama kapatir.
  */
 
-type DetailTab = 'OZET' | 'STANDART' | 'EYLEM';
+type DetailTab = 'OZET' | 'STANDART' | 'EYLEM' | 'XAI';
+
+const TAB_LABEL: Record<DetailTab, string> = {
+  OZET: 'ÖZET',
+  STANDART: 'STANDART ALANLAR',
+  EYLEM: 'OPERATÖR EYLEMİ',
+  XAI: 'XAI',
+};
 
 const TONE_CLS: Record<NonNullable<DossierRow['tone']>, string> = {
   nominal: 'text-ops-nominal',
@@ -160,7 +170,7 @@ function Row({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
   return (
     <div className="flex justify-between gap-3 text-[11px] leading-[16px]">
       <span className="text-ops-faint shrink-0">{k}</span>
-      <span className={'num text-right truncate ' + (cls ?? 'text-ops-text')}>{v}</span>
+      <span className={'num text-right min-w-0 break-words ' + (cls ?? 'text-ops-text')}>{v}</span>
     </div>
   );
 }
@@ -216,9 +226,13 @@ export default function AlarmDetail() {
   const nowState = last ? evaluate(p, last.eng) : 'NOMINAL';
   const sevCls = SEV_CLS[Math.max(0, Math.min(3, alarm.severity))];
   const isAi = alarm.source === 'AI_DERIVED';
-  const startT = sim.scenarioStartT;
   const epochMs = Date.parse(MIB.epoch);
-  const evidence = sim.xai.filter((e) => e.missionT <= alarm.missionT + 5);
+  // Kanit canli panelden degil alarmin kendi senaryo kosusundan okunur: sonradan
+  // baska bir anomali enjekte edildiyse canli panel o anomaliyi gosterir.
+  const xaiRun = sim.xaiRunFor(alarm.id);
+  const evidence = xaiRun ? xaiRun.evidence : [];
+  // Senaryo goreli zaman da alarmin kendi kosusuna gore (su an kosan senaryoya gore degil).
+  const startT = xaiRun ? xaiRun.startT : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55" onClick={() => selectAlarm(null)}>
@@ -275,7 +289,7 @@ export default function AlarmDetail() {
             {dossier.procedure.urgency.toUpperCase()} · {dossier.procedure.id}
           </span>
           <div className="flex gap-[3px] ml-2" role="tablist" aria-label="Alarm detay sekmeleri">
-            {(['OZET', 'STANDART', 'EYLEM'] as DetailTab[]).map((t) => (
+            {(['OZET', 'STANDART', 'EYLEM', 'XAI'] as DetailTab[]).map((t) => (
               <button
                 key={t}
                 role="tab"
@@ -286,7 +300,7 @@ export default function AlarmDetail() {
                   (tab === t ? 'border-ops-text text-ops-text bg-ops-panel' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
                 }
               >
-                {t === 'OZET' ? 'ÖZET' : t === 'STANDART' ? 'STANDART ALANLAR' : 'OPERATÖR EYLEMİ'}
+                {TAB_LABEL[t]}
               </button>
             ))}
           </div>
@@ -320,6 +334,8 @@ export default function AlarmDetail() {
             </div>
           </div>
         )}
+
+        {tab === 'XAI' && <AlarmXaiSekmesi run={xaiRun} alarmId={alarm.id} />}
 
         {tab === 'EYLEM' && (
           <div className="grid grid-cols-[1.2fr_1fr] gap-px flex-1 min-h-0 overflow-hidden">

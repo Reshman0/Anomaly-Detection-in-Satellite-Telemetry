@@ -119,11 +119,10 @@ export const useConsole = create<ConsoleState>((set, get) => ({
 
   runScenario: (scenario) => {
     const { sim } = get();
-    // Senaryolar 90 gorev saniyesi surer; operator konsolu izleyebilsin diye
-    // baslarken hiz 1x'e alinir (yonerge §10, "90 saniyede tamamlanir").
-    sim.clock.setSpeed(1);
+    // Hiz degistirilmez: operator hangi hizda izliyorsa senaryo o hizda akar.
+    // 1x'e donmek icin ust seritteki dugme ya da 0 kisayolu kullanilir.
     sim.startScenario(scenario);
-    set({ speed: 1, xaiLevel: 1, selectedAlarmId: null });
+    set({ xaiLevel: 1, selectedAlarmId: null });
   },
 
   backToNominal: () => {

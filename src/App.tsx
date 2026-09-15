@@ -116,14 +116,17 @@ export default function App() {
       <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,42%)_minmax(0,1fr)] gap-px">
         {/* Kure tum sol sutunu alir. Paket denetleyici ust seritteki dugmeyle
             acilan bir pencere oldugu icin sag sutunda INFO paneline yer kaldi.
-            overflow-hidden hicbir panelin komsusunun ustune tasmamasini garanti eder. */}
-        <div className="flex flex-col min-h-0 overflow-hidden">
+            Sutun ancak kure asgari yuksekligine sigmadiginda (cok yuksek arayuz
+            olcegi) kendi icinde kayar; normalde ana ekran kaydirilmaz. */}
+        <div className="flex flex-col min-h-0 overflow-y-auto">
           <GlobeView />
         </div>
-        <div className="flex flex-col min-h-0 gap-px overflow-hidden">
+        {/* Sag sutun kendi icinde kayar: yuksek arayuz olceginde Durum seridi
+            kirpilmaz, kaydirilarak okunur. */}
+        <div className="flex flex-col min-h-0 gap-px overflow-y-auto">
           <TelemetryPanel />
           <PacketInspectorBar />
-          <div className="h-[196px] shrink min-h-[130px] flex flex-col">
+          <div className="h-[196px] shrink min-h-[120px] flex flex-col">
             <InfoPanel />
           </div>
           <StatusBand />
