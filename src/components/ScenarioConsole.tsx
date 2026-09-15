@@ -84,7 +84,8 @@ export default function ScenarioConsole() {
           hedef: <span className="text-ops-dim">{target.name}</span>
         </span>
       </div>
-      <div className="p-2 flex flex-col gap-1.5 min-h-0">
+      {/* Dar panelde icerik kirpilmasin: sigmazsa kaydirilir (yazi kesilmez). */}
+      <div className="p-2 flex flex-col gap-1 min-h-0 flex-1 overflow-y-auto">
         {SCENARIOS.map((s) => {
           const isActive = active?.id === s.id;
           return (
@@ -98,15 +99,17 @@ export default function ScenarioConsole() {
               aria-label={s.button}
               aria-description={s.description}
               className={
-                'text-left px-2 py-1.5 border transition-colors ' +
+                'text-left px-2 py-1 border transition-colors ' +
                 (isActive
                   ? 'border-ops-ai bg-ops-ai/10'
                   : 'border-ops-line2 hover:border-ops-dim hover:bg-white/[0.02]')
               }
             >
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <span className={'text-[12px] truncate ' + (isActive ? 'text-ops-ai' : 'text-ops-text')}>{s.button}</span>
-                <span className="num text-3xs text-ops-faint shrink-0">{s.model}</span>
+              {/* Model adi basligin YANINDA degil ALTINDA: yan yana iken dar
+                  panelde baslik iki satira kirilip kutudan tasiyordu. */}
+              <div className="min-w-0">
+                <div className={'text-[12px] leading-tight ' + (isActive ? 'text-ops-ai' : 'text-ops-text')}>{s.button}</div>
+                <div className="num text-3xs text-ops-faint leading-[12px]">{s.model}</div>
               </div>
               {isActive && (
                 <div className="h-[2px] bg-ops-line2 mt-1.5">
@@ -129,7 +132,7 @@ export default function ScenarioConsole() {
                 onClick={() => setSeverity(i)}
                 title={'şiddet ×' + SEVERITY_STEPS[i]}
                 className={
-                  'flex-1 num text-[15px] leading-none py-[2px] border transition-colors ' +
+                  'flex-1 num text-[13px] leading-none py-[3px] border transition-colors ' +
                   (i === severityIndex
                     ? 'border-ops-ai text-ops-ai bg-ops-ai/10'
                     : 'border-ops-line2 text-ops-faint hover:text-ops-dim')
@@ -141,16 +144,14 @@ export default function ScenarioConsole() {
           </div>
           <button
             onClick={backToNominal}
-            className="w-full mt-1.5 text-[11px] py-1 border border-ops-line2 text-ops-dim hover:text-ops-text hover:border-ops-dim transition-colors"
+            className="w-full mt-1 text-[11px] py-[2px] border border-ops-line2 text-ops-dim hover:text-ops-text hover:border-ops-dim transition-colors"
           >
             {NOMINAL_SCENARIO.button}
           </button>
-          {/* Tek satir: iki satira kirildiginda yarisi panelin altindan kirpiliyordu. */}
-          <div
-            className="num text-3xs text-ops-faint mt-1 text-center tracking-wide truncate"
-            title="1 2 3 senaryo · N nominal · L T küre · F takip · 0 hız 1×"
-          >
-            1 2 3 senaryo · N nominal · L T küre · F takip · 0 hız 1×
+          {/* Kisayollar iki satira boluner: kirpilmadan tamami okunur. */}
+          <div className="num text-3xs text-ops-faint mt-1 text-center tracking-wide leading-[13px]">
+            <div>1 2 3 senaryo · N nominal</div>
+            <div>L T küre · F takip · 0 hız 1×</div>
           </div>
         </div>
       </div>

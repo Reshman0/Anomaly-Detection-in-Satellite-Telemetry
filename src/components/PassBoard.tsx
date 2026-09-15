@@ -261,7 +261,7 @@ export default function PassBoard() {
                   (isSel ? 'bg-white/[0.07]' : 'hover:bg-white/[0.03]')
                 }
               >
-                <span className={'truncate ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}>{f.sat.name}</span>
+                <span className={'leading-tight break-words min-w-0 ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}>{f.sat.name}</span>
                 <span className="num text-right text-ops-dim">{fmtTime(f.aosMs)}</span>
                 <span className="num text-right text-ops-faint">{Math.round(f.durationS / 60)} dk</span>
                 <span className={'num text-right ' + (f.maxElDeg >= 30 ? 'text-ops-nominal' : 'text-ops-faint')}>

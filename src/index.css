@@ -27,10 +27,17 @@
 
 @layer base {
   html,
-  body,
-  #root {
+  body {
     height: 100%;
     overflow: hidden;
+  }
+  /*
+   * Konsolun kendisi kaydirilabilir: yuksek arayuz olceginde ya da kisa
+   * pencerede duzen sikismak yerine kayar, boylece alttaki paneller kirpilmaz.
+   */
+  #root {
+    height: 100%;
+    overflow: auto;
   }
   body {
     @apply bg-ops-bg text-ops-text font-sans antialiased;

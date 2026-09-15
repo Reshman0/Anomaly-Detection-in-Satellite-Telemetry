@@ -28,6 +28,24 @@ const SPACECRAFT_APIDS = Array.from(
 let alarmSeq = 0;
 let noteSeq = 0;
 
+/**
+ * Bir anomali senaryosu kosusunun XAI kanitlari. Canli panel (`xai`) yeni
+ * senaryoda temizlenir; bu kayit ise alarm detayindaki XAI sekmesi eski
+ * anomalilerin kanitlarini da gosterebilsin diye saklanir.
+ */
+export interface XaiRun {
+  scenarioId: string;
+  /** Kosunun (izgaraya oturtulmus) baslangic gorev saniyesi — sekil zaman ekseni icin. */
+  startT: number;
+  /** Ayni senaryonun bu uydudaki kacinci kosusu. */
+  runNo: number;
+  /** Seviye basina en son kanit, seviye sirasiyla. Kanitlar geldikce dolar. */
+  evidence: XaiEvidence[];
+}
+
+/** Uydu basina saklanan en fazla XAI kosusu (alarm kuyrugu da 40 ile sinirli). */
+const XAI_RUN_LIMIT = 40;
+
 export interface SimOptions {
   /** Yer istasyonunun ortak gorev saati. Verilmezse kendi saatini kurar (testler). */
   clock?: MissionClock;
@@ -74,6 +92,11 @@ export class Simulation {
   alarms: Alarm[] = [];
   packets: BuiltPacket[] = [];
   xai: XaiEvidence[] = [];
+  /** Kosu basina XAI arsivi, en eski once. Uyandirmada (resync) silinmez. */
+  xaiRuns: XaiRun[] = [];
+  private currentRun: XaiRun | null = null;
+  /** Alarm kimligi -> alarm dustugunde kosan senaryonun XAI kaydi. */
+  private alarmRuns = new Map<number, XaiRun>();
   lastTransition: CheckTransition | null = null;
   severityIndex = DEFAULT_SEVERITY_INDEX;
 
@@ -148,10 +171,18 @@ export class Simulation {
     }
     this.runner = new ScenarioRunner(scenario, this.clock.missionT, this.severityIndex);
     this.xai = [];
+    this.runCounts.set(scenario.id, (this.runCounts.get(scenario.id) ?? 0) + 1);
+    this.currentRun = {
+      scenarioId: scenario.id,
+      startT: this.runner.startMissionT,
+      runNo: this.runCounts.get(scenario.id)!,
+      evidence: [],
+    };
+    this.xaiRuns.push(this.currentRun);
+    if (this.xaiRuns.length > XAI_RUN_LIMIT) this.xaiRuns.splice(0, this.xaiRuns.length - XAI_RUN_LIMIT);
     this.infoNotes = [];
     this.structuralBreak = null;
     this.notifiedRun = false;
-    this.runCounts.set(scenario.id, (this.runCounts.get(scenario.id) ?? 0) + 1);
   }
 
   stopScenario(): void {
@@ -232,6 +263,9 @@ export class Simulation {
     this.structuralBreak = null;
     this.notifications = [];
     this.notifiedRun = false;
+    this.xaiRuns = [];
+    this.currentRun = null;
+    this.alarmRuns.clear();
     this.limits.reset();
     this.counters.reset();
     this.source = new TelemetrySource({ seedSalt: this.norad });
@@ -417,6 +451,7 @@ export class Simulation {
             level: step.level,
           };
           this.xai = [...this.xai.filter((x) => x.level !== ev.level), ev].sort((a, b) => a.level - b.level);
+          if (this.currentRun) this.currentRun.evidence = this.xai;
         } else if (step.type === 'info') {
           this.pushNote(step.kind, step.title, step.text, missionT, unixMs);
         }
@@ -526,8 +561,20 @@ export class Simulation {
   private pushAlarm(a: Alarm): void {
     // Alarm aninda kosan senaryo, detay penceresinde prosedur ve sinif icin saklanir.
     if (this.runner && a.scenarioId === undefined) a.scenarioId = this.runner.scenario.id;
+    if (this.runner && this.currentRun) this.alarmRuns.set(a.id, this.currentRun);
     this.alarms.unshift(a);
-    if (this.alarms.length > 40) this.alarms.length = 40;
+    if (this.alarms.length > 40) {
+      for (const eski of this.alarms.splice(40)) this.alarmRuns.delete(eski.id);
+    }
+  }
+
+  /**
+   * Alarm dustugunde kosan senaryonun XAI kaydi. Kanitlar alarmdan sonra da
+   * gelebilir; kayit kosu boyunca dolmaya devam eder. Senaryo disinda dusen
+   * alarm icin null.
+   */
+  xaiRunFor(alarmId: number): XaiRun | null {
+    return this.alarmRuns.get(alarmId) ?? null;
   }
 
   snapshot(): SimSnapshot {

@@ -111,7 +111,9 @@ export default function App() {
   }, [tick]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-ops-bg gap-px">
+    /* Cok kisa pencerede paneller birbirinin ustune binmesin: konsol asgari
+       yuksekligin altina inmez, gerekirse sayfa kayar. */
+    <div className="h-full w-full min-h-[700px] flex flex-col bg-ops-bg gap-px">
       <TopBar />
       <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,42%)_minmax(0,1fr)] gap-px">
         {/* Kure tum sol sutunu alir. Paket denetleyici ust seritteki dugmeyle
@@ -120,10 +122,12 @@ export default function App() {
         <div className="flex flex-col min-h-0 overflow-hidden">
           <GlobeView />
         </div>
-        <div className="flex flex-col min-h-0 gap-px overflow-hidden">
+        {/* Sag sutun kendi icinde kayar: yuksek arayuz olceginde Durum seridi
+            kirpilmaz, kaydirilarak okunur. */}
+        <div className="flex flex-col min-h-0 gap-px overflow-y-auto">
           <TelemetryPanel />
           <PacketInspectorBar />
-          <div className="h-[196px] shrink min-h-[130px] flex flex-col">
+          <div className="h-[196px] shrink min-h-[120px] flex flex-col">
             <InfoPanel />
           </div>
           <StatusBand />

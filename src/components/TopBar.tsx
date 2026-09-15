@@ -5,12 +5,19 @@ import { GROUND_STATION, elevationAt, isVisible, nextPassEvent, satByNorad } fro
 import { useMemo, useRef } from 'react';
 import UyduBilgiPenceresi from './UyduBilgiPenceresi';
 
-function Field({ label, children, w }: { label: string; children: React.ReactNode; w?: string }) {
+/**
+ * Ust serit alani: etiket, deger ve alt bilgi ALT ALTA yazilir.
+ *
+ * Onceden deger ile alt bilgi tek satirdaydi ve dar ekranda "..." ile
+ * kirpiliyordu. Uc satirda en genis parca kadar yer kaplar, hicbir sey
+ * kirpilmaz; serit sigmazsa alanlar alt satira sarar.
+ */
+function Field({ label, sub, title, children }: { label: string; sub?: React.ReactNode; title?: string; children: React.ReactNode }) {
   return (
-    <div className={'flex flex-col justify-center px-3 border-r border-ops-line min-w-0 ' + (w ?? '')}>
-      {/* Dar pencerede alanlar alt satira kaymaz, kirpilir: ust serit tek satir kalir. */}
-      <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none whitespace-nowrap overflow-hidden text-ellipsis">{label}</div>
-      <div className="num text-[13px] leading-tight mt-[3px] whitespace-nowrap overflow-hidden text-ellipsis">{children}</div>
+    <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0 whitespace-nowrap" title={title}>
+      <div className="text-3xs uppercase tracking-[0.14em] text-ops-faint leading-none">{label}</div>
+      <div className="num text-[13px] leading-[15px] mt-[2px]">{children}</div>
+      {sub !== undefined && <div className="num text-[10px] leading-[12px] text-ops-faint">{sub}</div>}
     </div>
   );
 }
@@ -51,25 +58,26 @@ export default function TopBar() {
     [sat.epochMs],
   );
 
+  // Serit sigmadiginda alanlar kirpilmaz, alt satira sarar.
   return (
-    <header className="h-[52px] shrink-0 flex items-stretch bg-ops-panel border-b border-ops-line2">
-      <div className="flex flex-col justify-center px-3 border-r border-ops-line2 bg-ops-sunken min-w-[150px]">
+    <header className="min-h-[52px] shrink-0 flex flex-wrap items-stretch bg-ops-panel border-b border-ops-line2">
+      <div className="flex flex-col justify-center px-3 border-r border-ops-line2 bg-ops-sunken shrink-0">
         <div className="text-3xs uppercase tracking-[0.18em] text-ops-faint leading-none">Görev</div>
         <div className="num text-[15px] leading-tight mt-[2px] text-ops-text">{MIB.mission}</div>
       </div>
 
-      <Field label="UTC">
+      <Field label="UTC" sub={fmtDate(utcMs)}>
         <span className="text-ops-text">{fmtTimeMs(utcMs)}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">{fmtDate(utcMs)}</span>
       </Field>
 
-      <Field label={'OBT (ofset ' + MIB.obt_offset_s.toFixed(3) + ' s)'}>
+      <Field label="OBT" sub={'ofset ' + MIB.obt_offset_s.toFixed(3) + ' s'} title="Uydu üstü zaman: yer zamanından sabit ofset kadar kaymış">
         <span className="text-ops-dim">{fmtTimeMs(obtMs)}</span>
       </Field>
 
-      <div className="flex flex-col justify-center px-3 border-r border-ops-line">
-        <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint leading-none">Hız</div>
-        <div className="flex gap-[3px] mt-[3px]">
+      {/* Hiz dugmeleri iki satira dizilir: serit tek satirda kalsin diye. */}
+      <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0">
+        <div className="text-3xs uppercase tracking-[0.14em] text-ops-faint leading-none">Hız</div>
+        <div className="grid grid-cols-3 gap-[3px] mt-[3px]">
           {SPEED_OPTIONS.map((s) => (
             <button
               key={s}
@@ -87,52 +95,49 @@ export default function TopBar() {
         </div>
       </div>
 
-      <Field label="SLE RAF · CCSDS 911.1">
+      <Field label="SLE RAF" sub="RCF: READY" title="SLE RAF/RCF · CCSDS 911.1 uzay bağlantısı">
         <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>{visible ? 'ACTIVE' : 'READY'}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">RCF: READY</span>
       </Field>
 
-      <Field label="İstasyon">
+      <Field label="İstasyon" sub={GROUND_STATION.lat_deg.toFixed(3) + '°N ' + GROUND_STATION.lon_deg.toFixed(3) + '°E'}>
         <span className="text-ops-text">{GROUND_STATION.name}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">
-          {GROUND_STATION.lat_deg.toFixed(3)}°N {GROUND_STATION.lon_deg.toFixed(3)}°E
-        </span>
       </Field>
 
-      <Field label={pass ? (pass.kind === 'AOS' ? 'AOS geri sayım' : 'LOS geri sayım') : 'Görünürlük'}>
+      <Field
+        label={pass ? (pass.kind === 'AOS' ? 'AOS geri sayım' : 'LOS geri sayım') : 'Görünürlük'}
+        sub={pass ? '@ ' + fmtTime(pass.targetMs) : '6 sa içinde geçiş yok'}
+      >
         {pass ? (
-          <>
-            <span className={pass.kind === 'LOS' ? 'text-ops-nominal' : 'text-ops-text'}>
-              {fmtCountdown((pass.targetMs - utcMs) / 1000)}
-            </span>
-            <span className="text-ops-faint ml-2 text-[11px]">@ {fmtTime(pass.targetMs)}</span>
-          </>
+          <span className={pass.kind === 'LOS' ? 'text-ops-nominal' : 'text-ops-text'}>
+            {fmtCountdown((pass.targetMs - utcMs) / 1000)}
+          </span>
         ) : (
           // 6 saatlik ufukta gecis yok: istasyon boylamindaki GEO uydularinda beklenen durum.
-          <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>
-            {visible ? 'sürekli görünür' : 'görüş dışı'}
-            <span className="text-ops-faint ml-2 text-[11px]">6 sa içinde geçiş yok</span>
-          </span>
+          <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>{visible ? 'sürekli görünür' : 'görüş dışı'}</span>
         )}
       </Field>
 
-      <Field label="Yükselti / min">
+      <Field label="Yükselti" sub={'en az ' + GROUND_STATION.min_elevation_deg.toFixed(0) + '°'}>
         <span className={elevation >= GROUND_STATION.min_elevation_deg ? 'text-ops-nominal' : 'text-ops-dim'}>
           {elevation.toFixed(1)}°
         </span>
-        <span className="text-ops-faint ml-2 text-[11px]">≥ {GROUND_STATION.min_elevation_deg.toFixed(0)}°</span>
       </Field>
 
-      <Field label={'Seçili uydu · NORAD ' + sat.norad}>
+      {/* Model adi soldaki Gorev alaninda zaten yaziyor; burada tekrar edilmez. */}
+      <Field
+        label="Seçili uydu"
+        sub={'NORAD ' + sat.norad + ' · ' + sat.intlDes}
+        title={sat.name + ' · ' + sat.orbitClass + ' · TLE yaşı ' + tleAge + ' gün · model ' + MIB.mission}
+      >
         <span className="text-ops-text">{sat.name}</span>
         <span className="text-ops-faint ml-2 text-[11px]">
-          {sat.orbitClass} · TLE {tleAge} gün · {sat.intlDes} · model AZS-DEMO
+          {sat.orbitClass} · TLE {tleAge} gün
         </span>
       </Field>
 
-      <div className="flex-1 min-w-0 border-r border-ops-line" />
+      <div className="flex-1 min-w-[8px] border-r border-ops-line" />
 
-      <div className="flex items-center gap-2 px-3 shrink-0">
+      <div className="flex items-center gap-2 px-2 shrink-0 ml-auto">
         <button
           onClick={() => setPacketOpen(true)}
           title="Paket denetleyici penceresi: CADU · FRAME · PACKET (P)"

@@ -22,7 +22,9 @@ export default function TelemetryPanel() {
   // 1920x1080'de 8 serit x ~56 px tam sigar. Daha kisa pencerelerde once paket
   // denetleyici daralir (o esneyebilir); yine yetmezse serit kutusu kaydirir.
   return (
-    <section className="panel flex flex-col flex-1 min-h-[344px]">
+    // min-h dusuk tutulur: dar ekranda seritler kendi icinde kayar, alttaki
+    // INFO ve Durum panellerini ekranin disina itmez.
+    <section className="panel flex flex-col flex-1 min-h-[150px]">
       <div className="panel-title flex items-center justify-between">
         <span>Telemetri şeritleri · TM[3,25] HK Parameter Report</span>
         <span className="normal-case tracking-normal text-ops-faint">

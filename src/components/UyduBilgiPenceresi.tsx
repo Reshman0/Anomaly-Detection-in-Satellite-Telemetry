@@ -75,7 +75,7 @@ function Ozet({ etiket, deger, alt }: { etiket: string; deger: string; alt: stri
     <div className="px-3 py-1.5 min-w-0 border-r border-ops-line last:border-r-0">
       <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">{etiket}</div>
       <div className="num text-[14px] font-semibold text-ops-text leading-tight mt-[2px]">{deger}</div>
-      <div className="text-3xs text-ops-dim truncate">{alt}</div>
+      <div className="text-3xs text-ops-dim leading-tight">{alt}</div>
     </div>
   );
 }
@@ -160,7 +160,7 @@ function Pencere({ kapat }: { kapat: () => void }) {
       >
         <div className="flex items-center gap-3 px-3 py-2 border-b border-ops-line2 shrink-0">
           <span className="num text-[14px] font-semibold text-ops-text">UYDU BİLGİSİ · {sat.name.toLocaleUpperCase('tr-TR')}</span>
-          <span className="text-3xs text-ops-faint tracking-[0.1em] truncate min-w-0">
+          <span className="text-3xs text-ops-faint tracking-[0.1em] min-w-0">
             NORAD {sat.norad} · {sat.orbitClass} · {sat.mission}
           </span>
           <button
@@ -202,7 +202,7 @@ function Pencere({ kapat }: { kapat: () => void }) {
                   className="grid grid-cols-[52px_minmax(0,1fr)_64px_76px] items-baseline gap-2 py-[2px] text-[11px] border-b border-ops-line/50 last:border-b-0"
                 >
                   <span className="num text-ops-text">{p.pid}</span>
-                  <span className="text-ops-dim truncate">{subsystemName(p.subsystem)}</span>
+                  <span className="text-ops-dim leading-tight">{subsystemName(p.subsystem)}</span>
                   <span className="num text-ops-dim text-right">{deger === null ? '—' : (deger >= 0 ? '+' : '') + deger.toFixed(2)}</span>
                   <span className={'num text-3xs font-semibold text-right ' + stateTextClass(durum)}>{stateLabel(durum)}</span>
                 </div>
@@ -230,7 +230,7 @@ function Pencere({ kapat }: { kapat: () => void }) {
                 problemler.map((pr) => (
                   <div key={pr.anahtar} className="py-[3px] border-b border-ops-line/50 last:border-b-0">
                     <div className="flex items-baseline justify-between gap-3 text-[11px]">
-                      <span className="text-ops-text min-w-0 truncate">{pr.sonMetin}</span>
+                      <span className="text-ops-text min-w-0 leading-tight">{pr.sonMetin}</span>
                       <span className="num text-ops-text font-semibold shrink-0">{pr.adet} kez</span>
                     </div>
                     <div className="flex items-baseline gap-x-2 flex-wrap text-3xs text-ops-faint num">
