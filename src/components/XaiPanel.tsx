@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useConsole } from '../store';
-import { injectedChannels, scenarioByAsset } from '../engine/xaiFigures';
+import { injectedChannels, scenarioByAsset, scenarioStartT } from '../engine/xaiFigures';
 import XaiFigure from './XaiFigure';
 import KanitBuyutec, { type BuyutulenKanit } from './KanitBuyutec';
 
@@ -46,6 +46,8 @@ export default function XaiPanel() {
   const current = evidence.find((e) => e.level === level) ?? null;
   const scenario = current ? scenarioByAsset(current.asset) : null;
   const channels = scenario ? injectedChannels(scenario) : (current?.top_channels ?? []);
+  // Sekillerin zaman ekseni simulasyon saatini yazsin diye senaryonun basladigi gorev saniyesi.
+  const baslangicT = current && scenario ? scenarioStartT(scenario, current.asset, current.missionT) : 0;
 
   /*
    * Yeni kanit geldiginde panel kendiliginden o adima gecer; sunucunun sekmeye
@@ -100,7 +102,14 @@ export default function XaiPanel() {
           ) : (
             <button
               onClick={() =>
-                setBuyuk({ scenario, channels, level: current.level, model: current.model, baslik: LEVEL_TITLES[current.level] })
+                setBuyuk({
+                  scenario,
+                  channels,
+                  level: current.level,
+                  model: current.model,
+                  baslangicT,
+                  baslik: LEVEL_TITLES[current.level],
+                })
               }
               title="Büyütmek için tıklayın"
               className="w-full h-full min-h-0 flex items-center justify-center cursor-zoom-in group"
@@ -110,6 +119,7 @@ export default function XaiPanel() {
                 channels={channels}
                 level={current.level}
                 model={current.model}
+                baslangicT={baslangicT}
                 className="max-w-full max-h-full object-contain transition-opacity group-hover:opacity-80"
               />
             </button>

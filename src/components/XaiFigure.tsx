@@ -6,10 +6,13 @@ import {
   FIGURE_CHANNELS,
   channelShares,
   deviationField,
+  figureTimeTicks,
   hashSeedText,
+  missionUtcMs,
   signalPair,
   timeProfile,
 } from '../engine/xaiFigures';
+import { fmtTime } from '../engine/missionClock';
 
 /**
  * Kanit gorseli, calisma aninda canvas'a cizilir.
@@ -30,6 +33,8 @@ interface Props {
   channels: string[];
   level: 1 | 2 | 3;
   model: string;
+  /** Senaryonun t = 0 anina denk gelen gorev saniyesi; zaman ekseni simulasyon saatini gosterir. */
+  baslangicT: number;
   /** Cizim cozunurlugu carpani. Buyutulmus gorunumde yukseltilir. */
   scale?: number;
   className?: string;
@@ -42,6 +47,7 @@ function fig(
   sc: Scenario,
   channels: string[],
   model: string,
+  baslangicT: number,
 ): void {
   const seed = hashSeedText(sc.id + '|' + channels.join(','));
   const hedef = channels[0] ?? FIGURE_CHANNELS[0];
@@ -76,12 +82,18 @@ function fig(
   g.fillStyle = COLOR.line;
   g.fillRect(0, 36, W, 1);
 
-  const zamanEkseni = (y: number, dur: number) => {
-    const adimlar = [0, dur / 6, dur / 3, dur / 2, (2 * dur) / 3, (5 * dur) / 6, dur];
-    for (const s of adimlar) {
-      yazi(left + (s / dur) * plotW - 7, y + 13, String(Math.round(s)), COLOR.faint, 11);
+  // Eksen senaryonun goreli saniyelerini degil, simulasyonun UTC saatini yazar
+  // (ust seritteki UTC ile ayni saat). `span`: ilk ve son ornek arasi saniye.
+  const zamanEkseni = (y: number, span: number) => {
+    g.textAlign = 'center';
+    for (const k of figureTimeTicks(baslangicT, span)) {
+      const x = left + (k.t / span) * plotW;
+      g.fillStyle = COLOR.line2;
+      g.fillRect(Math.round(x), y - 4, 1, 4);
+      yazi(x, y + 13, fmtTime(k.utcMs), COLOR.faint, 11);
     }
-    yazi(left + plotW / 2 - 30, y + 27, 'zaman (s)', COLOR.faint, 11);
+    yazi(left + plotW / 2, y + 27, 'simülasyon saati (UTC)', COLOR.faint, 11);
+    g.textAlign = 'left';
   };
 
   if (level === 1) {
@@ -157,7 +169,7 @@ function fig(
     g.beginPath();
     fark.forEach((v, t) => (t ? g.lineTo(xt(t), yf(v)) : g.moveTo(xt(t), yf(v))));
     g.stroke();
-    zamanEkseni(altY + altH + 4, dur);
+    zamanEkseni(altY + altH + 4, dur - 1);
 
     let tepe = 0;
     fark.forEach((v, i) => {
@@ -168,9 +180,9 @@ function fig(
       H - 24,
       'Model ' +
         hedef +
-        ' için üstteki kesikli seriyi bekliyordu. Ölçülen seri ondan ayrılıyor ve fark ' +
-        tepe +
-        '. saniyede en büyük değerine varıyor.',
+        ' için üstteki kesikli seriyi bekliyordu. Ölçülen seri ondan ayrılıyor ve fark en büyük değerine ' +
+        fmtTime(missionUtcMs(baslangicT + tepe)) +
+        ' UTC anında varıyor.',
       COLOR.dim,
       12,
     );
@@ -250,17 +262,17 @@ function fig(
   g.beginPath();
   prof.forEach((v, t) => (t ? g.lineTo(xp(t), yp(v)) : g.moveTo(xp(t), yp(v))));
   g.stroke();
-  zamanEkseni(attY + attH + 4, field.dur);
+  zamanEkseni(attY + attH + 4, prof.length - 1);
 }
 
-export default function XaiFigure({ scenario, channels, level, model, scale = 2, className, style }: Props) {
+export default function XaiFigure({ scenario, channels, level, model, baslangicT, scale = 2, className, style }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   // Erisilebilirlik ayari (kontrast, renk gorme) paleti canli degistirir; cizim
   // yalnizca kanit degisince tekrarlandigi icin palet surumu de izlenir.
   const paletteVersion = useConsole((s) => s.paletteVersion);
   const anahtar = useMemo(
-    () => scenario.id + '|' + channels.join(',') + '|' + level + '|' + scale,
-    [scenario, channels, level, scale],
+    () => scenario.id + '|' + channels.join(',') + '|' + level + '|' + scale + '|' + baslangicT,
+    [scenario, channels, level, scale, baslangicT],
   );
   useEffect(() => {
     const cv = ref.current;
@@ -270,9 +282,9 @@ export default function XaiFigure({ scenario, channels, level, model, scale = 2,
     const g = cv.getContext('2d');
     if (!g) return;
     g.setTransform(scale, 0, 0, scale, 0, 0);
-    fig(g, level, scenario, channels, model);
+    fig(g, level, scenario, channels, model, baslangicT);
     // `anahtar` degisince yeniden cizilir; bagimliliklar da listede.
-  }, [anahtar, level, scenario, channels, model, scale, paletteVersion]);
+  }, [anahtar, level, scenario, channels, model, baslangicT, scale, paletteVersion]);
 
   return <canvas ref={ref} className={className} style={style} />;
 }

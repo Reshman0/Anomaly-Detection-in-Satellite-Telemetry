@@ -5,10 +5,15 @@ import {
   channelShares,
   deviationField,
   hashSeedText,
+  figureTimeTicks,
   injectedChannels,
+  missionUtcMs,
   scenarioByAsset,
+  scenarioStartT,
   signalPair,
 } from './xaiFigures';
+import { Simulation } from './simulation';
+import { fmtTime } from './missionClock';
 
 const tekKanalli = SCENARIOS.filter((sc) =>
   sc.timeline.some((st) => st.type === 'inject_point' || st.type === 'inject_drift'),
@@ -62,5 +67,37 @@ describe('kanit gorselleri senaryonun kanalini gosterir', () => {
     const sc = tekKanalli[0];
     const seed = hashSeedText(sc.id);
     expect(deviationField(sc, seed).grid).toEqual(deviationField(sc, seed).grid);
+  });
+});
+
+describe('sekil zaman ekseni simulasyon saatini yazar', () => {
+  it('kanittan bulunan baslangic, simulasyonun senaryoyu baslattigi an ile ayni', () => {
+    const sim = new Simulation();
+    // Kesirli bir anda baslat: baslangic izgaraya oturtulmali, kanit yine tutmali.
+    sim.advance(12_345.6);
+    for (const sc of SCENARIOS.filter((x) => x.timeline.some((st) => st.type === 'show_xai'))) {
+      sim.startScenario(sc);
+      const bas = sim.scenarioStartT!;
+      // Buyuk adimlarla ilerlet: bir cagrida birden cok orneklem islenir.
+      for (let i = 0; i < 14; i++) sim.advance(7_300);
+      expect(sim.xai.length, sc.id).toBe(3);
+      for (const ev of sim.xai) {
+        expect(scenarioByAsset(ev.asset)?.id).toBe(sc.id);
+        expect(scenarioStartT(sc, ev.asset, ev.missionT), ev.asset).toBe(bas);
+      }
+      sim.stopScenario();
+    }
+  });
+
+  it('isaretler yuvarlak UTC saniyelerine oturur ve pencerenin icinde kalir', () => {
+    // Epok 08:10:00; 97. gorev saniyesi 08:11:37.
+    expect(fmtTime(missionUtcMs(97))).toBe('08:11:37');
+    const k = figureTimeTicks(97, 89);
+    expect(k.map((x) => fmtTime(x.utcMs))).toEqual(['08:11:45', '08:12:00', '08:12:15', '08:12:30', '08:12:45', '08:13:00']);
+    for (const x of k) {
+      expect(x.t).toBeGreaterThanOrEqual(0);
+      expect(x.t).toBeLessThanOrEqual(89);
+      expect(missionUtcMs(97 + x.t)).toBe(x.utcMs);
+    }
   });
 });

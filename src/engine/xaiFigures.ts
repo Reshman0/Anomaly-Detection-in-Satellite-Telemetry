@@ -179,6 +179,49 @@ export function scenarioByAsset(asset: string): Scenario | null {
   return null;
 }
 
+/**
+ * Senaryonun t = 0 anina denk gelen gorev saniyesi.
+ *
+ * Kanit, show_xai adimi tetiklendigi gorev saniyesiyle yazilir. Senaryo
+ * baslangici ve adimlar 1 s orneklem izgarasinda oldugu icin adim tam `t`
+ * saniyesinde tetiklenir; fark kesindir.
+ */
+export function scenarioStartT(sc: Scenario, asset: string, evidenceMissionT: number): number {
+  for (const st of sc.timeline) {
+    if (st.type === 'show_xai' && st.asset === asset) return evidenceMissionT - st.t;
+  }
+  return evidenceMissionT;
+}
+
+const EPOCH_MS = Date.parse(MIB.epoch);
+
+/** Gorev saniyesinden simulasyonun UTC saatine (MissionClock.utcMs ile ayni hesap). */
+export function missionUtcMs(missionT: number): number {
+  return EPOCH_MS + missionT * 1000;
+}
+
+export interface ZamanIsareti {
+  /** Senaryo saniyesi (sekildeki konum). */
+  t: number;
+  /** Simulasyonun o anki UTC saati. */
+  utcMs: number;
+}
+
+/**
+ * Sekil zaman ekseni isaretleri. Isaretler senaryonun kendi saniyelerine degil,
+ * simulasyon saatinin yuvarlak saniyelerine (15 / 30 / 60 s) oturur; boylece
+ * ust seritteki UTC saatiyle dogrudan karsilastirilabilir.
+ */
+export function figureTimeTicks(startT: number, span: number): ZamanIsareti[] {
+  const adimMs = (span <= 120 ? 15 : span <= 300 ? 30 : 60) * 1000;
+  const basMs = missionUtcMs(startT);
+  const out: ZamanIsareti[] = [];
+  for (let u = Math.ceil(basMs / adimMs) * adimMs; u <= basMs + span * 1000; u += adimMs) {
+    out.push({ t: (u - basMs) / 1000, utcMs: u });
+  }
+  return out;
+}
+
 /** Senaryonun sapma enjekte ettigi kanallar, zaman cizelgesindeki sirayla. */
 export function injectedChannels(sc: Scenario): string[] {
   const out: string[] = [];

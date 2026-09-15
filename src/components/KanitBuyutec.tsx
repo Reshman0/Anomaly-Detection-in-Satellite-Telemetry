@@ -9,6 +9,8 @@ export interface BuyutulenKanit {
   channels: string[];
   level: 1 | 2 | 3;
   model: string;
+  /** Senaryonun t = 0 anina denk gelen gorev saniyesi (zaman ekseni icin). */
+  baslangicT: number;
   baslik: string;
 }
 
@@ -56,6 +58,7 @@ export default function KanitBuyutec({ kanit, onClose }: { kanit: BuyutulenKanit
           channels={kanit.channels}
           level={kanit.level}
           model={kanit.model}
+          baslangicT={kanit.baslangicT}
           scale={3}
           // Olcege bolunur: #root'un zoom'u altinda vw/vh de olcekle carpiliyor.
           style={{ maxWidth: 'min(calc(92vw / var(--ui-scale, 1)), 2240px)', maxHeight: 'calc(88vh / var(--ui-scale, 1) - 60px)' }}
