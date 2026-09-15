@@ -148,11 +148,7 @@ export default function ScenarioConsole() {
           >
             {NOMINAL_SCENARIO.button}
           </button>
-          {/* Kisayollar iki satira boluner: kirpilmadan tamami okunur. */}
-          <div className="num text-3xs text-ops-faint mt-1 text-center tracking-wide leading-[13px]">
-            <div>1 2 3 senaryo · N nominal</div>
-            <div>L T küre · F takip · 0 hız 1×</div>
-          </div>
+          {/* Kisayol listesi buradan kaldirildi; tam listesi Erisilebilirlik penceresinde. */}
         </div>
       </div>
       {ipucu && <AciklamaKarti ipucu={ipucu} />}
