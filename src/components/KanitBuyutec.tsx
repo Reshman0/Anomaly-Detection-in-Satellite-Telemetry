@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Scenario } from '../engine/scenarioRunner';
 import XaiFigure from './XaiFigure';
@@ -20,18 +21,32 @@ export interface BuyutulenKanit {
  */
 export default function KanitBuyutec({ kanit, onClose }: { kanit: BuyutulenKanit | null; onClose: () => void }) {
   useModalKeys(kanit !== null, onClose);
+  const kapatRef = useRef<HTMLButtonElement>(null);
+  // Diger pencerelerde oldugu gibi acilista odak kapat dugmesine gider.
+  useEffect(() => {
+    if (kanit) kapatRef.current?.focus();
+  }, [kanit]);
   if (!kanit) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-ops-bg/95 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="relative bg-ops-sunken border border-ops-line2" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-6 px-5 py-3 border-b border-ops-line">
-          <span className="text-[18px] font-semibold text-ops-text">{kanit.baslik}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55" onClick={onClose}>
+      {/* Kabuk konsolun diger pencereleriyle ayni: card-in kutu, num 14 px baslik, sade ✕. */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={'XAI kanıtı · ' + kanit.baslik}
+        className="card-in bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-ops-line2">
+          <span className="num text-[14px] font-semibold text-ops-text">XAI KANITI · {kanit.baslik.toLocaleUpperCase('tr-TR')}</span>
+          <span className="text-3xs text-ops-faint tracking-[0.1em]">{kanit.model}</span>
           <button
+            ref={kapatRef}
             onClick={onClose}
-            aria-label="Kapat"
+            className="ml-auto text-ops-dim hover:text-ops-text text-[13px] leading-none px-1"
             title="Kapat (Esc)"
-            className="shrink-0 w-9 h-9 flex items-center justify-center text-[20px] leading-none text-ops-dim border border-ops-line2 hover:text-ops-text hover:border-ops-dim transition-colors"
+            aria-label="Kapat"
           >
             ✕
           </button>

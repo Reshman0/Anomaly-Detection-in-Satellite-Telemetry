@@ -65,7 +65,8 @@ export default function AlarmQueue() {
 
   return (
     <section className="panel flex flex-col min-h-0">
-      <div className="panel-title flex items-center justify-between">
+      {/* Dar ekranda sayaclar paneli asip yandaki gecis planinin basligina binmesin diye alt satira sarar. */}
+      <div className="panel-title flex flex-wrap items-center justify-between gap-x-2 gap-y-[2px]">
         <span className="flex items-center gap-2">
           <span>Alarm kuyruğu</span>
           {(['sat', 'fleet'] as const).map((t) => (
@@ -86,7 +87,7 @@ export default function AlarmQueue() {
             </button>
           ))}
         </span>
-        <span className="normal-case tracking-normal num flex items-center gap-2">
+        <span className="normal-case tracking-normal num flex flex-wrap items-center justify-end gap-x-2 min-w-0">
           {[3, 2, 1, 0].map((i) => (
             <span key={i} className={'flex items-center gap-1 ' + (counts[i] ? SEVERITY[i].text : 'text-ops-faint')}>
               <span className={'inline-block w-[6px] h-[6px] ' + (counts[i] ? SEVERITY[i].dot : 'bg-ops-line2')} />

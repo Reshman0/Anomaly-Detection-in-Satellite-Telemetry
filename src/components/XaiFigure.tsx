@@ -47,7 +47,8 @@ function fig(
   const hedef = channels[0] ?? FIGURE_CHANNELS[0];
   const left = 92;
   const plotW = W - left - 66;
-  const FONT = 'px ui-monospace, Menlo, Consolas, monospace';
+  // Konsolun diger canvas cizimleriyle ayni yazi tipi dizisi (bkz. ui/xaiRender.ts MONO).
+  const FONT = 'px Consolas, "Cascadia Mono", monospace';
 
   g.fillStyle = COLOR.bg;
   g.fillRect(0, 0, W, H);

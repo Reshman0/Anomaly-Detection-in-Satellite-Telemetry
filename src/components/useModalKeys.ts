@@ -13,6 +13,16 @@ export function portalHedefi(): HTMLElement {
 }
 
 /**
+ * Gecerli arayuz olcegi (--ui-scale). #root'a basilan `position: fixed` bir
+ * ogenin left/top degerleri de zoom ile carpilir; ekran koordinatindan
+ * (getBoundingClientRect) konum hesaplarken bu degere bolunmelidir.
+ */
+export function arayuzOlcegi(): number {
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'));
+  return Number.isFinite(v) && v > 0 ? v : 1;
+}
+
+/**
  * Acik bir pencere varken Esc ile kapatir ve diger tuslarin arkadaki
  * kisayollara ulasmasini engeller.
  *

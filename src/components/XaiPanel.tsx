@@ -74,7 +74,7 @@ export default function XaiPanel() {
               key={l}
               onClick={() => setLevel(l)}
               className={
-                'flex-1 text-[13px] font-semibold py-1 border-r border-ops-line last:border-r-0 transition-colors ' +
+                'flex-1 text-[11px] py-[3px] border-r border-ops-line last:border-r-0 transition-colors leading-tight ' +
                 (level === l ? 'text-ops-ai bg-ops-ai/10' : ready ? 'text-ops-dim hover:text-ops-text' : 'text-ops-faint')
               }
             >
@@ -121,11 +121,11 @@ export default function XaiPanel() {
             <>
               <div>
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Ne gösteriyor</div>
-                <div className="text-[13px] text-ops-text leading-snug mt-1">{LEVEL_ANLAM[current.level]}</div>
+                <div className="text-[11px] text-ops-ai leading-snug mt-[2px]">{LEVEL_ANLAM[current.level]}</div>
               </div>
               <div>
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Model</div>
-                <div className="num text-[12px] text-ops-ai mt-[2px]">{current.model}</div>
+                <div className="num text-[12px] text-ops-text mt-[2px]">{current.model}</div>
               </div>
               <div>
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sorumlu kanal</div>

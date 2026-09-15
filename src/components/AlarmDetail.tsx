@@ -227,7 +227,7 @@ export default function AlarmDetail() {
         aria-modal="true"
         aria-label="Alarm detayı"
         onClick={(e) => e.stopPropagation()}
-        className="card-in w-[960px] max-w-[96vw] h-[600px] max-h-[88vh] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
+        className="card-in w-[960px] max-w-[calc(96vw/var(--ui-scale,1))] h-[600px] max-h-[calc(88vh/var(--ui-scale,1))] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
       >
         {/* Baslik */}
         <div className={'flex items-center gap-3 px-3 py-2 border-b border-ops-line2 border-l-4 ' + (isAi ? 'border-l-ops-ai' : 'border-l-ops-hard')}>

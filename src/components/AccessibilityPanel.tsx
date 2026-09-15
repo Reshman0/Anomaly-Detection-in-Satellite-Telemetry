@@ -87,7 +87,7 @@ export default function AccessibilityPanel() {
         aria-modal="true"
         aria-label="Erişilebilirlik ayarları"
         onClick={(e) => e.stopPropagation()}
-        className="card-in w-[820px] max-h-[88vh] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
+        className="card-in w-[820px] max-w-[calc(96vw/var(--ui-scale,1))] max-h-[calc(88vh/var(--ui-scale,1))] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
       >
         <div className="flex items-center gap-3 px-3 py-2 border-b border-ops-line2">
           <span className="num text-[14px] font-semibold text-ops-text">ERİŞİLEBİLİRLİK</span>
