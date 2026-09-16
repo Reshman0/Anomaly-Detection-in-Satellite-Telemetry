@@ -1,15 +1,14 @@
-import { useConsole } from '../store';
+import { fleet, useConsole } from '../store';
 import { summaryAlarm } from '../engine/summary';
 
 /**
- * Ozet modunun uyari seridi — sag sutunun ILK cocugu, ozet modu acikken HER
- * ZAMAN cizilir (alarm yoksa soluk bir satir). Boylece duzen yalnizca mod
- * degisince oynar; yeni bir alarm geldiginde ekran operatorun gozu onunde
+ * Ozet panosundaki durum kartinin alt satiri: secili uydunun en yeni ONAYSIZ
+ * orta/yuksek alarmi. Satir HER ZAMAN ayni yukseklikte cizilir (alarm yoksa
+ * sakin bir satir); yeni bir alarm geldiginde pano operatorun gozu onunde
  * yeniden duzenlenmez.
  *
- * Bindirme (absolute) degil, ayrilmis yuva: sag sutun konumlandirilmamis ve
- * arayuz olcegi > 1'de kayiyor; bindirme hem kayar hem de tam alarmin konusu
- * olan yeni seridin ustunu orterdi.
+ * Alarm yokken diger uydulardaki onaysiz alarmlar yazilir: bakilmayan
+ * uydudaki anomali gozden kacmasin (ayrintisi filo kutucuklarinda).
  *
  * `role="alert"` / `aria-live` YOK: AlarmAnnouncer her alarmi zaten assertive
  * duyuruyor, ikinci canli bolge ayni alarmi iki kez okuturdu.
@@ -21,10 +20,11 @@ const TONE = {
   3: { frame: 'border-ops-hard bg-ops-hard/15', text: 'text-ops-hard', label: 'yüksek şiddet' },
 } as const;
 
-const BTN = 'num text-[10px] tracking-[0.12em] uppercase px-2 py-[4px] border leading-none whitespace-nowrap shrink-0 transition-colors';
+const BTN = 'num text-[10px] tracking-[0.12em] uppercase px-2 py-[5px] border leading-none whitespace-nowrap shrink-0 transition-colors';
 
 export default function OzetAlarmSeridi() {
   const sim = useConsole((s) => s.sim);
+  const selectedNorad = useConsole((s) => s.selectedNorad);
   const selectAlarm = useConsole((s) => s.selectAlarm);
   const setSummaryMode = useConsole((s) => s.setSummaryMode);
   useConsole((s) => s.version);
@@ -32,11 +32,26 @@ export default function OzetAlarmSeridi() {
   const hit = summaryAlarm(sim.alarms);
 
   if (!hit) {
+    let digerAlarm = 0;
+    let digerUydu = 0;
+    for (const s of fleet.summaries().values()) {
+      if (s.norad === selectedNorad || s.unacked === 0) continue;
+      digerAlarm += s.unacked;
+      digerUydu++;
+    }
     return (
-      <section aria-label="Onaysız alarm" className="panel h-[44px] shrink-0 flex items-center gap-2 px-3 text-[11px] text-ops-faint">
-        <span className="text-ops-nominal leading-none">●</span>
-        Onaysız orta/yüksek alarm yok
-      </section>
+      <div aria-label="Onaysız alarm" className="h-[40px] shrink-0 flex items-center gap-2 px-4 border-t border-ops-line text-[12px]">
+        <span className="text-ops-nominal leading-none">✓</span>
+        <span className="text-ops-dim">Bu uyduda onaysız orta/yüksek alarm yok</span>
+        {digerAlarm > 0 ? (
+          <span className="ml-auto text-[11px] text-ops-warn">
+            ▲ diğer <span className="num">{digerUydu}</span> uyduda <span className="num">{digerAlarm}</span> onaysız alarm · filo
+            kutucuklarına bakın
+          </span>
+        ) : (
+          <span className="ml-auto text-[11px] text-ops-faint">örneklenen diğer uydularda onaysız alarm yok</span>
+        )}
+      </div>
     );
   }
 
@@ -45,29 +60,25 @@ export default function OzetAlarmSeridi() {
   const tone = TONE[sev];
 
   return (
-    <section
+    <div
       // Kimlige anahtarli: yeni alarmda tek seferlik giris animasyonu. Yanip
       // sonen dongu yok; hareket azaltma acikken index.css animasyonu kapatir.
       key={a.id}
       aria-label="Onaysız alarm"
-      className={'card-in h-[44px] shrink-0 flex items-center gap-3 px-3 border border-l-4 sev-pattern-' + sev + ' ' + tone.frame}
+      className={'card-in h-[40px] shrink-0 flex items-center gap-3 px-4 border-t border-l-4 sev-pattern-' + sev + ' ' + tone.frame}
     >
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <div className="flex items-center gap-2 whitespace-nowrap leading-[15px]">
-          <span className={'num text-[13px] font-semibold ' + tone.text}>
-            TM[{a.service[0]},{a.service[1]}]
-          </span>
-          <span className={'text-3xs tracking-[0.1em] ' + (a.source === 'AI_DERIVED' ? 'text-ops-ai' : tone.text)}>
-            {a.source === 'AI_DERIVED' ? '◆ AI' : '▲ ST[12]'}
-          </span>
-          <span className={'text-3xs uppercase tracking-[0.14em] ' + tone.text}>{tone.label}</span>
-          <span className="num text-[11px] text-ops-text">{a.utc.slice(0, 8)} UTC</span>
-          {hit.count > 1 && <span className="num text-3xs text-ops-dim">+{hit.count - 1} onaysız</span>}
-        </div>
-        <div className="text-[12px] text-ops-text leading-[15px] truncate" title={a.text}>
-          {a.text}
-        </div>
-      </div>
+      <span className={'num text-[13px] font-semibold whitespace-nowrap ' + tone.text}>
+        TM[{a.service[0]},{a.service[1]}]
+      </span>
+      <span className={'text-3xs tracking-[0.1em] whitespace-nowrap ' + (a.source === 'AI_DERIVED' ? 'text-ops-ai' : tone.text)}>
+        {a.source === 'AI_DERIVED' ? '◆ AI' : '▲ ST[12]'}
+      </span>
+      <span className={'text-3xs uppercase tracking-[0.14em] whitespace-nowrap ' + tone.text}>{tone.label}</span>
+      <span className="num text-[11px] text-ops-text whitespace-nowrap">{a.utc.slice(0, 8)} UTC</span>
+      <span className="flex-1 min-w-0 text-[12px] text-ops-text truncate" title={a.text}>
+        {a.text}
+      </span>
+      {hit.count > 1 && <span className="num text-3xs text-ops-dim whitespace-nowrap">+{hit.count - 1} onaysız</span>}
       <button
         onClick={() => selectAlarm(a)}
         title="Alarm detay penceresini aç"
@@ -82,6 +93,6 @@ export default function OzetAlarmSeridi() {
       >
         Detaya geç (O)
       </button>
-    </section>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { WINDOW_S } from '../engine/simulation';
 import { stateLabel } from '../engine/limitChecker';
 import { subsystemName } from '../engine/mib';
 import { COLOR, alpha, stateHex, stateTextClass } from '../ui/colors';
+import { valueRange } from '../ui/gosterge';
 import type { LimitState, MibParameter, Sample } from '../engine/types';
 
 interface Props {
@@ -17,30 +18,17 @@ interface Props {
   /** CUSUM ile bulunan yapisal kirilma ani (gorev saniyesi); yalnizca hedef kanalda. */
   breakT?: number | null;
   /**
-   * Ozet modu: sabit yukseklik. `flex-1` seritler gorunur serit sayisi
-   * degistikce boy degistirir; izlenen bir serit, yeni bir serit belirdigi an
-   * kuculurdu. Sabit yukseklikte hicbir serit yerinden oynamaz.
-   *
-   * 52 px, tipik duruma degil EN KOTU duruma gore secildi: 8 parametrenin
-   * hepsi ayni anda ilginc olabilir (ornegin nokta senaryosundan hemen sonra
-   * kolektif: ch_11 90 s tutmada kalir + uc kolektif kanal). 8 x 52 + 24 =
-   * 440 px, 1920x1080'de serit kutusu ~463 px. Kutu tasarsa alta sabitli AI
-   * grubu da kayardi.
+   * Ozet panosu: dar, iki satirli etiket (ad + deger + durum). Deger ayrintisi
+   * (ham, alt sistem, orneklem) panonun parametre kutucuklarinda durur; grafik
+   * genis kalir. Yuksekligi `boxClass` belirler.
    */
   compact?: boolean;
+  /** Kapsayicinin boyut siniflari (yalnizca `compact`). Varsayilan sabit 52 px. */
+  boxClass?: string;
 }
 
 /** Kanit yuklenmeden once modelin baktigi pencere (saniye). */
 export const ATTENTION_WINDOW_S = 60;
-
-/** Serit dusey araligi: sert limit bandinin biraz disi. */
-function range(p: MibParameter): [number, number] {
-  const l = p.limits;
-  const hi = l.hard_high ?? 5;
-  const lo = l.hard_low ?? 0;
-  const pad = (hi - lo) * 0.12;
-  return [lo - pad, hi + pad];
-}
 
 function drawStrip(
   cv: HTMLCanvasElement,
@@ -64,7 +52,7 @@ function drawStrip(
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
 
-  const [lo, hi] = range(p);
+  const [lo, hi] = valueRange(p);
   const y = (v: number) => h - ((v - lo) / (hi - lo)) * h;
   const t0 = missionT - WINDOW_S;
   const x = (t: number) => ((t - t0) / WINDOW_S) * w;
@@ -201,7 +189,17 @@ function drawStrip(
  * Daha kisa pencerelerde serit kutusu kaydirir; seritler birbirinin ustune
  * tasmaz (overflow-hidden).
  */
-export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null, compact = false }: Props) {
+export default function TelemetryStrip({
+  p,
+  buf,
+  state,
+  missionT,
+  attention,
+  attentionRank,
+  breakT = null,
+  compact = false,
+  boxClass = 'h-[52px] flex-none',
+}: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const version = useConsole((s) => s.version);
 
@@ -210,36 +208,36 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
   }, [version, p, buf, state, missionT, attention, breakT]);
 
   const last = buf[buf.length - 1];
-  const [lo, hi] = range(p);
+  const [lo, hi] = valueRange(p);
 
   return (
     <div
       className={
         compact
-          ? 'flex items-stretch h-[52px] flex-none border-b border-ops-line overflow-hidden'
+          ? 'flex items-stretch border-b border-ops-line overflow-hidden ' + boxClass
           : 'flex items-stretch flex-1 min-h-[64px] shrink-0 border-b border-ops-line overflow-hidden'
       }
     >
       {compact ? (
-        // Iki satir: ad + muhendislik degeri + XAI rozeti / durum. Uc satirli tam
-        // etiket ~66 px ister; bu 52 px'lik seride rahat sigar.
-        <div className="w-[228px] shrink-0 px-2 py-[3px] border-r border-ops-line flex flex-col justify-center gap-[3px] overflow-hidden">
+        // Iki satir: ad + XAI rozeti / deger + durum. En kisa seritte (44 px) de sigar.
+        <div className="w-[176px] shrink-0 px-2 py-[3px] border-r border-ops-line flex flex-col justify-center gap-[4px] overflow-hidden">
           {/* Sabit satir yuksekligi: XAI rozeti (kenarlikli, 15 px) belirince
               satir buyuyup ortalanmis ad 1 px kaymasin. */}
           <div className="h-[15px] flex items-center gap-1.5 whitespace-nowrap">
             {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
             <span className="num text-[13px] leading-none text-ops-text">{p.pid}</span>
-            <span className={'num text-[14px] leading-none ' + stateTextClass(state)}>
-              {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
-              <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
-            </span>
             {attention && (
               <span className="ml-auto text-3xs tracking-[0.1em] text-ops-ai border border-ops-ai/50 px-1 leading-[13px]">
                 XAI #{attentionRank}
               </span>
             )}
           </div>
-          <span className={'text-3xs uppercase tracking-[0.12em] leading-none ' + stateTextClass(state)}>{stateLabel(state)}</span>
+          <div className="flex items-baseline gap-2 whitespace-nowrap">
+            <span className={'num text-[14px] leading-none ' + stateTextClass(state)}>
+              {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
+            </span>
+            <span className={'text-3xs uppercase tracking-[0.12em] leading-none ' + stateTextClass(state)}>{stateLabel(state)}</span>
+          </div>
         </div>
       ) : (
       <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between overflow-hidden">

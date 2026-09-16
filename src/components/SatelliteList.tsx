@@ -39,7 +39,8 @@ export default function SatelliteList() {
   const el = elementsOf(selSat);
 
   return (
-    <div className="absolute left-0 top-0 bottom-0 w-[196px] bg-ops-sunken border-r border-ops-line flex flex-col">
+    // Ozet modunda gizlenir: ayni bilgi ve secim alt siradaki filo kutucuklarinda.
+    <div className="ozet-gizle absolute left-0 top-0 bottom-0 w-[196px] bg-ops-sunken border-r border-ops-line flex flex-col">
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="px-2 py-1 border-b border-ops-line sticky top-0 bg-ops-sunken z-10">
         <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Uydu kataloğu</div>

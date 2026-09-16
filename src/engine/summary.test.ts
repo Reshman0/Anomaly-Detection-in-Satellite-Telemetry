@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { Simulation } from './simulation';
 import { NOMINAL_SCENARIO, SCENARIOS, type Scenario } from './scenarioRunner';
 import { deriveStage } from './infoStage';
-import { SUMMARY_HOLD_S, interestingPids, summaryAlarm } from './summary';
+import { PARAMETERS } from './mib';
+import { worstState } from './limitChecker';
+import { SUMMARY_HOLD_S, interestingPids, summaryAlarm, summaryVerdict } from './summary';
 
 /**
  * Ozet modu: istisna tabanli telemetri ve uyari seridi.
@@ -210,5 +212,70 @@ describe('özet modu — uyarı şeridi', () => {
   it('eşik ayarlanabilir', () => {
     const sim = baslat('collective', 40);
     expect(summaryAlarm(sim.alarms, 1)?.top.severity).toBe(1);
+  });
+});
+
+/** Panonun hukmu, simulasyonun o anki limit durumlarindan. */
+function hukum(sim: Simulation) {
+  const st = (pid: string) => sim.snapshot().states.get(pid) ?? 'NOMINAL';
+  return summaryVerdict(
+    worstState(PARAMETERS.filter((p) => !p.derived).map((p) => st(p.pid))),
+    worstState(PARAMETERS.filter((p) => p.derived).map((p) => st(p.pid))),
+  );
+}
+
+describe('özet panosu — genel hüküm', () => {
+  it('iki kaynak da nominalken NOMİNAL', () => {
+    const v = summaryVerdict('NOMINAL', 'NOMINAL');
+    expect(v).toMatchObject({ word: 'NOMİNAL', tone: 'nominal', glyph: '●', contrast: false });
+    expect(hukum(new Simulation({ norad: '56178' })).word).toBe('NOMİNAL');
+  });
+
+  it('ST[12] sert ihlali AI alarmının önüne geçer', () => {
+    expect(summaryVerdict('HARD_HIGH', 'HARD_HIGH')).toMatchObject({ word: 'ALARM', tone: 'hard', glyph: '▲', contrast: false });
+    expect(summaryVerdict('HARD_LOW', 'NOMINAL')).toMatchObject({ word: 'ALARM', tone: 'hard' });
+  });
+
+  it('sert AI skoru yumuşak limit ihlalinin önüne geçer, kontrast sayılmaz', () => {
+    const v = summaryVerdict('SOFT_LOW', 'HARD_HIGH');
+    expect(v).toMatchObject({ word: 'ALARM', tone: 'ai', glyph: '◆', contrast: false });
+    expect(v.reason).not.toContain('limit içinde');
+  });
+
+  it('limitler sessizken AI alarmı KONTRAST olarak işaretlenir', () => {
+    const v = summaryVerdict('NOMINAL', 'HARD_HIGH');
+    expect(v).toMatchObject({ word: 'ALARM', tone: 'ai', contrast: true });
+    // Esik MIB'den okunur (AI_SCORE_* hard_high = 5).
+    expect(v.reason).toContain('5σ');
+    expect(v.reason).toContain('limit içinde');
+  });
+
+  it('yumuşak eşikler İZLEME verir, kaynağına göre işaretlenir', () => {
+    expect(summaryVerdict('SOFT_HIGH', 'NOMINAL')).toMatchObject({ word: 'İZLEME', tone: 'soft', glyph: '▲', contrast: false });
+    const ai = summaryVerdict('NOMINAL', 'SOFT_HIGH');
+    expect(ai).toMatchObject({ word: 'İZLEME', tone: 'ai', glyph: '◆', contrast: true });
+    expect(ai.reason).toContain('3σ');
+  });
+
+  it('sürüklenme doğrulandığında: AI kaynaklı ALARM ve KONTRAST', () => {
+    const sim = baslat('drift', 0);
+    let t = 0;
+    while (deriveStage(sim).aiConfirmT === null && t < 120) {
+      kos(sim, 1);
+      t++;
+    }
+    expect(deriveStage(sim).aiConfirmT).not.toBeNull();
+    expect(hukum(sim)).toMatchObject({ word: 'ALARM', tone: 'ai', contrast: true });
+  });
+
+  it('nokta anomalisinin sert ihlali anında ▲ ALARM', () => {
+    const sim = baslat('point', 0);
+    let t = 0;
+    while (!durum(sim, 'ch_11').startsWith('HARD') && t < 90) {
+      kos(sim, 1);
+      t++;
+    }
+    expect(durum(sim, 'ch_11')).toMatch(/^HARD/);
+    expect(hukum(sim)).toMatchObject({ word: 'ALARM', tone: 'hard', glyph: '▲' });
   });
 });
