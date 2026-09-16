@@ -140,6 +140,26 @@ html[data-pattern='1'] .src-ai {
   border-left-style: dotted;
 }
 
+/* ---- Ozet modu (html[data-summary], bkz. src/App.tsx, src/engine/summary.ts) ----
+   "Dark cockpit": paneller yerinde kalir, detay gizlenir, karar buyur.
+   Yalnizca gizlenince BOSLUK birakmayan ogeler bu sinifi alir; izgaralarda
+   (InfoPanel) bilesen kendisi farkli cizer. Pencere/portal icerigine asla
+   konmaz. Ozgulluk (0,2,1) Tailwind yardimcilarini zaten yener. */
+html[data-summary='1'] .ozet-gizle {
+  display: none !important;
+}
+/* Komsusu gizlenen sutun bosluk birakmak yerine genisler (Gecis plani). */
+html[data-summary='1'] .ozet-genis {
+  width: auto;
+  flex: 1 1 0%;
+  border-right-width: 0;
+}
+html[data-summary='1'] .ozet-buyuk {
+  font-size: 44px;
+  line-height: 1;
+  margin-top: 6px;
+}
+
 /* Ekran okuyucu icin gorunmez metin. */
 .sr-only {
   position: absolute;

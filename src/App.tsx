@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useConsole } from './store';
 import TopBar from './components/TopBar';
+import OzetAlarmSeridi from './components/OzetAlarmSeridi';
 import GlobeView from './components/GlobeView';
 import TelemetryPanel from './components/TelemetryPanel';
 import PacketInspector, { PacketInspectorBar } from './components/PacketInspector';
@@ -53,6 +54,16 @@ export default function App() {
       }
       if (st.packetOpen) return; // paket denetleyici penceresi acik
       switch (e.key) {
+        // Ozet modu. Pencere acikken calismaz (yukaridaki korumalar): arkadaki
+        // ekran operator gormeden yeniden duzenlenmesin. Turkce klavyede Ö
+        // tusu 'ö' gonderir; kucuk harfe cevirme yerel ayara bagli oldugu icin
+        // durumlar acikca yazilir.
+        case 'o':
+        case 'O':
+        case 'ö':
+        case 'Ö':
+          st.setSummaryMode(!st.summaryMode);
+          break;
         case 'a':
         case 'A':
           st.setA11yOpen(true);
@@ -80,6 +91,11 @@ export default function App() {
         case 'T':
           st.setGlobeView('ALL');
           break;
+        case 'y':
+        case 'Y':
+          // "yakin": Ankara yakin goruntusu (NASA HLS, 30 m).
+          st.setGlobeView('ANKARA');
+          break;
         case 'f':
         case 'F':
           st.setFollow(!st.followSat);
@@ -95,6 +111,13 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // Ozet modu <html>'e yazilir; CSS katmani (index.css) detayi oradan gizler.
+  // Erisilebilirlik bayraklari da ayni yoldan gider (ui/a11y.ts applyA11y).
+  const summaryMode = useConsole((s) => s.summaryMode);
+  useEffect(() => {
+    document.documentElement.dataset.summary = summaryMode ? '1' : '0';
+  }, [summaryMode]);
 
   useEffect(() => {
     let raf = 0;
@@ -124,9 +147,12 @@ export default function App() {
         {/* Sag sutun kendi icinde kayar: yuksek arayuz olceginde Durum seridi
             kirpilmaz, kaydirilarak okunur. */}
         <div className="flex flex-col min-h-0 gap-px overflow-y-auto">
+          {summaryMode && <OzetAlarmSeridi />}
           <TelemetryPanel />
           <PacketInspectorBar />
-          <div className="h-[196px] shrink min-h-[120px] flex flex-col">
+          {/* Ozet modunda InfoPanel yalnizca tespit + ONERI tasir; kazanilan yer
+              telemetri seritlerine ve buyuyen Durum hukmune kalir. */}
+          <div className={summaryMode ? 'h-[132px] shrink min-h-[100px] flex flex-col' : 'h-[196px] shrink min-h-[120px] flex flex-col'}>
             <InfoPanel />
           </div>
           <StatusBand />

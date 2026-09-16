@@ -43,6 +43,7 @@ function Label({ children }: { children: React.ReactNode }) {
 export default function InfoPanel() {
   const sim = useConsole((s) => s.sim);
   const selectedNorad = useConsole((s) => s.selectedNorad);
+  const summaryMode = useConsole((s) => s.summaryMode);
   useConsole((s) => s.version);
   const [tab, setTab] = useState<Tab>('info');
 
@@ -82,7 +83,7 @@ export default function InfoPanel() {
             </span>
           )}
         </span>
-        <span className="normal-case tracking-normal text-ops-faint">
+        <span className="ozet-gizle normal-case tracking-normal text-ops-faint">
           {tab === 'bildirim' ? 'doğrulanan anomalilerin önerileri · kalıcı' : sc ? 'anomali izleme aktif · simüle' : 'görev notları · simüle'}
         </span>
       </div>
@@ -91,7 +92,13 @@ export default function InfoPanel() {
         <Notifications />
       ) : sc && story && st.stage >= 1 ? (
         <div className="flex-1 min-h-0 flex flex-col">
-          <div className="grid grid-cols-[1.4fr_1fr_1.2fr] gap-px flex-1 min-h-0">
+          <div
+            className={
+              summaryMode
+                ? 'grid grid-cols-[1.4fr_1.2fr] gap-px flex-1 min-h-0'
+                : 'grid grid-cols-[1.4fr_1fr_1.2fr] gap-px flex-1 min-h-0'
+            }
+          >
             <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto min-h-0">
               <Label>Tespit</Label>
               <div className="text-[11px] text-ops-text leading-snug mt-[2px] num">
@@ -115,8 +122,8 @@ export default function InfoPanel() {
                 <span className="block mt-2">{st.stage === 2 ? 'Eşleşen imza' : 'Eşleşen imza · aday'}</span>
               </Label>
               <div className="text-[12px] text-ops-text leading-snug mt-[2px]">{story.headline}</div>
-              <div className="text-[11px] text-ops-dim leading-snug mt-1">{story.summary}</div>
-              {st.stage === 2 && (
+              <div className="ozet-gizle text-[11px] text-ops-dim leading-snug mt-1">{story.summary}</div>
+              {st.stage === 2 && !summaryMode && (
                 <>
                   <Label>
                     <span className="block mt-2">Olası neden</span>
@@ -126,6 +133,7 @@ export default function InfoPanel() {
               )}
             </div>
 
+            {!summaryMode && (
             <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto min-h-0 num">
               <Label>Geçmiş · imza kütüphanesi</Label>
               <div className="text-[13px] text-ops-text mt-[2px]">
@@ -168,6 +176,7 @@ export default function InfoPanel() {
               </div>
               <div className="text-3xs text-ops-faint">ST[12]: {st.st12T !== null ? 'geçiş ' + utcOf(st.st12T) : 'sessiz — limit içinde'}</div>
             </div>
+            )}
 
             <div className="px-2 py-1.5 overflow-y-auto min-h-0">
               {st.stage === 2 ? (
@@ -177,10 +186,10 @@ export default function InfoPanel() {
                     <span className={'text-3xs tracking-[0.14em] border px-1 leading-[13px] ' + URGENCY[story.recommendation.urgency].cls}>
                       {URGENCY[story.recommendation.urgency].label}
                     </span>
-                    <span className="text-3xs text-ops-faint">→ BİLDİRİMLER'e yazıldı</span>
+                    <span className="ozet-gizle text-3xs text-ops-faint">→ BİLDİRİMLER'e yazıldı</span>
                   </div>
                   <div className="text-[12px] text-ops-text leading-snug mt-[2px] font-semibold">{story.recommendation.action}</div>
-                  <ol className="mt-1 text-[11px] text-ops-dim leading-snug list-decimal pl-4 space-y-[2px]">
+                  <ol className="ozet-gizle mt-1 text-[11px] text-ops-dim leading-snug list-decimal pl-4 space-y-[2px]">
                     {story.recommendation.steps.map((s, i) => (
                       <li key={i}>{s}</li>
                     ))}
@@ -189,7 +198,7 @@ export default function InfoPanel() {
               ) : (
                 <>
                   <Label>Öneri</Label>
-                  <div className="text-[11px] text-ops-faint leading-snug mt-[2px]">
+                  <div className="ozet-gizle text-[11px] text-ops-faint leading-snug mt-[2px]">
                     Doğrulama bekleniyor: AI skoru 5σ sert eşiğini geçince olası neden ve eylem önerisi açılır.
                   </div>
                   <div className="text-3xs text-ops-faint mt-2">Şu an: izlemeyi sürdür, komut gönderme.</div>
@@ -198,6 +207,7 @@ export default function InfoPanel() {
             </div>
           </div>
 
+          {!summaryMode && (
           <div className="h-[54px] shrink-0 border-t border-ops-line overflow-y-auto">
             {notes.length === 0 ? (
               <div className="px-2 py-1 text-3xs text-ops-faint">Operatör notları tespit ilerledikçe düşer.</div>
@@ -210,6 +220,7 @@ export default function InfoPanel() {
               ))
             )}
           </div>
+          )}
         </div>
       ) : (
         <NominalNotes selectedNorad={selectedNorad} monitoring={!!sc} notes={sc ? notes : []} />
@@ -265,15 +276,16 @@ function NominalNotes({ selectedNorad, monitoring, notes }: { selectedNorad: str
   const pass = sat.orbitClass === 'LEO' ? nextPassEvent(sat, utcMs, 3 * 3600) : null;
   const tleAgeDays = Math.round((Date.parse(MIB.epoch) - CATALOG_EPOCH_MS) / 86400000);
   const standing = (missionNotes as { notes: { kind: InfoNote['kind']; title: string; text: string }[] }).notes;
+  const summaryMode = useConsole((s) => s.summaryMode);
 
   return (
-    <div className="flex-1 min-h-0 grid grid-cols-[1fr_1.6fr] gap-px">
+    <div className={summaryMode ? 'flex-1 min-h-0 grid grid-cols-1 gap-px' : 'flex-1 min-h-0 grid grid-cols-[1fr_1.6fr] gap-px'}>
       {/* Sutunlar kendi icinde kayar: dar pencerede panel disina tasip
           alttaki Durum seridinin ustune binmesin. */}
       <div className="px-2 py-1.5 border-r border-ops-line overflow-y-auto min-h-0 num">
         <Label>Görev durumu</Label>
         <div className="text-[11px] text-ops-text mt-[2px]">Tüm alt sistemler nominal</div>
-        <div className="text-3xs text-ops-faint mt-1">
+        <div className="ozet-gizle text-3xs text-ops-faint mt-1">
           {sim.packetCount} paket · {sim.alarms.length} alarm · katalog TLE yaşı {tleAgeDays} gün
         </div>
         {monitoring && <div className="text-3xs text-ops-nominal mt-1">Anomali izleme aktif · kırılma yok · AI &lt; 3σ · ST[12] sessiz</div>}
@@ -286,8 +298,9 @@ function NominalNotes({ selectedNorad, monitoring, notes }: { selectedNorad: str
         <div className="text-[11px] text-ops-dim mt-[2px]">
           {sat.orbitClass !== 'LEO' ? 'GEO — sürekli görüş' : pass ? pass.kind + ' ' + fmtTime(pass.unixMs) + ' · ' + fmtCountdown((pass.unixMs - utcMs) / 1000) : '3 sa içinde geçiş yok'}
         </div>
-        {!monitoring && <div className="text-3xs text-ops-faint mt-2">Bir senaryo başlatın; tespit geldikçe hikâye, geçmiş, yapısal kırılma ve ÖNERİ açılır.</div>}
+        {!monitoring && <div className="ozet-gizle text-3xs text-ops-faint mt-2">Bir senaryo başlatın; tespit geldikçe hikâye, geçmiş, yapısal kırılma ve ÖNERİ açılır.</div>}
       </div>
+      {!summaryMode && (
       <div className="px-2 py-1.5 overflow-y-auto min-h-0">
         <Label>Operatör notları</Label>
         {[...notes].reverse().map((n) => (
@@ -302,6 +315,7 @@ function NominalNotes({ selectedNorad, monitoring, notes }: { selectedNorad: str
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

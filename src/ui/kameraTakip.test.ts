@@ -32,6 +32,27 @@ describe('takip kamerasi', () => {
     expect(kamera.length()).toBeCloseTo(4, 6);
   });
 
+  it('asgari uzakligin altinda kamera kademeli yukselir', () => {
+    let kamera = v(0, 0, 1.01);
+    const hedef = v(1, 0, 0);
+    let onceki = kamera.length();
+    for (let i = 0; i < 200; i++) {
+      kamera = takipKonumu(kamera, hedef, 0.12, 1.35);
+      const u = kamera.length();
+      expect(u).toBeGreaterThanOrEqual(onceki);
+      expect(u).toBeLessThanOrEqual(1.35 + 1e-9);
+      onceki = u;
+    }
+    // Ilk adimda sicramaz, sonunda asgariye yaklasir.
+    expect(takipKonumu(v(0, 0, 1.01), hedef, 0.12, 1.35).length()).toBeLessThan(1.06);
+    expect(onceki).toBeCloseTo(1.35, 6);
+  });
+
+  it('asgari uzakligin ustunde uzaklik korunur', () => {
+    const kamera = takipKonumu(v(0, 0, 4.6), v(1, 0, 0), 0.12, 1.35);
+    expect(kamera.length()).toBeCloseTo(4.6, 6);
+  });
+
   it('sifir uzaklik ya da sifir hedef guvenli', () => {
     expect(takipKonumu(v(0, 0, 0), v(1, 0, 0), 0.2).length()).toBe(0);
     expect(takipKonumu(v(0, 0, 3), v(0, 0, 0), 0.2).z).toBe(3);

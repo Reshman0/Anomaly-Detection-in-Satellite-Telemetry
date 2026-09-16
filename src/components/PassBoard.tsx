@@ -203,11 +203,11 @@ export default function PassBoard() {
     <section className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span>Geçiş planı · {GROUND_STATION.name}</span>
-        <span className="normal-case tracking-normal text-ops-faint num">SGP4 · ufuk {HORIZON_S / 3600} sa</span>
+        <span className="ozet-gizle normal-case tracking-normal text-ops-faint num">SGP4 · ufuk {HORIZON_S / 3600} sa</span>
       </div>
       <div className="flex-1 min-h-0 flex">
         {/* Gokyuzu grafigi */}
-        <div className="w-[196px] shrink-0 border-r border-ops-line flex flex-col">
+        <div className="ozet-genis w-[196px] shrink-0 border-r border-ops-line flex flex-col">
           <div className="relative flex-1 min-h-0">
             <canvas ref={skyRef} className="absolute inset-0 w-full h-full" />
           </div>
@@ -227,7 +227,7 @@ export default function PassBoard() {
                 <div className="num text-ops-dim">
                   {fmtTime(p.aosMs)}–{fmtTime(p.losMs)} · tepe {p.maxElDeg.toFixed(0)}° · {Math.round(p.durationS / 60)} dk
                 </div>
-                <div className="num text-ops-faint">
+                <div className="ozet-gizle num text-ops-faint">
                   AOS az {p.aosAzDeg.toFixed(0)}° → LOS az {p.losAzDeg.toFixed(0)}°
                 </div>
               </>
@@ -238,7 +238,7 @@ export default function PassBoard() {
         </div>
 
         {/* Filo gecis listesi */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className="ozet-gizle flex-1 min-w-0 overflow-y-auto">
           <div className="grid grid-cols-[1fr_52px_46px_40px_40px] gap-x-1 px-2 py-[3px] text-3xs uppercase tracking-[0.1em] text-ops-faint border-b border-ops-line sticky top-0 bg-ops-sunken">
             <span>Uydu</span>
             <span className="text-right">AOS</span>

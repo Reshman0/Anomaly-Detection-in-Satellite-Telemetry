@@ -44,7 +44,9 @@ export function nadirAngleDeg(sat: SatelliteRecord, unixMs: number): number | nu
  * tutulur. Katalogdaki diger uydular icin firlatma yili TLE'nin uluslararasi
  * tanimlayicisindan gelir ve tasarim omru UYDURULMAZ.
  *
- * IMECE: 15 Nisan 2023, SpaceX Transporter-7; tasarim omru 5 yil.
+ * NORAD 56178 (ekranda GOKTURK-2B, katalogda IMECE): 15 Nisan 2023, SpaceX
+ * Transporter-7; tasarim omru 5 yil. Kunye fiziksel uyduya aittir, ekran
+ * adindan bagimsizdir.
  */
 const GOREV_KUNYESI: Record<string, { firlatma: string; tasarimYil: number }> = {
   '56178': { firlatma: '2023-04-15T06:47:00Z', tasarimYil: 5 },

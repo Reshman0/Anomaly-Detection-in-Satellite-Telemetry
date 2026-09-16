@@ -40,7 +40,7 @@ export default function StatusBand() {
           <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">
             ST[12] ON-BOARD MONITORING · sabit limit
           </div>
-          <div className={'num text-[26px] leading-tight mt-1 ' + stateTextClass(limitState)}>
+          <div className={'ozet-buyuk num text-[26px] leading-tight mt-1 ' + stateTextClass(limitState)}>
             {stateLabel(limitState)}
           </div>
           {/* Kirpilmaz: sigmayan liste ikinci satira sarar, kutu yuksekligi buyur. */}
@@ -57,7 +57,7 @@ export default function StatusBand() {
           </div>
           <div
             className={
-              'num text-[26px] leading-tight mt-1 ' + (aiState === 'NOMINAL' ? 'text-ops-nominal' : 'text-ops-ai')
+              'ozet-buyuk num text-[26px] leading-tight mt-1 ' + (aiState === 'NOMINAL' ? 'text-ops-nominal' : 'text-ops-ai')
             }
           >
             {aiLabel(aiState)}

@@ -51,10 +51,15 @@ export default function AlarmQueue() {
   const selectAlarm = useConsole((s) => s.selectAlarm);
   const scope = useConsole((s) => s.alarmScope);
   const setScope = useConsole((s) => s.setAlarmScope);
+  const summaryMode = useConsole((s) => s.summaryMode);
   useConsole((s) => s.version);
 
   // 'sat' = yalnizca secili uydunun hafizasi, 'fleet' = ornegi olan tum uydular.
-  const alarms = scope === 'fleet' ? fleet.fleetAlarms() : sim.alarms;
+  const scoped = scope === 'fleet' ? fleet.fleetAlarms() : sim.alarms;
+  // Ozet modu: onaylanan alarm ilgilenilmis sayilir ve kuyruktan duser. Hicbiri
+  // sessizce kaybolmaz — kac tanesinin gizlendigi alt satirda yazar.
+  const alarms = summaryMode ? scoped.filter((a) => !a.acknowledged) : scoped;
+  const hiddenAcked = scoped.length - alarms.length;
   const fleetCount = fleet.fleetAlarms().length;
   const counts = [0, 0, 0, 0];
   let aiCount = 0;
@@ -103,9 +108,11 @@ export default function AlarmQueue() {
       <div className="flex-1 min-h-0 overflow-y-auto">
         {alarms.length === 0 && (
           <div className="px-2 py-3 text-[11px] text-ops-faint">
-            {scope === 'fleet'
-              ? 'Filoda alarm yok — yalnızca seçilmiş uydular örneklenir.'
-              : 'Alarm yok — tüm parametreler nominal.'}
+            {summaryMode && hiddenAcked > 0
+              ? 'Onaysız alarm yok.'
+              : scope === 'fleet'
+                ? 'Filoda alarm yok — yalnızca seçilmiş uydular örneklenir.'
+                : 'Alarm yok — tüm parametreler nominal.'}
           </div>
         )}
         {alarms.map((a) => {
@@ -139,7 +146,7 @@ export default function AlarmQueue() {
                 <SeverityBar a={a} />
                 <span className={'text-3xs uppercase tracking-[0.1em] ' + s.text}>{s.label}</span>
                 <span className="num text-[11px] text-ops-text ml-1">{a.utc}</span>
-                <span className="num text-3xs text-ops-faint">OBT {a.obt}</span>
+                <span className="ozet-gizle num text-3xs text-ops-faint">OBT {a.obt}</span>
                 {a.acknowledged && <span className="text-3xs text-ops-nominal">✓ ACK</span>}
                 <span className={'ml-auto text-3xs tracking-[0.1em] ' + src.label}>
                   {src.glyph} {src.text}
@@ -157,16 +164,16 @@ export default function AlarmQueue() {
                     <span className="text-ops-dim">{satByNorad(a.norad).name}</span>
                   </span>
                 )}
-                <span className="num">APID {a.apid}</span>
-                <span>{apidLabel(a.apid)}</span>
+                <span className="ozet-gizle num">APID {a.apid}</span>
+                <span className="ozet-gizle">{apidLabel(a.apid)}</span>
                 <span className="num text-ops-dim">{a.pid}</span>
-                <span>{subsystemName(a.subsystem)}</span>
-                {a.model && <span className="text-ops-ai/80">model {a.model}</span>}
+                <span className="ozet-gizle">{subsystemName(a.subsystem)}</span>
+                {a.model && <span className="ozet-gizle text-ops-ai/80">model {a.model}</span>}
                 {a.confidence !== undefined && (
-                  <span className="text-ops-ai/80 num">güven {(a.confidence * 100).toFixed(0)}%</span>
+                  <span className="ozet-gizle text-ops-ai/80 num">güven {(a.confidence * 100).toFixed(0)}%</span>
                 )}
                 {a.transition && (
-                  <span className="num">
+                  <span className="ozet-gizle num">
                     {stateLabel(a.transition.from)} → {stateLabel(a.transition.to)}
                   </span>
                 )}
@@ -175,16 +182,23 @@ export default function AlarmQueue() {
           );
         })}
       </div>
+      {/* Ozet modunda gosterecek bir sey yoksa bos cerceveli bir serit birakilmaz. */}
+      {(!summaryMode || hiddenAcked > 0 || scope === 'fleet') && (
       <div className="px-2 py-1 border-t border-ops-line text-3xs text-ops-faint leading-snug flex flex-wrap gap-x-3">
-        <span>karta tıkla → detay penceresi</span>
-        <span>
+        <span className="ozet-gizle">karta tıkla → detay penceresi</span>
+        <span className="ozet-gizle">
           <span className="text-ops-ai">◆</span> AI türetilmiş · <span className="text-ops-dim">▲</span> ST[12] uçuş
           yazılımı limiti
         </span>
-        <span>
+        <span className="ozet-gizle">
           şiddet: <span className="text-ops-nominal">bilgi</span> · <span className="text-ops-soft">düşük</span> ·{' '}
           <span className="text-ops-warn">orta</span> · <span className="text-ops-hard">yüksek</span> ↔ TM[5,1..4]
         </span>
+        {summaryMode && hiddenAcked > 0 && (
+          <span className="text-ops-dim">
+            <span className="num">{hiddenAcked}</span> onaylı alarm gizli · tam görünüm için O
+          </span>
+        )}
         {scope === 'fleet' && (
           <span>
             <span className="num">{fleet.size}</span>/<span className="num">{SAT_COUNT}</span> uydu örneklendi ·
@@ -192,6 +206,7 @@ export default function AlarmQueue() {
           </span>
         )}
       </div>
+      )}
     </section>
   );
 }
