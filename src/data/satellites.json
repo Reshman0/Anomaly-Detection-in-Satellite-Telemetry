@@ -1,19 +1,14 @@
 {
   "_source": "TLE'ler Celestrak GP (celestrak.org) uzerinden alinmis son yayinlanmis kayitlardir; src/data/tle.txt icinde gomuludur. Calisma zamaninda ag istegi yapilmaz.",
-  "_scope": "Celestrak genel katalogunda halen yorunge kaydi bulunan Turk uydulari. Yorungeden dusmus kucuk uydular (UBAKUSAT, BeEagleSat, HAVELSAT, Grizu-263A) katalogda bulunmadigi icin listede yoktur.",
+  "_scope": "Turkiye'nin AKTIF uydulari; TURKSAT filosunda 4A ve sonrasi listelenir. Aktiflik iki bagimsiz kaynakla dogrulanir: CelesTrak SATCAT OPS_STATUS_CODE ('+' operasyonel) ve CelesTrak 'active' GP grubu (2026-09-16). BILSAT-1 iki kaynakta da aktif gorunmedigi icin cikarildi. Plan-S Connecta ve universite/amator kategorileri kapsam disidir.",
+  "_names": "Ekran adlari ekip kararidir ve katalog adindan farkli olabilir: NORAD 56178 katalogda IMECE, NORAD 41875 katalogda GOKTURK 1A olarak kayitlidir. Kimlik her zaman NORAD numarasi ve uluslararasi tanimlayicidir (TLE'den).",
   "_derived": "Firlatma yili, yorunge sinifi, periyot, egim ve GEO istasyon tutumu gostergesi TLE'den HESAPLANIR; bu dosyada iddia edilmez. Burada yalnizca isletici ve gorev turu tanimlanir.",
   "default_norad": "56178",
   "groups": [
     { "id": "turksat", "name": "TÜRKSAT A.Ş.", "note": "GEO haberleşme", "color": "#4FA3D1" },
-    { "id": "obs", "name": "Yer gözlem", "note": "MSB · TÜBİTAK UZAY", "color": "#2FBF87" },
-    { "id": "plans", "name": "Plan-S Connecta", "note": "LEO IoT takımyıldızı", "color": "#D9A02B" },
-    { "id": "academic", "name": "Üniversite / amatör", "note": "", "color": "#A184F5" }
+    { "id": "obs", "name": "Yer gözlem", "note": "MSB · TÜBİTAK UZAY", "color": "#2FBF87" }
   ],
   "satellites": [
-    { "norad": "23200", "name": "TÜRKSAT 1B", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
-    { "norad": "23949", "name": "TÜRKSAT 1C", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
-    { "norad": "26666", "name": "TÜRKSAT 2A", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
-    { "norad": "33056", "name": "TÜRKSAT 3A", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
     { "norad": "39522", "name": "TÜRKSAT 4A", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
     { "norad": "40984", "name": "TÜRKSAT 4B", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
     { "norad": "47306", "name": "TÜRKSAT 5A", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
@@ -21,29 +16,8 @@
     { "norad": "60233", "name": "TÜRKSAT 6A", "group": "turksat", "operator": "TÜRKSAT A.Ş.", "mission": "Haberleşme" },
 
     { "norad": "39030", "name": "GÖKTÜRK-2", "group": "obs", "operator": "MSB · TÜBİTAK UZAY / TUSAŞ", "mission": "Yer gözlem" },
-    { "norad": "41875", "name": "GÖKTÜRK-1A", "group": "obs", "operator": "MSB", "mission": "Yer gözlem" },
-    { "norad": "56178", "name": "İMECE", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" },
-    { "norad": "37791", "name": "RASAT", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" },
-    { "norad": "27943", "name": "BİLSAT-1", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" },
-
-    { "norad": "55012", "name": "CONNECTA T1.2", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "60472", "name": "CONNECTA IOT-1", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "60522", "name": "CONNECTA IOT-2", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "60475", "name": "CONNECTA IOT-3", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "60524", "name": "CONNECTA IOT-4", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "62703", "name": "CONNECTA IOT-5", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "62709", "name": "CONNECTA IOT-6", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "62715", "name": "CONNECTA IOT-7", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "62695", "name": "CONNECTA IOT-8", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "64534", "name": "CONNECTA IOT-9", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "64555", "name": "CONNECTA IOT-10", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "64557", "name": "CONNECTA IOT-11", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "64553", "name": "CONNECTA IOT-12", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "67400", "name": "CONNECTA IOT-13", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "67401", "name": "CONNECTA IOT-14", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "67402", "name": "CONNECTA IOT-15", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-    { "norad": "67390", "name": "CONNECTA IOT-16", "group": "plans", "operator": "Plan-S", "mission": "IoT / M2M" },
-
-    { "norad": "39152", "name": "TÜRKSAT-3USAT", "group": "academic", "operator": "İTÜ · TÜRKSAT", "mission": "Amatör telsiz / teknoloji" }
+    { "norad": "41875", "name": "GÖKTÜRK-1", "group": "obs", "operator": "MSB", "mission": "Yer gözlem" },
+    { "norad": "56178", "name": "GÖKTÜRK-2B", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" },
+    { "norad": "37791", "name": "RASAT", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" }
   ]
 }
