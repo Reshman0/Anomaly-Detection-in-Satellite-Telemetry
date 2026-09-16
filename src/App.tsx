@@ -15,6 +15,8 @@ import AccessibilityPanel from './components/AccessibilityPanel';
 import AlarmAnnouncer from './components/AlarmAnnouncer';
 import { SCENARIOS } from './engine/scenarioRunner';
 import { SCALE_STEPS } from './ui/a11y';
+import TourOverlay from './tour/TourOverlay';
+import { useTour } from './tour/tourStore';
 
 /** Arayuz tazeleme araligi (ms). Gorev saati bundan bagimsiz ilerler. */
 const UI_INTERVAL_MS = 66;
@@ -29,7 +31,7 @@ export default function App() {
   const last = useRef(performance.now());
 
   // Sunucu kisayollari: 1/2/3 senaryo, N nominal, L/T kure gorunumu, F takip, 0 hiz 1x.
-  // Ek kisayollar: A erisilebilirlik, M 3B/2B harita, Ctrl +/-/0 arayuz olcegi.
+  // Ek kisayollar: A erisilebilirlik, M 3B/2B harita, G tanitim turu, Ctrl +/-/0 arayuz olcegi.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const st = useConsole.getState();
@@ -87,6 +89,10 @@ export default function App() {
         case '0':
           st.setSpeed(1);
           break;
+        case 'g':
+        case 'G':
+          useTour.getState().toggle();
+          break;
         default:
           return;
       }
@@ -94,6 +100,14 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Stant/kiosk: adres `?tur` iceriyorsa tanitim turu kendiliginden baslar
+  // (orn. dist/index.html?tur). Tarayici sesi engellerse tur altyazili surer.
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('tur')) return;
+    const t = setTimeout(() => useTour.getState().start(), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -144,6 +158,7 @@ export default function App() {
       <AlarmDetail />
       <AccessibilityPanel />
       <AlarmAnnouncer />
+      <TourOverlay />
     </div>
   );
 }

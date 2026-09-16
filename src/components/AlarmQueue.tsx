@@ -64,7 +64,7 @@ export default function AlarmQueue() {
   }
 
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section data-tour="alarm" className="panel flex flex-col min-h-0">
       {/* Dar ekranda sayaclar paneli asip yandaki gecis planinin basligina binmesin diye alt satira sarar. */}
       <div className="panel-title flex flex-wrap items-center justify-between gap-x-2 gap-y-[2px]">
         <span className="flex items-center gap-2">

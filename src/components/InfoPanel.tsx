@@ -57,7 +57,7 @@ export default function InfoPanel() {
   const notes = sim.infoNotes.filter((n) => n.kind !== 'recommendation' || st.stage === 2);
 
   return (
-    <section className="panel flex flex-col flex-1 min-h-0">
+    <section data-tour="bilgi" className="panel flex flex-col flex-1 min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span className="flex items-center gap-2">
           <span>Operatör bilgi paneli</span>

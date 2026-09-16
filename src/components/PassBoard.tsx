@@ -200,7 +200,7 @@ export default function PassBoard() {
   const p = board.selectedPass;
 
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section data-tour="gecis" className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span>Geçiş planı · {GROUND_STATION.name}</span>
         <span className="normal-case tracking-normal text-ops-faint num">SGP4 · ufuk {HORIZON_S / 3600} sa</span>

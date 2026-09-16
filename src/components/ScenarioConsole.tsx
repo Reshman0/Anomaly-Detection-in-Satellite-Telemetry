@@ -77,7 +77,7 @@ export default function ScenarioConsole() {
   };
 
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section data-tour="senaryo" className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span>Senaryo konsolu</span>
         <span className="normal-case tracking-normal text-ops-faint">

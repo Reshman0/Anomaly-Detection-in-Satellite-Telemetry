@@ -11,6 +11,7 @@
     "imagery": "node scripts/fetch-imagery.mjs"
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "satellite.js": "^5.0.0",
