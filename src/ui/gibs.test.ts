@@ -12,6 +12,7 @@ import {
   isAoiCovered,
   isPlausibleSnapshot,
   latestAvailableDate,
+  availableDate,
   snapshotUrl,
 } from './gibs';
 import baked from '../assets/earth/gibs_current.json';
@@ -189,5 +190,21 @@ describe('GIBS — gömülü mozaik', () => {
     expect(baked.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(baked.layer).toBe(GIBS_LAYER);
     expect(baked.width / baked.height).toBe(2);
+  });
+});
+
+describe('availableDate (gün seçimi)', () => {
+  const now = Date.UTC(2026, 8, 14, 12, 0);
+  it('1 gün geri = latestAvailableDate', () => {
+    expect(availableDate(now, 1)).toBe(latestAvailableDate(now));
+  });
+  it('2 ve 3 gün geri doğru tarihi verir', () => {
+    expect(availableDate(now, 2)).toBe('2026-09-12');
+    expect(availableDate(now, 3)).toBe('2026-09-11');
+  });
+  it('0 ve negatif değerler düne, aşırı değerler 7 güne kelepçelenir', () => {
+    expect(availableDate(now, 0)).toBe('2026-09-13');
+    expect(availableDate(now, -5)).toBe('2026-09-13');
+    expect(availableDate(now, 30)).toBe('2026-09-07');
   });
 });

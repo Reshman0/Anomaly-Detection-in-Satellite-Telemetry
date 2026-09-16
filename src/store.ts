@@ -46,6 +46,8 @@ interface ConsoleState {
   /** Kamera secili uyduyu takip eder; dunya altinda doner. */
   followSat: boolean;
   earthTheme: EarthTheme;
+  /** GUNCEL tema icin istenen gun: 1 = dun, 2, 3... (mozaik tazelenirken kullanilir). */
+  imageryDaysBack: number;
   mapMode: MapMode;
   /** Paket denetleyici pencere (pop-up) acik mi. */
   packetOpen: boolean;
@@ -68,6 +70,7 @@ interface ConsoleState {
   setGlobeView: (v: GlobeView) => void;
   setFollow: (on: boolean) => void;
   setEarthTheme: (t: EarthTheme) => void;
+  setImageryDaysBack: (d: number) => void;
   setMapMode: (m: MapMode) => void;
   setPacketOpen: (open: boolean) => void;
   setA11yOpen: (open: boolean) => void;
@@ -96,6 +99,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   globeFitNonce: 0,
   followSat: false,
   earthTheme: 'ops',
+  imageryDaysBack: 1,
   mapMode: '3D',
   packetOpen: false,
   a11yOpen: false,
@@ -156,6 +160,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   setGlobeView: (globeView) => set((s) => ({ globeView, globeFitNonce: s.globeFitNonce + 1, followSat: false })),
   setFollow: (followSat) => set({ followSat }),
   setEarthTheme: (earthTheme) => set({ earthTheme }),
+  setImageryDaysBack: (imageryDaysBack) => set({ imageryDaysBack }),
   // 2B haritaya ilk gecis: koyu OPS zemini 2B'de anlamsiz kalir; fiziki (gercek
   // renk + topografya golgesi) zemine gecilir. Kullanici sonra istedigini secer.
   setMapMode: (mapMode) =>
