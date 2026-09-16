@@ -8,8 +8,9 @@ import { nextSequenceCount, resetCounters } from './packetBuilder';
 /**
  * Uydu basina anomali hafizasi ve alarm kuyrugu.
  *
- * Katalogdan iki gercek NORAD: 56178 (varsayilan) ve 42691. Testler yalnizca
- * kimligin tuz olarak kullanildigini varsayar, yorunge hesabina girmez.
+ * A varsayilan uydu (NORAD 56178); B katalog disi bir NORAD'dir. Filo
+ * uyduyu katalogda aramaz: testler kimligi yalnizca telemetri tuzu ve alarm
+ * damgasi olarak kullanir, yorunge hesabina girmez.
  */
 const A = '56178';
 const B = '42691';
