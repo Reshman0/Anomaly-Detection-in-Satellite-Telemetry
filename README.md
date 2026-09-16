@@ -113,7 +113,7 @@ görüntüsü ~812 kB) bu dosyanın içine gömülüdür.
   basmadıkça hiçbir istek oluşmaz, bastığında tek bir GET atılır ve
   başarısız olursa gömülü mozaik ekranda kalır (bkz. §10 madde 6). Gün seçimi
   hem 3B kürede hem 2B haritada aynı düğme satırındadır; gösterilen mozaiğin
-  gerçek tarihi lejandda yazar (gömülü sürümün tarihi seçilen günden farklı
+  gerçek tarihi `↻` düğmesinin ipucunda yazar (gömülü sürümün tarihi seçilen günden farklı
   olabilir).
 - Fontlar sistem fontlarıdır (Consolas / Segoe UI ve yedekleri); indirilen font
   yoktur.
@@ -170,8 +170,7 @@ verisinden bir canvas dokusu); hazır bir görüntü dosyası yüklenmez, dolay�
 > gerçek ölçekte çizilse küre noktaya dönerdi. Alçak yörüngede sapma %2'nin
 > altındadır, yukarıda logaritmik olarak sıkışır (GEO halkası ~2 yarıçapa
 > iner; kürenin ekranda büyük kalmasını bu sağlar). **Okunan km, derece ve
-> zaman değerleri her zaman gerçektir**; sıkıştırma yalnızca çizimdedir ve
-> ekranda yazılıdır.
+> zaman değerleri her zaman gerçektir**; sıkıştırma yalnızca çizimdedir.
 
 Küre durumsal farkındalık içindir. Telemetri akışı tek bir göreve — `AZS-DEMO`
 — aittir ve uydu seçiminden etkilenmez (yönerge §11: ikinci bir uydu misyonu
@@ -245,7 +244,7 @@ kalırdı. ANKARA görünümündeyken takip açılırsa LEO çerçevesine geçil
 | **OPS** | Koyu operasyon zemini: dolu kıtalar, kıyı çizgisi, ülke sınırları, Türkiye vurgulu | Natural Earth 110m, canvas'ta üretilir |
 | **SİYASİ** | Klasik siyasi harita: her ülke ayrı pastel dolgu, koyu sınırlar, **Türkçe ülke adları** (büyüklüğe göre ölçekli; küçük ülkeler okunmayacağı için atlanır), Türkiye amber | Natural Earth 110m, `NAME_TR` alanı |
 | **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı. Ankara yakın görüntüsü bu temada görünür | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
-| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi lejandda her zaman yazar. Ankara yakın görüntüsü bu temada da görünür | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
+| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi `↻` düğmesinin ipucunda yazar. Ankara yakın görüntüsü bu temada da görünür | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
 
 Dört temada da uydular, görüş konisi, yörünge izi ve GEO kuşağı aynı kalır;
 yalnızca zemin, kenar halkası ve paralel/meridyen ağının rengi değişir. Dokular
@@ -254,11 +253,11 @@ görüntüler NASA'nın gerçek verisidir.
 
 **GÜNCEL temada iki ayrım önemlidir.** (1) Bu bir **günlük mozaiktir**, anlık
 yayın değil: bir günün yörünge şeritlerinden dikilir, bu yüzden arayüzde
-hiçbir yerde "canlı" yazmaz — düğmenin yanında **alım tarihi** durur.
+hiçbir yerde "canlı" yazmaz; **alım tarihi** `↻` düğmesinin ipucunda durur.
 (2) Kutup gecesindeki bölgelerde **veri yoktur**: VIIRS görünür bantta çalışır,
 aydınlanmayan enlemler siyah kalır. Bu boşluk 2004 dokusuyla **doldurulmaz** —
 iki farklı tarihli görüntüyü tek görüntü gibi birleştirmek §0'a aykırı olurdu;
-lejand siyah kuşağın kutup gecesi olduğunu yazar.
+GÜNCEL düğmesinin ipucu siyah kuşağın kutup gecesi olduğunu yazar.
 
 Ekrandaki `SİMÜLE VERİ` rozeti **telemetri** içindir. GÜNCEL temadaki görüntü
 gerçek NASA ölçümüdür; üzerindeki bulutlar da §11'in dışladığı dekoratif bir
@@ -376,8 +375,8 @@ kritik bilgiye indirir. Havacılık ve uzay operasyonlarındaki *declutter* /
   `AlarmAnnouncer` zaten duyuruyor.
 - **Onaylanan alarmlar kuyruktan düşer**, kaç tanesinin gizlendiği alt
   satırda yazar; hiçbir şey sessizce kaybolmaz.
-- **Gizlenenler:** OBT, SLE RAF ve istasyon alanları; küre lejantı, tema
-  satırı ve okuma satırı; Kepler kartı ve katalog satır ayrıntıları; paket
+- **Gizlenenler:** OBT, SLE RAF ve istasyon alanları; kürenin tema
+  satırı, mozaik tazeleme durumu ve okuma satırı; Kepler kartı ve katalog satır ayrıntıları; paket
   denetleyici şeridi (`P` yine açar); INFO'daki sayılar sütunu ve not şeridi;
   geçiş planının filo listesi; XAI'nin sabit açıklama metni; tüm yardım ve
   lejant satırları. **`SİMÜLE VERİ` rozeti her iki modda da görünür.**
@@ -810,8 +809,8 @@ dokunmaz** — elde çalışan bir görüntü varken onu bozmak, hiç görüntü
 olmamasından kötüdür. Betik bilerek `build`e bağlanmamıştır; bağlansaydı
 derleme internet ister, CI ve offline hikâyesi çökerdi.
 
-Yanındaki `gibs_current.json` alım tarihini taşır; arayüzdeki "13 Eylül 2026
-günlük mozaik" etiketi oradan gelir. Bir birim testi bu dosyanın biçimini ve
+Yanındaki `gibs_current.json` alım tarihini taşır; `↻` düğmesinin
+ipucundaki "Gösterilen: 13 Eylül 2026 (gömülü)" tarihi oradan gelir. Bir birim testi bu dosyanın biçimini ve
 katman adını doğrular, yani yarım yazılmış bir çekim CI'da yakalanır.
 
 **Sunumdan önce:** `npm run imagery && npm run build`.
@@ -1152,7 +1151,7 @@ iddiası harfiyen doğru kalır ve DevTools ile yanlışlanamaz.
 
 Başarısızlık hiçbir şeyi bozmaz: 8 saniyelik zaman aşımı, tek `try/catch`
 (CORS, DNS, çevrimdışı, iptal, bozuk JPEG), ve hata hâlinde **pikseller hiç
-değişmez** — gömülü mozaik ekranda kalır, lejandda Türkçe sebep görünür
+değişmez** — gömülü mozaik ekranda kalır, kürenin sağ üstünde Türkçe sebep görünür
 ("ağa ulaşılamadı", "zaman aşımı"). `navigator.onLine === false` ise istek hiç
 atılmaz.
 

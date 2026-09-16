@@ -172,27 +172,20 @@ export const THEME_LABELS: Record<EarthTheme, string> = {
 };
 
 /**
- * Tema basina metinler tek kayitta toplanir. Eskiden bunlar dugme ipucunda,
- * 3B lejandinda ve 2B lejandinda ayri ayri ic ice ucluklerdi; yeni bir tema
- * eklendiginde ucu de sessizce yanlis sonuc veriyordu (2B lejandi yeni temayi
- * "OPS zemini" diye etiketliyordu). Record<EarthTheme, …> oldugu icin artik
- * derleyici her temayi dort cagri yerinden de gecmeye zorlar.
+ * Tema basina metinler tek kayitta toplanir. Eskiden bunlar dugme ipucunda
+ * ve 2B lejandinda ayri ayri ic ice ucluklerdi; yeni bir tema eklendiginde
+ * sessizce yanlis sonuc veriyordu (2B lejandi yeni temayi "OPS zemini" diye
+ * etiketliyordu). Record<EarthTheme, …> oldugu icin artik derleyici her temayi
+ * her cagri yerinden gecmeye zorlar.
  */
-const THEME_META: Record<EarthTheme, { title: string; credit: string | null }> = {
-  ops: { title: 'Operasyon konsolu zemini', credit: null },
-  political: {
-    title: 'Siyasi harita: ülke dolguları ve adları (Natural Earth)',
-    credit: 'zemin: Natural Earth 110m · Türkçe adlar NAME_TR',
-  },
-  physical: {
-    title: 'Fiziki: NASA Blue Marble, topografya + batimetri',
-    credit: 'zemin: NASA Blue Marble NG, Aralık 2004 · kamu malı',
-  },
+const THEME_META: Record<EarthTheme, { title: string }> = {
+  ops: { title: 'Operasyon konsolu zemini' },
+  political: { title: 'Siyasi harita: ülke dolguları ve adları (Natural Earth 110m, NAME_TR)' },
+  physical: { title: 'Fiziki: NASA Blue Marble NG (Aralık 2004), topografya + batimetri' },
   current: {
     title:
-      'Güncel: NASA EOSDIS GIBS/Worldview · VIIRS SNPP günlük mozaik. ' +
-      'Pakete gömülü gelir, ağ isteği gerektirmez; ↻ ile elle tazelenir.',
-    credit: null, // tarihi degistigi icin asagida dinamik uretilir
+      'Güncel: NASA EOSDIS GIBS/Worldview · VIIRS SNPP günlük mozaik (anlık görüntü değil; ' +
+      'siyah kuşak kutup gecesidir). Pakete gömülü gelir, ağ isteği gerektirmez; ↻ ile elle tazelenir.',
   },
 };
 
@@ -203,18 +196,6 @@ const THEME_2D_LABEL: Record<EarthTheme, string> = {
   physical: 'NASA Blue Marble',
   current: 'NASA GIBS VIIRS',
 };
-
-/** GUNCEL temanin lejandi: tarih ve kaynak her zaman ekranda. */
-function currentCredit(): string {
-  const info = currentImagery();
-  return (
-    'zemin: NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor · ' +
-    fmtTrDate(info.date) +
-    ' günlük mozaik (yörünge şeritlerinden dikilmiş, anlık görüntü değil)' +
-    (info.live ? ' · bu oturumda ağdan tazelendi' : ' · pakete gömülü') +
-    ' · siyah kuşak: kutup gecesi, görünür bantta veri yok'
-  );
-}
 
 function buildGraticule(color: number, opacity: number): THREE.LineSegments {
   const positions: number[] = [];
@@ -847,7 +828,7 @@ export default function GlobeView() {
           {earthTheme === 'current' &&
             /* Gun secimi: -1g dun (tam kaplamasi beklenen en yeni gun), -2g, -3g. Secince
                mozaik o gun icin agdan tazelenir; basarisiz olursa gomulu goruntu kalir.
-               Gomulu mozaigin tarihi lejandda yazar, secilen gunle ayni olmayabilir. */
+               Gosterilen mozaigin tarihi ↻ ipucunda yazar, secilen gunle ayni olmayabilir. */
             [1, 2, 3].map((d) => (
               <button
                 key={d}
@@ -892,8 +873,8 @@ export default function GlobeView() {
 
         {/* Okuma satiri kurenin basladigi yerden (uydu listesi 196 px) baslar:
             left-2 iken listenin alt kartinin (yorunge elemanlari) ustune biniyordu.
-            3B aciklama kutusu da sag alttan sag uste, gorunum dugmelerinin altina
-            alindi; uzun okuma satiriyla alt kenarda yan yana sigmiyordu. */}
+            3B'de sag ustte, gorunum dugmelerinin altinda yalnizca GUNCEL mozaik
+            tazeleme durumu cikar (aciklama kutusu kaldirildi). */}
         <div
           ref={readout}
           className={
@@ -902,24 +883,16 @@ export default function GlobeView() {
           }
         />
         {mapMode === '3D' ? (
-          <div className="ozet-gizle absolute right-2 top-[52px] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[min(60%,calc(100%-212px))]">
-            <div>
-              <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
-              {GROUND_STATION.min_elevation_deg}°
+          earthTheme === 'current' &&
+          (imagery.refreshing || imagery.error) && (
+            // Yalnizca operatorun bastigi ↻ / gun dugmesinin sonucu: basarisizlik sessiz kalmasin.
+            <div className="ozet-gizle absolute right-2 top-[52px] text-3xs bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[min(60%,calc(100%-212px))]">
+              {imagery.refreshing && <div className="text-ops-soft">GIBS’ten görüntü alınıyor…</div>}
+              {imagery.error && (
+                <div className="text-ops-warn">Canlı görüntü alınamadı ({imagery.error}) — gömülü mozaik gösteriliyor</div>
+              )}
             </div>
-            <div>ince yeşil çizgiler: istasyondan görünen uydulara görüş vektörü</div>
-            <div>irtifa görsel olarak sıkıştırılmıştır · okunan km değerleri gerçek</div>
-            <div>her uydunun kendi anomali hafızası vardır · telemetri AZS-DEMO referans modelinin NORAD tohumlu örneğidir</div>
-            {earthTheme === 'current' ? (
-              <div>{currentCredit()}</div>
-            ) : (
-              THEME_META[earthTheme].credit && <div>{THEME_META[earthTheme].credit}</div>
-            )}
-            {earthTheme === 'current' && imagery.refreshing && <div className="text-ops-soft">GIBS’ten görüntü alınıyor…</div>}
-            {earthTheme === 'current' && imagery.error && (
-              <div className="text-ops-warn">Canlı görüntü alınamadı ({imagery.error}) — gömülü mozaik gösteriliyor</div>
-            )}
-          </div>
+          )
         ) : (
           /* 2B: harita alani degerli, lejand tek satir; ayrintisi title'da. */
           <div
