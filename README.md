@@ -107,9 +107,13 @@ içine gömülüdür.
   `index.html`'in kendisi istenir, başka hiçbir istek çıkmaz. Derlenen dosyada
   `<link>` etiketi yoktur ve NASA adresi yalnızca bir **sabit dizgi** olarak
   geçer — çağrılmaz.
-- Ağa çıkan **tek** kod yolu, GÜNCEL temasındaki `↻` düğmesidir: operatör
+- Ağa çıkan **tek** kod yolu, GÜNCEL temasındaki `↻` ve gün düğmeleridir
+  (`−1g · −2g · −3g`, UTC'ye göre dün / evvelsi gün / üç gün önce): operatör
   basmadıkça hiçbir istek oluşmaz, bastığında tek bir GET atılır ve
-  başarısız olursa gömülü mozaik ekranda kalır (bkz. §10 madde 6).
+  başarısız olursa gömülü mozaik ekranda kalır (bkz. §10 madde 6). Gün seçimi
+  hem 3B kürede hem 2B haritada aynı düğme satırındadır; gösterilen mozaiğin
+  gerçek tarihi lejandda yazar (gömülü sürümün tarihi seçilen günden farklı
+  olabilir).
 - Fontlar sistem fontlarıdır (Consolas / Segoe UI ve yedekleri); indirilen font
   yoktur.
 

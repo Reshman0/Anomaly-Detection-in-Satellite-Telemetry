@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useConsole, type EarthTheme } from '../store';
 import { currentImagery, earthCanvas, onBmng, onImageryChange, refreshCurrentImagery } from '../ui/earthTexture';
-import { fmtTrDate } from '../ui/gibs';
+import { availableDate, fmtTrDate } from '../ui/gibs';
 import MapView2D from './MapView2D';
 import {
   GROUND_STATION,
@@ -226,6 +226,8 @@ export default function GlobeView() {
   const followSat = useConsole((s) => s.followSat);
   const setFollow = useConsole((s) => s.setFollow);
   const earthTheme = useConsole((s) => s.earthTheme);
+  const imageryDaysBack = useConsole((s) => s.imageryDaysBack);
+  const setImageryDaysBack = useConsole((s) => s.setImageryDaysBack);
   const setEarthTheme = useConsole((s) => s.setEarthTheme);
   const visibleCount = useRef<HTMLSpanElement>(null);
   const applyTheme = useRef<((t: EarthTheme) => void) | null>(null);
@@ -683,12 +685,38 @@ export default function GlobeView() {
               {THEME_LABELS[t]}
             </button>
           ))}
+          {earthTheme === 'current' &&
+            /* Gun secimi: -1g dun (tam kaplamasi beklenen en yeni gun), -2g, -3g. Secince
+               mozaik o gun icin agdan tazelenir; basarisiz olursa gomulu goruntu kalir.
+               Gomulu mozaigin tarihi lejandda yazar, secilen gunle ayni olmayabilir. */
+            [1, 2, 3].map((d) => (
+              <button
+                key={d}
+                onClick={() => {
+                  setImageryDaysBack(d);
+                  void refreshCurrentImagery(d);
+                }}
+                disabled={imagery.refreshing}
+                aria-pressed={imageryDaysBack === d}
+                title={'Mozaiği ' + d + ' gün önceki (UTC) günlük VIIRS görüntüsüyle tazele: ' + fmtTrDate(availableDate(Date.now(), d))}
+                className={
+                  'num text-2xs px-[5px] py-[2px] border transition-colors ' +
+                  (imageryDaysBack === d && imagery.live
+                    ? 'border-ops-nominal text-ops-nominal bg-ops-nominal/10'
+                    : imagery.refreshing
+                      ? 'border-ops-line2 text-ops-faint'
+                      : 'border-ops-line2 text-ops-dim bg-ops-sunken/80 hover:text-ops-text')
+                }
+              >
+                −{d}g
+              </button>
+            ))}
           {earthTheme === 'current' && (
             <button
-              onClick={() => void refreshCurrentImagery()}
+              onClick={() => void refreshCurrentImagery(imageryDaysBack)}
               disabled={imagery.refreshing}
               title={
-                'Mozaiği NASA GIBS’ten tazele. Tek ağ isteği; başarısız olursa gömülü görüntü korunur. ' +
+                'Mozaiği NASA GIBS’ten tazele (seçili gün: −' + imageryDaysBack + 'g). Tek ağ isteği; başarısız olursa gömülü görüntü korunur. ' +
                 'Gösterilen: ' + fmtTrDate(imagery.date) + (imagery.live ? ' (ağdan)' : ' (gömülü)')
               }
               className={

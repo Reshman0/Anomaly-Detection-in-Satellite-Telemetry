@@ -71,7 +71,14 @@ export function snapshotUrl(date: string, w: number = SNAPSHOT_WIDTH, h: number 
  * yarisini gecmis olmak UTC gunune bir sey katmaz.
  */
 export function latestAvailableDate(nowMs: number): string {
-  return new Date(nowMs - 86_400_000).toISOString().slice(0, 10);
+  return availableDate(nowMs, 1);
+}
+
+/** Gun secimi icin: UTC'ye gore `daysBack` gun geri (1 = dun, 2 = evvelsi gun...). 1..7 ile sinirlanir. */
+export const MAX_DAYS_BACK = 7;
+export function availableDate(nowMs: number, daysBack: number): string {
+  const d = Math.max(1, Math.min(MAX_DAYS_BACK, Math.round(daysBack)));
+  return new Date(nowMs - d * 86_400_000).toISOString().slice(0, 10);
 }
 
 /**

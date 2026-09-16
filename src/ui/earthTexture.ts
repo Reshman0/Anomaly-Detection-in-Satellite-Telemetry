@@ -5,7 +5,7 @@ import countries from '../data/countries_110m.json';
 import bmngUrl from '../assets/earth/bmng_2048.jpg';
 import gibsUrl from '../assets/earth/gibs_current.jpg';
 import gibsMeta from '../assets/earth/gibs_current.json';
-import { DEFAULT_TIMEOUT_MS, fetchSnapshot, isPlausibleSnapshot, latestAvailableDate, snapshotUrl } from './gibs';
+import { DEFAULT_TIMEOUT_MS, availableDate, fetchSnapshot, isPlausibleSnapshot, snapshotUrl } from './gibs';
 import type { EarthTheme } from '../store';
 
 /**
@@ -188,7 +188,7 @@ export function onImageryChange(cb: () => void): () => void {
  * Basarisizlik pikselleri ASLA bozmaz: gomulu goruntu ekranda kalir, yalnizca
  * durum 'failed' olur ve sebep gorunur bicimde yazilir.
  */
-export async function refreshCurrentImagery(): Promise<void> {
+export async function refreshCurrentImagery(daysBack: number = 1): Promise<void> {
   if (gibsRefreshing) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     gibsError = 'çevrimdışı — gömülü mozaik gösteriliyor';
@@ -200,7 +200,8 @@ export async function refreshCurrentImagery(): Promise<void> {
   gibsError = null;
   notifyImagery();
 
-  const date = latestAvailableDate(Date.now());
+  // Gun secimi: 1 = dun (tam kaplamasi beklenen en yeni gun), 2..7 = daha eski gunler.
+  const date = availableDate(Date.now(), daysBack);
   try {
     const snap = await fetchSnapshot(snapshotUrl(date), { timeoutMs: DEFAULT_TIMEOUT_MS });
     if (!isPlausibleSnapshot(snap.bytes, snap.dataPresent)) {
