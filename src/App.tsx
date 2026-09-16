@@ -91,6 +91,11 @@ export default function App() {
         case 'T':
           st.setGlobeView('ALL');
           break;
+        case 'y':
+        case 'Y':
+          // "yakin": Ankara yakin goruntusu (NASA HLS, 30 m).
+          st.setGlobeView('ANKARA');
+          break;
         case 'f':
         case 'F':
           st.setFollow(!st.followSat);

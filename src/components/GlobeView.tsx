@@ -1,8 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { useConsole, type EarthTheme } from '../store';
-import { currentImagery, earthCanvas, onBmng, onImageryChange, refreshCurrentImagery } from '../ui/earthTexture';
+import { useConsole, type EarthTheme, type GlobeView as GorunumOnayari } from '../store';
+import {
+  ankaraCanvas,
+  ankaraMeta,
+  currentImagery,
+  earthCanvas,
+  onAnkara,
+  onBmng,
+  onImageryChange,
+  refreshCurrentImagery,
+} from '../ui/earthTexture';
+import {
+  ANKARA_CENTER,
+  EARTH_KM,
+  FOLLOW_MIN_DISTANCE,
+  MIN_DISTANCE,
+  altitudeKm,
+  chipLines,
+  fitAltitudeKm,
+  markerScale,
+  nearPlaneFor,
+  patchInView,
+  patchOpacity,
+  rotateSpeedFor,
+  sphereParams,
+  toVec,
+  zoomSpeedFor,
+} from '../ui/yakinGoruntu';
 import { availableDate, fmtTrDate } from '../ui/gibs';
 import MapView2D from './MapView2D';
 import {
@@ -36,18 +62,24 @@ function displayRadius(altKm: number): number {
 
 const GEO_DISPLAY_R = displayRadius(GEO_ALT_KM);
 /** Kamera cerceveleme yaricaplari: LEO gorunumu ve tum filo gorunumu. */
-const FIT_RADIUS = { LEO: 1.22, ALL: GEO_DISPLAY_R };
+const FIT_RADIUS: Record<'LEO' | 'ALL', number> = { LEO: 1.22, ALL: GEO_DISPLAY_R };
 
 /**
- * Enlem/boylam -> kure koordinati. three.js sag el sistemidir ve kamera
- * disaridan bakar; dogunun ekranda SAGDA gorunmesi icin dogu boylami -Z'ye
- * duser (z = -cos(lat)·sin(lon)). +Z alinirsa kure ayna goruntusu olur.
+ * Cerceve on ayarlarinin etiketleri tek kayitta: eskiden iki yollu uclu
+ * kosullardi ve ucuncu bir deger sessizce "TUMU" diye etiketlenirdi.
  */
-function toVec(latDeg: number, lonDeg: number, r: number): THREE.Vector3 {
-  const lat = latDeg * D2R;
-  const lon = lonDeg * D2R;
-  return new THREE.Vector3(Math.cos(lat) * Math.cos(lon), Math.sin(lat), -Math.cos(lat) * Math.sin(lon)).multiplyScalar(r);
-}
+const VIEW_META: Record<GorunumOnayari, { label: string; title: string }> = {
+  LEO: { label: 'LEO', title: 'Alçak yörüngeye yakınlaş (L, yalnızca 3B)' },
+  ALL: { label: 'TÜMÜ', title: 'GEO kuşağı dahil tüm filoyu sığdır (T, yalnızca 3B)' },
+  ANKARA: {
+    label: 'ANKARA',
+    title:
+      'Ankara yakın görüntüsü: NASA HLS · Sentinel-2 · 30 m (Y). Kamera ~110 km\'ye iner; ' +
+      'görüntü FİZİKİ ve GÜNCEL temalarda çizilir, gerekirse FİZİKİ\'ye geçilir.',
+  },
+};
+
+// toVec (enlem/boylam -> kure koordinati) ui/yakinGoruntu.ts'te: parca geometrisi ayni eslemeyi kullanir.
 
 /** Kure yuzeyinde bir merkez etrafinda acisal yaricapli cember. */
 function circleOnSphere(latDeg: number, lonDeg: number, radiusDeg: number, r: number, segments = 96): THREE.Vector3[] {
@@ -244,6 +276,8 @@ export default function GlobeView() {
 
   // Kamerayi yeniden cerceveleyecek callback; efekt icinde doldurulur.
   const refit = useRef<(() => void) | null>(null);
+  // Ankara yakin goruntusunun atif cipi; gorunurlugu ve metni cizim dongusunde.
+  const chip = useRef<HTMLDivElement>(null);
   const setDamping = useRef<((on: boolean) => void) | null>(null);
 
   useEffect(() => {
@@ -265,6 +299,34 @@ export default function GlobeView() {
     const trLabel = makeLabel('TÜRKİYE', '#dff0fa', 0.032);
     const earthMat = new THREE.MeshBasicMaterial({ map: toTexture(earthCanvas('ops')!) });
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), earthMat));
+
+    // Ankara yakin goruntusu: dunyanin ustunde ayri bir kure parcasi. Ankara
+    // tek bir 96x64 hucresinin icinde; o hucrenin yuzu r=1'in 1.9-3.4 km
+    // ALTINDA, bu yuzden r=1'deki parca her zaman onde (derinlik kaydirmasi
+    // gerekmez). Saydamlar opaklardan sonra cizilir; renderOrder -1 onu dunya
+    // ile gorus cizgileri / yer noktalari arasina koyar. depthWrite, yer
+    // noktasinin r=1 altindaki yarisini gizler.
+    const patchSp = sphereParams();
+    const patchMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: true, opacity: 0 });
+    const patch = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 16, 16, patchSp.phiStart, patchSp.phiLength, patchSp.thetaStart, patchSp.thetaLength),
+      patchMat,
+    );
+    patch.renderOrder = -1;
+    patch.visible = false;
+    scene.add(patch);
+    let patchTex: THREE.Texture | null = null;
+    // Kurede gercekten CIZILEN tema (swap ertelenebilir ya da atlanabilir).
+    let shownTheme: EarthTheme = 'ops';
+    const offAnkara = onAnkara(() => {
+      const cv = ankaraCanvas();
+      if (!cv || patchTex) return;
+      patchTex = toTexture(cv);
+      patchMat.map = patchTex;
+      patchMat.needsUpdate = true;
+      // ~26 MB'lik GPU yuklemesi demo ortasinda degil, acilista olsun.
+      renderer.initTexture(patchTex);
+    });
     // Kure siluetini ayirmak icin ince bir kenar halkasi (ic yuzu cizilen buyuk kure).
     const rimMat = new THREE.MeshBasicMaterial({ color: THEME_STYLE.ops.rim, side: THREE.BackSide });
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.014, 64, 48), rimMat));
@@ -297,6 +359,7 @@ export default function GlobeView() {
         }
         earthMat.map = tex;
         earthMat.needsUpdate = true;
+        shownTheme = t;
         // Tema degisimi rAF beklemesin: sekme arka plandayken bile bir kare cizilsin.
         renderer.render(scene, camera);
       };
@@ -305,7 +368,11 @@ export default function GlobeView() {
     };
 
     // Yer istasyonu
-    const gsPos = toVec(GROUND_STATION.lat_deg, GROUND_STATION.lon_deg, 1.004);
+    // Istasyon noktasi yakinda hem kuculur hem alcalir (her karede, asagida);
+    // yalnizca kucultmek onu 40 km'den bakinca 17 km oteye gosterirdi.
+    // gsPos gorus cizgilerinin de baslangici oldugu icin cizgiler birlikte iner.
+    const GS_UNIT = toVec(GROUND_STATION.lat_deg, GROUND_STATION.lon_deg, 1);
+    const gsPos = GS_UNIT.clone().multiplyScalar(1.004);
     const gsDot = new THREE.Mesh(
       new THREE.SphereGeometry(0.011, 12, 12),
       new THREE.MeshBasicMaterial({ color: COLOR.nominal }),
@@ -392,7 +459,10 @@ export default function GlobeView() {
     };
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
-    controls.minDistance = 1.35;
+    // Yakin goruntu icin yuzeye 40 km'ye kadar inilir. Tekerlek/surukleme hizi
+    // ve yakin kirpma duzlemi her karede irtifaya gore ayarlanir; bugunku
+    // sinirin (d = 1.35) ustunde davranis degismez (ui/yakinGoruntu.ts).
+    controls.minDistance = MIN_DISTANCE;
     controls.maxDistance = 40;
     controls.rotateSpeed = 0.5;
     controls.zoomSpeed = 0.7;
@@ -400,6 +470,9 @@ export default function GlobeView() {
     // Kullanici kamerayi elle oynatana kadar sahne panele sigacak sekilde cerceveler.
     let userMoved = false;
     controls.addEventListener('start', () => {
+      // OrbitControls 'start'i zoom hesabindan ONCE gonderir: bu centik icin
+      // hiz buradan okunur (ozel tekerlek isleyicisi gerekmez).
+      controls.zoomSpeed = zoomSpeedFor(camera.position.length());
       userMoved = true;
       // Elle mudahale takibi keser.
       if (useConsole.getState().followSat) useConsole.getState().setFollow(false);
@@ -415,6 +488,19 @@ export default function GlobeView() {
     const frame = () => {
       const view = useConsole.getState().globeView;
       const aspect = camera.aspect || 1;
+      if (view === 'ANKARA') {
+        // Onceki suruklemeden kalan sonumleme hareketini bosalt; yoksa eski
+        // hizla hesaplanmis donus ~110 km'de uygulanir ve gorus Ankara'dan kayar.
+        const damp = controls.enableDamping;
+        controls.enableDamping = false;
+        controls.update();
+        controls.enableDamping = damp;
+        camera.position.copy(
+          toVec(ANKARA_CENTER.lat, ANKARA_CENTER.lon, 1 + fitAltitudeKm(aspect, camera.fov) / EARTH_KM),
+        );
+        controls.update();
+        return;
+      }
       camera.position.setLength(fitDistance(aspect, FIT_RADIUS[view]));
     };
 
@@ -449,6 +535,14 @@ export default function GlobeView() {
       const utcMs = state.sim.clock.utcMs();
       const selected = state.selectedNorad;
 
+      // Isaretci olcegi: bugunku sinirin (2230 km) ustunde 1; yaklasinca kuculur
+      // ve alcalir, Ankara parcasini ortmez. Bir kare gecikme gorunmez.
+      const ms = markerScale(camera.position.length());
+      gsPos.copy(GS_UNIT).multiplyScalar(1 + 0.004 * ms);
+      gsDot.position.copy(gsPos);
+      gsDot.scale.setScalar(ms);
+      halo.scale.setScalar(ms);
+
       // --- tum filo (uydu basina tek SGP4 yayilimi) ---
       let nVisible = 0;
       let selectedState: ReturnType<typeof stateAt> = null;
@@ -465,10 +559,12 @@ export default function GlobeView() {
         m.body.visible = true;
         m.drop.visible = true;
         m.tether.visible = true;
-        const surface = toVec(sp.latDeg, sp.lonDeg, 1.006);
+        const surface = toVec(sp.latDeg, sp.lonDeg, 1 + 0.006 * ms);
         const orbitPos = toVec(sp.latDeg, sp.lonDeg, displayRadius(sp.altKm));
         m.body.position.copy(orbitPos);
+        m.body.scale.setScalar(ms);
         m.drop.position.copy(surface);
+        m.drop.scale.setScalar(ms);
         m.tetherPos.set([surface.x, surface.y, surface.z, orbitPos.x, orbitPos.y, orbitPos.z]);
         m.tether.geometry.attributes.position.needsUpdate = true;
 
@@ -500,7 +596,7 @@ export default function GlobeView() {
         // Takip: kamera uydunun uzerinde, AYNI UZAKLIKTA durur; dunya altinda
         // doner (bkz. ui/kameraTakip.ts — uzaklik korunur, yalnizca yon doner).
         if (state.followSat) {
-          camera.position.copy(takipKonumu(camera.position, orbitPos, 0.12));
+          camera.position.copy(takipKonumu(camera.position, orbitPos, 0.12, FOLLOW_MIN_DISTANCE));
           camera.lookAt(0, 0, 0);
         }
 
@@ -550,8 +646,41 @@ export default function GlobeView() {
       }
 
       controls.update();
+
+      // --- yakin goruntu: kamera ayarlari, parca, atif cipi ---
+      const dist = camera.position.length();
+      controls.zoomSpeed = zoomSpeedFor(dist); // orta tus surukleme zoom'u her hareketi okur
+      controls.rotateSpeed = rotateSpeedFor(dist);
+      const near = nearPlaneFor(dist);
+      if (near !== camera.near) {
+        camera.near = near;
+        camera.updateProjectionMatrix();
+      }
+      const alt = altitudeKm(dist);
+      const op = patchOpacity(alt);
+      const imagery = shownTheme === 'physical' || shownTheme === 'current';
+      // Yalnizca opaklik 0 degil, gorunmez: uzakta derinlik adimi km mertebesinde.
+      patch.visible = patchTex !== null && imagery && op > 0;
+      patchMat.opacity = op;
+      if (chip.current) {
+        const tanV = Math.tan((camera.fov / 2) * D2R);
+        const onScreen = patch.visible && patchInView(camera.position, Math.hypot(tanV, tanV * camera.aspect));
+        chip.current.style.display = onScreen ? '' : 'none';
+        const km = Math.round(alt);
+        // 2B'den donunce cip yeniden olusur (bos): kimlik degisince de yazilir.
+        if (onScreen && (km !== lastChipKm || chip.current !== lastChipEl)) {
+          lastChipKm = km;
+          lastChipEl = chip.current;
+          const lines = chipLines(alt, ankaraMeta.date);
+          const rows = chip.current.children;
+          for (let i = 0; i < lines.length && i < rows.length; i++) rows[i].textContent = lines[i];
+        }
+      }
+
       renderer.render(scene, camera);
     };
+    let lastChipKm = -1;
+    let lastChipEl: HTMLDivElement | null = null;
     loop();
 
     // GUNCEL mozaik degistiginde (gomulu cozuldu ya da agdan tazelendi): canvas
@@ -569,6 +698,10 @@ export default function GlobeView() {
 
     return () => {
       offImagery();
+      offAnkara();
+      patchTex?.dispose();
+      patch.geometry.dispose();
+      patchMat.dispose();
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
@@ -620,6 +753,30 @@ export default function GlobeView() {
 
         <SatelliteList />
 
+        {/* Ankara yakin goruntusunun kaynak bildirimi (yonerge §0). Yalnizca parca
+            gercekten ekrandayken gorunur. Ozet modunda GIZLENMEZ: ekrandaki
+            goruntunun kaynagini soyler, SIMULE VERI rozeti gibi. */}
+        {mapMode === '3D' && (
+          <div
+            ref={chip}
+            style={{ display: 'none' }}
+            className="absolute left-[204px] top-2 max-w-[250px] text-3xs leading-[13px] bg-ops-sunken/90 border border-ops-line2 px-1.5 py-1 pointer-events-auto"
+            title={
+              'Katman: ' + ankaraMeta.layer + ' (BRDF düzeltilmiş yansıma)\n' +
+              'NASA HLS S30 v2.0 · doi:' + ankaraMeta.doi + '\n' +
+              'Contains modified Copernicus Sentinel data 2026\n' +
+              'Kutu: ' + ankaraMeta.bbox.south + '–' + ankaraMeta.bbox.north + '°K, ' +
+              ankaraMeta.bbox.west + '–' + ankaraMeta.bbox.east + '°D · piksel ~23×30 m\n' +
+              'Pakete gömülü, ağ isteği yok. Çevre zemin ~20 km/piksel ve farklı tarihli.\n' +
+              'Türkiye vurgusu (%18 sarı) bu görüntüye de uygulanmıştır.'
+            }
+          >
+            <div className="text-ops-text tracking-[0.06em]" />
+            <div className="text-ops-dim" />
+            <div className="text-ops-faint" />
+          </div>
+        )}
+
         <div className="absolute right-2 top-2 flex gap-[3px]">
           {(['3D', '2D'] as const).map((m) => (
             <button
@@ -638,12 +795,14 @@ export default function GlobeView() {
             </button>
           ))}
           <span className="w-1" />
-          {(['LEO', 'ALL'] as const).map((v) => (
+          {(['LEO', 'ALL', 'ANKARA'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setGlobeView(v)}
-              disabled={mapMode === '2D'}
-              title={v === 'LEO' ? 'Alçak yörüngeye yakınlaş (yalnızca 3B)' : 'GEO kuşağı dahil tüm filoyu sığdır (yalnızca 3B)'}
+              // ANKARA 2B'deyken de basilabilir: 3B'ye gecip yakinlasir.
+              disabled={mapMode === '2D' && v !== 'ANKARA'}
+              aria-pressed={globeView === v}
+              title={VIEW_META[v].title}
               className={
                 'num text-2xs px-[6px] py-[2px] border transition-colors ' +
                 (globeView === v
@@ -651,7 +810,7 @@ export default function GlobeView() {
                   : 'border-ops-line2 text-ops-dim bg-ops-sunken/80 hover:text-ops-text')
               }
             >
-              {v === 'LEO' ? 'LEO' : 'TÜMÜ'}
+              {VIEW_META[v].label}
             </button>
           ))}
           <button
