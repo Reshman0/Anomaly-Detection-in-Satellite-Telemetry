@@ -1,6 +1,7 @@
 import { PARAMETERS } from './mib';
+import { isHard, isSoft } from './limitChecker';
 import type { Simulation } from './simulation';
-import type { Alarm } from './types';
+import type { Alarm, LimitState } from './types';
 
 /**
  * Ozet modu — hangi bilginin "kritik" sayilacagi.
@@ -91,4 +92,63 @@ export function summaryAlarm(alarms: readonly Alarm[], minSeverity: number = 2):
     count++;
   }
   return top ? { top, count } : null;
+}
+
+/** AI skoru esikleri MIB'den okunur (tum yer turetilmis skorlar ayni esigi tasir). */
+const AI_LIMITS = PARAMETERS.find((p) => p.derived)?.limits ?? {};
+const AI_SOFT = AI_LIMITS.soft_high ?? 3;
+const AI_HARD = AI_LIMITS.hard_high ?? 5;
+
+export type VerdictTone = 'nominal' | 'soft' | 'hard' | 'ai';
+
+export interface SummaryVerdict {
+  word: 'NOMİNAL' | 'İZLEME' | 'ALARM';
+  tone: VerdictTone;
+  /** Renkten bagimsiz isaret: ● nominal, ▲ ST[12] limiti, ◆ AI. */
+  glyph: '●' | '▲' | '◆';
+  /** Hukmun tek satirlik dayanagi. */
+  reason: string;
+  /** Limitler sessiz, AI konusuyor — demonun ana karsitligi. */
+  contrast: boolean;
+}
+
+/**
+ * Ozet panosunun tek hukmu: uydu uzerindeki sabit limit kontrolu (ST[12]) ile
+ * yerde turetilen AI skorunun en kotusu. Esitlikte ST[12] onde gelir: uydunun
+ * kendi limit ihlali dogrudan olcumdur.
+ */
+export function summaryVerdict(limit: LimitState, ai: LimitState): SummaryVerdict {
+  const contrast = limit === 'NOMINAL' && ai !== 'NOMINAL';
+  const sigma = (v: number) => v.toFixed(0) + 'σ';
+  if (isHard(limit)) {
+    return { word: 'ALARM', tone: 'hard', glyph: '▲', reason: 'ST[12] sabit limit · sert eşik aşıldı', contrast };
+  }
+  if (isHard(ai)) {
+    return {
+      word: 'ALARM',
+      tone: 'ai',
+      glyph: '◆',
+      reason: 'AI skoru ≥ ' + sigma(AI_HARD) + (contrast ? ' · ham kanallar limit içinde' : ''),
+      contrast,
+    };
+  }
+  if (isSoft(limit)) {
+    return { word: 'İZLEME', tone: 'soft', glyph: '▲', reason: 'ST[12] sabit limit · yumuşak eşik aşıldı', contrast };
+  }
+  if (isSoft(ai)) {
+    return {
+      word: 'İZLEME',
+      tone: 'ai',
+      glyph: '◆',
+      reason: 'AI skoru ≥ ' + sigma(AI_SOFT) + (contrast ? ' · ham kanallar limit içinde' : ''),
+      contrast,
+    };
+  }
+  return {
+    word: 'NOMİNAL',
+    tone: 'nominal',
+    glyph: '●',
+    reason: 'ham kanallar limit içinde · AI skoru < ' + sigma(AI_SOFT),
+    contrast,
+  };
 }

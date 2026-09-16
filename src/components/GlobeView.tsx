@@ -728,8 +728,9 @@ export default function GlobeView() {
         </span>
       </div>
       <div className="relative flex-1 min-h-0">
-        {/* Canvas listenin sagindan baslar: kure bindirmenin altinda kalmasin. */}
-        <div ref={host} className={'absolute inset-y-0 right-0 left-[196px]' + (mapMode === '2D' ? ' invisible' : '')} aria-hidden={mapMode === '2D'} />
+        {/* Canvas listenin sagindan baslar: kure bindirmenin altinda kalmasin.
+            Ozet modunda liste gizlenir (secim filo kutucuklarinda), kure genisler. */}
+        <div ref={host} className={'ozet-tam absolute inset-y-0 right-0 left-[196px]' + (mapMode === '2D' ? ' invisible' : '')} aria-hidden={mapMode === '2D'} />
         {mapMode === '2D' && <MapView2D />}
 
         <SatelliteList />
@@ -741,7 +742,7 @@ export default function GlobeView() {
           <div
             ref={chip}
             style={{ display: 'none' }}
-            className="absolute left-[204px] top-2 max-w-[250px] text-3xs leading-[13px] bg-ops-sunken/90 border border-ops-line2 px-1.5 py-1 pointer-events-auto"
+            className="ozet-sol absolute left-[204px] top-2 max-w-[250px] text-3xs leading-[13px] bg-ops-sunken/90 border border-ops-line2 px-1.5 py-1 pointer-events-auto"
             title={
               'Katman: ' + ankaraMeta.layer + ' (BRDF düzeltilmiş yansıma)\n' +
               'NASA HLS S30 v2.0 · doi:' + ankaraMeta.doi + '\n' +

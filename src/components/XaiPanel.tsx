@@ -92,10 +92,8 @@ export default function XaiPanel() {
           {!current ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
               Bu adımda henüz bir şey gelmedi.
-              <span className="ozet-gizle">
-                <br />
-                Bir senaryo başlatın, model çıktıları sırayla gelir.
-              </span>
+              <br />
+              Bir senaryo başlatın, model çıktıları sırayla gelir.
             </div>
           ) : !scenario ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
@@ -160,7 +158,7 @@ export default function XaiPanel() {
               )}
             </>
           ) : (
-            <div className="ozet-gizle text-3xs text-ops-faint leading-relaxed">
+            <div className="text-3xs text-ops-faint leading-relaxed">
               Kanıt gelince model adını, öne çıkan kanalları ve frekans bandını burada göreceksiniz.
             </div>
           )}

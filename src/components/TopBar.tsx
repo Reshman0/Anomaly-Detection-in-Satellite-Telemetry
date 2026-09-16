@@ -1,8 +1,9 @@
 import { useConsole } from '../store';
 import { MIB } from '../engine/mib';
 import { SPEED_OPTIONS, fmtCountdown, fmtDate, fmtTime, fmtTimeMs } from '../engine/missionClock';
-import { GROUND_STATION, elevationAt, isVisible, nextPassEvent, satByNorad } from '../engine/orbit';
-import { useMemo, useRef } from 'react';
+import { GROUND_STATION, satByNorad } from '../engine/orbit';
+import { useMemo } from 'react';
+import { useTemas } from './useTemas';
 import UyduBilgiPenceresi from './UyduBilgiPenceresi';
 
 /**
@@ -57,20 +58,7 @@ export default function TopBar() {
   const obtMs = sim.clock.obtMs();
   const sat = satByNorad(selectedNorad);
 
-  // AOS/LOS aramasi pahalidir; birkac saniyede bir tazelenir.
-  const passRef = useRef<{ atMs: number; norad: string; kind: 'AOS' | 'LOS'; targetMs: number } | null>(null);
-  if (
-    !passRef.current ||
-    passRef.current.norad !== selectedNorad ||
-    Math.abs(utcMs - passRef.current.atMs) > 4000 ||
-    utcMs > passRef.current.targetMs
-  ) {
-    const ev = nextPassEvent(sat, utcMs);
-    passRef.current = ev ? { atMs: utcMs, norad: selectedNorad, kind: ev.kind, targetMs: ev.unixMs } : null;
-  }
-  const pass = passRef.current;
-  const visible = isVisible(sat, utcMs);
-  const elevation = elevationAt(sat, utcMs);
+  const { pass, visible, elevation } = useTemas(selectedNorad, utcMs);
 
   const tleAge = useMemo(
     () => Math.round((Date.parse(MIB.epoch) - sat.epochMs) / 86400000),
@@ -96,7 +84,8 @@ export default function TopBar() {
       {/* Hiz dugmeleri iki satira dizilir: serit tek satirda kalsin diye. */}
       <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0 grow">
         <div className="text-3xs uppercase tracking-[0.14em] text-ops-faint leading-none">Hız</div>
-        <div className="grid grid-cols-3 gap-[3px] mt-[3px]">
+        {/* Ust sinir: ozet modunda alanlar genislerken dugmeler uzamasin. */}
+        <div className="grid grid-cols-3 gap-[3px] mt-[3px] max-w-[220px]">
           {SPEED_OPTIONS.map((s) => (
             <button
               key={s}
@@ -122,7 +111,9 @@ export default function TopBar() {
         <span className="text-ops-text">{GROUND_STATION.name}</span>
       </Field>
 
+      {/* Temas, yukselti ve secili uydu ozet panosunun durum kartinda buyuk yazar. */}
       <Field
+        className="ozet-gizle"
         label={pass ? (pass.kind === 'AOS' ? 'AOS geri sayım' : 'LOS geri sayım') : 'Görünürlük'}
         sub={pass ? '@ ' + fmtTime(pass.targetMs) : '6 sa içinde geçiş yok'}
       >
@@ -136,7 +127,7 @@ export default function TopBar() {
         )}
       </Field>
 
-      <Field label="Yükselti" sub={'en az ' + GROUND_STATION.min_elevation_deg.toFixed(0) + '°'}>
+      <Field className="ozet-gizle" label="Yükselti" sub={'en az ' + GROUND_STATION.min_elevation_deg.toFixed(0) + '°'}>
         <span className={elevation >= GROUND_STATION.min_elevation_deg ? 'text-ops-nominal' : 'text-ops-dim'}>
           {elevation.toFixed(1)}°
         </span>
@@ -144,12 +135,13 @@ export default function TopBar() {
 
       {/* Model adi soldaki Gorev alaninda zaten yaziyor; burada tekrar edilmez. */}
       <Field
+        className="ozet-gizle"
         label="Seçili uydu"
         sub={'NORAD ' + sat.norad + ' · ' + sat.intlDes}
         title={sat.name + ' · ' + sat.orbitClass + ' · TLE yaşı ' + tleAge + ' gün · model ' + MIB.mission}
       >
         <span className="text-ops-text">{sat.name}</span>
-        <span className="ozet-gizle text-ops-faint ml-2 text-[11px]">
+        <span className="text-ops-faint ml-2 text-[11px]">
           {sat.orbitClass} · TLE {tleAge} gün
         </span>
       </Field>

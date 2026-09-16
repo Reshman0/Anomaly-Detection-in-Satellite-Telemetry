@@ -345,52 +345,64 @@ ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi belirir
 
 **Özet mod.** Üst şeritteki `ÖZET MOD` düğmesi (ya da `O`) ekranı yalnızca
 kritik bilgiye indirir. Havacılık ve uzay operasyonlarındaki *declutter* /
-*dark cockpit* ilkesi: nominalde ekran sessiz, sapmada parlak. Görünür metin
-öğesi aynı anda **670 → 286** (−%57) düşer.
+*dark cockpit* ilkesi: nominalde ekran sakin, sapmada renkli. Doğrudan metin
+taşıyan görünür öğe sayısı nominalde **340 → 190** (−%44) düşer (1920×1080).
 
-- **Paneller yerinde kalır.** Ayrı bir düzen değildir; operatör modu açıp
-  kapatırken gözü ne nerede arıyorsa orada bulur. Başlık yüksekliği ve küre
-  tuvali değişmez.
-- **Telemetri istisna tabanlıdır.** Limit içindeki parametreler tek satırda
-  toplanır (`5 parametre limit içinde — gizli: …`); yalnızca bir şey söyleyen
-  şeritler çizilir: AI skorları (her zaman), limit dışı kanallar, senaryo
-  sürerken XAI kanıtının ve CUSUM kırılmasının adlandırdığı kanallar, ve son
-  90 s içinde ST[12] geçişi olanlar (NOMİNAL'e dönüş dahil).
+Özet mod tam görünümün panellerini gizleyerek değil, **kendi panosuyla**
+çizilir (`src/components/OzetPanosu.tsx`). Küre ve senaryo konsolu yerinde
+kalır; sağ sütun ve alt sıra değişir. Yukarıdan aşağı operatörün soru sırası:
+
+| Bölüm | Soru | Ne gösterir |
+|---|---|---|
+| **Durum kartı** | Her şey yolunda mı? | Tek hüküm (`● NOMİNAL` · `▲`/`◆ İZLEME` · `▲`/`◆ ALARM`), dayanağı ve sapan parametreler; ST[12] ve AI için ayrı rozet. Limitler sessizken AI konuşuyorsa **KONTRAST** rozeti |
+| | Temas ne zaman? | Seçili uydunun AOS/LOS geri sayımı, yükseltisi, görünürlüğü (SGP4) |
+| | Olay var mı? | Anomali aşaması (`İZLEME` → `ŞÜPHE` → `DOĞRULANDI`, INFO paneliyle aynı kural), senaryo ilerlemesi |
+| | Onaysız alarm? | En yeni onaysız orta/yüksek alarm, `Alarmı aç` ve `Detaya geç (O)`. Alarm yoksa diğer uydulardaki onaysız alarmları yazar |
+| **Parametreler** | Hangi kanal, limite ne kadar yakın? | Sekiz kutucuk: son değer, limit durumu ve sert/yumuşak/nominal bölgeli yatay gösterge. Sapan kanal kırmızı/amber, limit içinde ama tespit edilmiş kanal mor çerçeve ve `XAI #n` |
+| **Telemetri** | Nasıl değişiyor? | Yalnızca bir şey söyleyen ham kanallar büyük grafik olarak; AI skorları altta sabit. Hiçbir şey yoksa "Ham kanalların hepsi limit içinde" |
+| **Öneri** | Ne yapmalıyım? | Doğrulanan anomalinin aciliyet rozetli eylem önerisi; öncesinde "izlemeyi sürdür, komut gönderme" |
+| **Filo durumu** (alt sıra) | Başka uyduda sorun var mı? | Dokuz uydu kutucuğu: yükselti, görünürlük, alarm/onaysız sayısı; tıklayınca seçer |
+
+- **Telemetri istisna tabanlıdır.** Grafikte ham kanal yalnızca bir şey
+  söylüyorsa çizilir: limit dışındaysa, senaryo sürerken XAI kanıtı ya da
+  CUSUM kırılması onu adlandırdıysa, ya da son 90 s içinde ST[12] geçişi
+  olduysa (NOMİNAL'e dönüş dahil). Operatör sapmayan bir kanalı kutucuğuna
+  tıklayarak grafiğe **sabitleyebilir**.
 - **Sürüklenmede `ch_42` gizlenmez.** Saf bir "limit dışı" filtresi onu
   gizlerdi — kanal tasarım gereği limit içinde kalıyor ve demonun bütün
   mesajı bu. Kanal, XAI onu adlandırdığı an (t+48) belirir; daha önce değil,
   çünkü INFO paneli gibi özet modu da bir şey tespit edilmeden hikâyeyi
   açmaz. Senaryo bitince ya da `N` ile çekilir: motor XAI kanıtını
   temizlemediği için sinyaller aktif senaryoya kapılanır.
-- **Hiçbir şerit yerinden oynamaz.** Şeritler sabit 52 px'dir ve AI grubu
-  alta sabitlenir. Yükseklik tipik duruma değil **en kötü duruma** göre
-  seçildi: sekiz parametrenin hepsi aynı anda ilginç olabilir (örneğin nokta
-  senaryosundan hemen sonra kolektif). 8 × 52 + 24 = 440 px, kutu ~463 px.
-- **Karar büyür.** Durum bandındaki iki hüküm 26 → 44 px olur.
-- **Uyarı şeridi.** Sağ sütunun başında, en yeni onaysız orta/yüksek şiddetli
-  alarmı gösterir; `Alarmı aç` detay penceresini, `Detaya geç (O)` tam modu
-  açar. Şerit özet modunda **her zaman** yer kaplar (alarm yokken soluk bir
-  satırdır), böylece yeni bir alarm geldiğinde ekran operatörün gözü önünde
-  yeniden düzenlenmez. Ayrı bir ekran okuyucu duyurusu yapmaz —
-  `AlarmAnnouncer` zaten duyuruyor.
-- **Onaylanan alarmlar kuyruktan düşer**, kaç tanesinin gizlendiği alt
-  satırda yazar; hiçbir şey sessizce kaybolmaz.
-- **Gizlenenler:** OBT, SLE RAF ve istasyon alanları; kürenin tema
-  satırı, mozaik tazeleme durumu ve okuma satırı; Kepler kartı ve katalog satır ayrıntıları; paket
-  denetleyici şeridi (`P` yine açar); INFO'daki sayılar sütunu ve not şeridi;
-  geçiş planının filo listesi; XAI'nin sabit açıklama metni; tüm yardım ve
-  lejant satırları. **`SİMÜLE VERİ` rozeti her iki modda da görünür.**
-  Ankara yakın görüntüsünün atıf çipi de gizlenmez: ekrandaki görüntünün
-  kaynak bildirimidir. `ANKARA` düğmesi özet modunda da çalışır; tema satırı
-  gizli olduğu için OPS'tan FİZİKİ'ye geçişi kendisi yapar.
+- **AI şeritleri yerinden oynamaz.** Ham şeritler kalan yüksekliği paylaşır;
+  AI grubu altta sabittir. Sürüklenme, nokta ve kolektif senaryoları art arda
+  koşturulduğunda AI grubunun konumu değişmez, sağ sütun taşmaz (ölçüldü).
+  Küçük ekranda (1536×864) telemetri bölümü kendi içinde kayar.
+- **Uyarı satırı her zaman yer kaplar** (alarm yokken sakin bir satırdır);
+  yeni bir alarm geldiğinde pano operatörün gözü önünde yeniden
+  düzenlenmez. Ayrı bir ekran okuyucu duyurusu yapmaz — `AlarmAnnouncer`
+  zaten duyuruyor.
+- **Hüküm önceliği:** ST[12] sert ihlali > AI sert eşiği > ST[12] yumuşak
+  ihlali > AI yumuşak eşiği. Eşikler MIB'den okunur. Renk tek başına anlam
+  taşımaz: `● ▲ ◆` işaretleri ve durum sözcükleri her modda kalır.
+- **Özet modunda olmayanlar:** alarm kuyruğu ve geçiş planı (alarm ve temas
+  durum kartında), kürenin katalog listesi (seçim filo kutucuklarında; küre
+  genişler), OBT, SLE RAF, istasyon, temas ve seçili uydu alanları (durum
+  kartında), kürenin tema satırı, mozaik tazeleme durumu ve okuma satırı,
+  paket denetleyici şeridi (`P` yine açar), INFO paneli. **`SİMÜLE VERİ`
+  rozeti her iki modda da görünür.** Ankara yakın görüntüsünün atıf çipi de
+  gizlenmez: ekrandaki görüntünün kaynak bildirimidir. `ANKARA` düğmesi özet
+  modunda da çalışır; tema satırı gizli olduğu için OPS'tan FİZİKİ'ye geçişi
+  kendisi yapar.
 
 Mod kalıcı değildir; diğer görünüm modları gibi her açılışta kapalı başlar.
-Mekanizma erişilebilirlik ayarlarıyla aynıdır: `<html data-summary>` +
-`index.css`'teki `ozet-gizle` / `ozet-buyuk` / `ozet-genis` kuralları. Yalnızca
-gizlenince boşluk bırakacak yerlerde (telemetri, INFO ızgaraları, alarm
-kuyruğu) bileşen kendisi farklı çizer. Hangi bilginin kritik sayıldığı saf
-`src/engine/summary.ts` modülündedir ve gerçek simülasyon koşularıyla test
-edilir.
+Pano yeni veri üretmez: hepsi tam görünümün kullandığı kaynaklardan okunur.
+Her iki modda da çizilen öğeler (üst şerit, küre, XAI) `<html data-summary>`
+ve `index.css`'teki `ozet-gizle` / `ozet-tam` / `ozet-sol` kurallarıyla
+sadeleşir. Hangi bilginin kritik sayıldığı ve hüküm saf
+`src/engine/summary.ts` modülündedir, limit göstergesinin bölgeleri
+`src/ui/gosterge.ts`'tedir; ikisi de birim testlidir (hüküm gerçek
+simülasyon koşularıyla).
 
 **Senaryo konsolu.** Üç senaryo düğmesi, beş kademeli şiddet kaydırıcısı ve
 nominal akışa dönüş.
@@ -617,6 +629,8 @@ src/
     orbit.ts            SGP4, AOS/LOS, geçiş tahmini, gökyüzü izi, Kepler elemanları
     simulation.ts       hepsini birleştiren düzenleyici
   components/           arayüz (her panel bir dosya)
+  components/OzetPanosu.tsx  özet modunun sağ sütunu (durum kartı, parametreler, grafik, öneri)
+  components/OzetFilo.tsx    özet modunun filo durumu kutucukları
   ui/colors.ts          durum renkleri
   ui/earthTexture.ts    zemin dokuları (4 tema) ve Ankara parçasının dokusu
   ui/yakinGoruntu.ts    yakın görüntü: parça eşlemesi, irtifaya bağlı kamera ayarları
@@ -1027,7 +1041,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-161 test, on iki dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/fleet.test.ts` (18), `src/engine/summary.test.ts` (17), `src/engine/satelliteInfo.test.ts` (15), `src/ui/yakinGoruntu.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
+174 test, on üç dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/summary.test.ts` (24), `src/engine/fleet.test.ts` (18), `src/engine/satelliteInfo.test.ts` (15), `src/ui/yakinGoruntu.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/gosterge.test.ts` (6), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -1059,6 +1073,9 @@ npm test
 | Özet modu: hiçbir şey tespit edilmeden `ch_42` çizilmez (2 uydu × 3 şiddet) | hikâye tespitten önce açılmaz |
 | Özet modu: senaryo bitince / `N` ile XAI kanıtı şeridi tutmaz | motor kanıtı temizlemiyor; kapı telafi eder |
 | Özet modu: ST[12] tutması ihlalden değil NOMİNAL'e dönüşten sayılır | uzun süren ihlal limite döndüğü an kaybolmasın |
+| Özet panosu hükmü: ST[12] sert > AI sert > ST[12] yumuşak > AI yumuşak; KONTRAST yalnızca limitler sessizken | tek hüküm yanlış kaynağı göstermesin |
+| Özet panosu hükmü gerçek koşuda: sürüklenme doğrulanınca `◆ ALARM` + KONTRAST, nokta ihlalinde `▲ ALARM` | demonun iki ana anı panoda doğru okunur |
+| Limit göstergesi bölgeleri aralığı boşluksuz kaplar, sınırları MIB limitleriyle aynı | kutucuktaki imleç yanlış bölgede görünmesin |
 | Yakın görüntü parçasının köşeleri enlem/boylamla birebir örtüşür, kuzey yukarıda | yanlış eşleme şehri 60 km kaydırır ya da aynalar |
 | İstasyon ve Kızılay parçanın yumuşatılmamış iç bölgesinde | kenar yumuşatması kritik yeri soldurmasın |
 | Eski yakınlaşma sınırının üstünde tekerlek, işaretçi ve kırpma değerleri aynı; sürükleme hızı LEO/TÜMÜ ön ayarlarında aynı | yakın görüntü bugünkü küre davranışını bozmaz |

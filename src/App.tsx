@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useConsole } from './store';
 import TopBar from './components/TopBar';
-import OzetAlarmSeridi from './components/OzetAlarmSeridi';
+import OzetPanosu from './components/OzetPanosu';
+import OzetFilo from './components/OzetFilo';
 import GlobeView from './components/GlobeView';
 import TelemetryPanel from './components/TelemetryPanel';
 import PacketInspector, { PacketInspectorBar } from './components/PacketInspector';
@@ -147,25 +148,38 @@ export default function App() {
         {/* Sag sutun kendi icinde kayar: yuksek arayuz olceginde Durum seridi
             kirpilmaz, kaydirilarak okunur. */}
         <div className="flex flex-col min-h-0 gap-px overflow-y-auto">
-          {summaryMode && <OzetAlarmSeridi />}
-          <TelemetryPanel />
-          <PacketInspectorBar />
-          {/* Ozet modunda InfoPanel yalnizca tespit + ONERI tasir; kazanilan yer
-              telemetri seritlerine ve buyuyen Durum hukmune kalir. */}
-          <div className={summaryMode ? 'h-[132px] shrink min-h-[100px] flex flex-col' : 'h-[196px] shrink min-h-[120px] flex flex-col'}>
-            <InfoPanel />
-          </div>
-          <StatusBand />
+          {/* Ozet modu tam gorunumun panellerini gizlemez, kendi panosunu cizer. */}
+          {summaryMode ? (
+            <OzetPanosu />
+          ) : (
+            <>
+              <TelemetryPanel />
+              <PacketInspectorBar />
+              <div className="h-[196px] shrink min-h-[120px] flex flex-col">
+                <InfoPanel />
+              </div>
+              <StatusBand />
+            </>
+          )}
         </div>
       </main>
       {/* Alt sira oransal: 1920'de eski sabit genisliklere (300/490/430/700) denk gelir,
-          1536'da alarm kuyrugu 100 px'e sikismaz. */}
-      <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,22%)_minmax(0,36%)] gap-px">
-        <ScenarioConsole />
-        <AlarmQueue />
-        <PassBoard />
-        <XaiPanel />
-      </div>
+          1536'da alarm kuyrugu 100 px'e sikismaz. Ozet modunda alarm kuyrugu ve
+          gecis plani yerine filo durumu gelir (alarm ve temas durum kartinda). */}
+      {summaryMode ? (
+        <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,36%)] gap-px">
+          <ScenarioConsole />
+          <OzetFilo />
+          <XaiPanel />
+        </div>
+      ) : (
+        <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,22%)_minmax(0,36%)] gap-px">
+          <ScenarioConsole />
+          <AlarmQueue />
+          <PassBoard />
+          <XaiPanel />
+        </div>
+      )}
       <PacketInspector />
       <AlarmDetail />
       <AccessibilityPanel />
