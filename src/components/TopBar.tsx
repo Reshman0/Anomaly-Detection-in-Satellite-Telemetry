@@ -13,9 +13,25 @@ import UyduBilgiPenceresi from './UyduBilgiPenceresi';
  * kirpiliyordu. Uc satirda en genis parca kadar yer kaplar, hicbir sey
  * kirpilmaz; serit sigmazsa alanlar alt satira sarar.
  */
-function Field({ label, sub, title, children }: { label: string; sub?: React.ReactNode; title?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  sub,
+  title,
+  className,
+  children,
+}: {
+  label: string;
+  sub?: React.ReactNode;
+  title?: string;
+  /** Ek sinif — ozet modunda alanin tamamini gizlemek icin `ozet-gizle`. */
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col justify-center px-2 border-r border-ops-line shrink-0 grow whitespace-nowrap" title={title}>
+    <div
+      className={'flex flex-col justify-center px-2 border-r border-ops-line shrink-0 grow whitespace-nowrap' + (className ? ' ' + className : '')}
+      title={title}
+    >
       <div className="text-3xs uppercase tracking-[0.14em] text-ops-faint leading-none">{label}</div>
       <div className="num text-[13px] leading-[15px] mt-[2px]">{children}</div>
       {sub !== undefined && <div className="num text-[10px] leading-[12px] text-ops-faint">{sub}</div>}
@@ -31,6 +47,8 @@ export default function TopBar() {
   const setPacketOpen = useConsole((s) => s.setPacketOpen);
   const setA11yOpen = useConsole((s) => s.setA11yOpen);
   const a11y = useConsole((s) => s.a11y);
+  const summaryMode = useConsole((s) => s.summaryMode);
+  const setSummaryMode = useConsole((s) => s.setSummaryMode);
   const a11yActive =
     a11y.contrast !== 'normal' || a11y.colorVision !== 'normal' || a11y.scale !== 1 || a11y.reduceMotion || a11y.boldText || a11y.patternCoding;
   useConsole((s) => s.version);
@@ -71,7 +89,7 @@ export default function TopBar() {
         <span className="text-ops-text">{fmtTimeMs(utcMs)}</span>
       </Field>
 
-      <Field label="OBT" sub={'ofset ' + MIB.obt_offset_s.toFixed(3) + ' s'} title="Uydu üstü zaman: yer zamanından sabit ofset kadar kaymış">
+      <Field className="ozet-gizle" label="OBT" sub={'ofset ' + MIB.obt_offset_s.toFixed(3) + ' s'} title="Uydu üstü zaman: yer zamanından sabit ofset kadar kaymış">
         <span className="text-ops-dim">{fmtTimeMs(obtMs)}</span>
       </Field>
 
@@ -96,11 +114,11 @@ export default function TopBar() {
         </div>
       </div>
 
-      <Field label="SLE RAF" sub="RCF: READY" title="SLE RAF/RCF · CCSDS 911.1 uzay bağlantısı">
+      <Field className="ozet-gizle" label="SLE RAF" sub="RCF: READY" title="SLE RAF/RCF · CCSDS 911.1 uzay bağlantısı">
         <span className={visible ? 'text-ops-nominal' : 'text-ops-dim'}>{visible ? 'ACTIVE' : 'READY'}</span>
       </Field>
 
-      <Field label="İstasyon" sub={GROUND_STATION.lat_deg.toFixed(3) + '°N ' + GROUND_STATION.lon_deg.toFixed(3) + '°E'}>
+      <Field className="ozet-gizle" label="İstasyon" sub={GROUND_STATION.lat_deg.toFixed(3) + '°N ' + GROUND_STATION.lon_deg.toFixed(3) + '°E'}>
         <span className="text-ops-text">{GROUND_STATION.name}</span>
       </Field>
 
@@ -131,7 +149,7 @@ export default function TopBar() {
         title={sat.name + ' · ' + sat.orbitClass + ' · TLE yaşı ' + tleAge + ' gün · model ' + MIB.mission}
       >
         <span className="text-ops-text">{sat.name}</span>
-        <span className="text-ops-faint ml-2 text-[11px]">
+        <span className="ozet-gizle text-ops-faint ml-2 text-[11px]">
           {sat.orbitClass} · TLE {tleAge} gün
         </span>
       </Field>
@@ -154,6 +172,18 @@ export default function TopBar() {
           }
         >
           Erişim{a11yActive ? ' ●' : ''}
+        </button>
+        {/* "Mod" eki: AlarmDetail'deki ÖZET sekmesiyle karismasin. */}
+        <button
+          onClick={() => setSummaryMode(!summaryMode)}
+          aria-pressed={summaryMode}
+          title={summaryMode ? 'Özet mod açık — tüm detayı göster (O)' : 'Özet mod: yalnızca kritik bilgi, detay gizlenir (O)'}
+          className={
+            'num text-[10px] tracking-[0.12em] uppercase px-2 py-[3px] border leading-none whitespace-nowrap ' +
+            (summaryMode ? 'border-ops-nominal text-ops-nominal' : 'border-ops-line2 text-ops-dim hover:text-ops-text')
+          }
+        >
+          Özet mod{summaryMode ? ' ●' : ''}
         </button>
         <UyduBilgiPenceresi />
         <div className="border border-ops-soft/60 text-ops-soft text-[10px] tracking-[0.14em] uppercase px-2 py-[3px] leading-none whitespace-nowrap" title="Simüle veri — kavramsal gösterim">

@@ -16,6 +16,18 @@ interface Props {
   attentionRank: number;
   /** CUSUM ile bulunan yapisal kirilma ani (gorev saniyesi); yalnizca hedef kanalda. */
   breakT?: number | null;
+  /**
+   * Ozet modu: sabit yukseklik. `flex-1` seritler gorunur serit sayisi
+   * degistikce boy degistirir; izlenen bir serit, yeni bir serit belirdigi an
+   * kuculurdu. Sabit yukseklikte hicbir serit yerinden oynamaz.
+   *
+   * 52 px, tipik duruma degil EN KOTU duruma gore secildi: 8 parametrenin
+   * hepsi ayni anda ilginc olabilir (ornegin nokta senaryosundan hemen sonra
+   * kolektif: ch_11 90 s tutmada kalir + uc kolektif kanal). 8 x 52 + 24 =
+   * 440 px, 1920x1080'de serit kutusu ~463 px. Kutu tasarsa alta sabitli AI
+   * grubu da kayardi.
+   */
+  compact?: boolean;
 }
 
 /** Kanit yuklenmeden once modelin baktigi pencere (saniye). */
@@ -189,7 +201,7 @@ function drawStrip(
  * Daha kisa pencerelerde serit kutusu kaydirir; seritler birbirinin ustune
  * tasmaz (overflow-hidden).
  */
-export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null }: Props) {
+export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null, compact = false }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const version = useConsole((s) => s.version);
 
@@ -201,7 +213,35 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
   const [lo, hi] = range(p);
 
   return (
-    <div className="flex items-stretch flex-1 min-h-[64px] shrink-0 border-b border-ops-line overflow-hidden">
+    <div
+      className={
+        compact
+          ? 'flex items-stretch h-[52px] flex-none border-b border-ops-line overflow-hidden'
+          : 'flex items-stretch flex-1 min-h-[64px] shrink-0 border-b border-ops-line overflow-hidden'
+      }
+    >
+      {compact ? (
+        // Iki satir: ad + muhendislik degeri + XAI rozeti / durum. Uc satirli tam
+        // etiket ~66 px ister; bu 52 px'lik seride rahat sigar.
+        <div className="w-[228px] shrink-0 px-2 py-[3px] border-r border-ops-line flex flex-col justify-center gap-[3px] overflow-hidden">
+          {/* Sabit satir yuksekligi: XAI rozeti (kenarlikli, 15 px) belirince
+              satir buyuyup ortalanmis ad 1 px kaymasin. */}
+          <div className="h-[15px] flex items-center gap-1.5 whitespace-nowrap">
+            {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
+            <span className="num text-[13px] leading-none text-ops-text">{p.pid}</span>
+            <span className={'num text-[14px] leading-none ' + stateTextClass(state)}>
+              {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
+              <span className="text-ops-faint text-[11px] ml-1">{p.eng_unit}</span>
+            </span>
+            {attention && (
+              <span className="ml-auto text-3xs tracking-[0.1em] text-ops-ai border border-ops-ai/50 px-1 leading-[13px]">
+                XAI #{attentionRank}
+              </span>
+            )}
+          </div>
+          <span className={'text-3xs uppercase tracking-[0.12em] leading-none ' + stateTextClass(state)}>{stateLabel(state)}</span>
+        </div>
+      ) : (
       <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between overflow-hidden">
         <div className="flex items-center gap-1.5">
           {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
@@ -237,10 +277,11 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
           </span>
         </div>
       </div>
+      )}
       <div className="relative flex-1 min-w-0">
         <canvas ref={ref} className="absolute inset-0 w-full h-full" />
-        <span className="absolute right-1 top-0 num text-3xs text-ops-faint">{hi.toFixed(1)}</span>
-        <span className="absolute right-1 bottom-0 num text-3xs text-ops-faint">{lo.toFixed(1)}</span>
+        <span className="ozet-gizle absolute right-1 top-0 num text-3xs text-ops-faint">{hi.toFixed(1)}</span>
+        <span className="ozet-gizle absolute right-1 bottom-0 num text-3xs text-ops-faint">{lo.toFixed(1)}</span>
       </div>
     </div>
   );

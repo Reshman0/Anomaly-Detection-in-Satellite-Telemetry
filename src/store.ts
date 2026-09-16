@@ -37,6 +37,12 @@ interface ConsoleState {
   /** Secili alarmin uydusu — alarm baska bir uydunun kuyrugundan gelmis olabilir. */
   selectedAlarmNorad: string | null;
   alarmScope: AlarmScope;
+  /**
+   * Ozet modu: yalnizca kritik bilgi. Paneller yerinde kalir, detay gizlenir
+   * (bkz. index.css `html[data-summary]`, engine/summary.ts). Kalici degil —
+   * diger gorunum modlari gibi her acilista kapali baslar.
+   */
+  summaryMode: boolean;
   xaiLevel: 1 | 2 | 3;
   /** Ust seritteki AOS/LOS, yorunge izi ve gorus vektorunu suren uydu. */
   selectedNorad: string;
@@ -65,6 +71,7 @@ interface ConsoleState {
   selectAlarm: (a: Alarm | null) => void;
   ackAlarm: (id: number, norad: string) => void;
   setAlarmScope: (scope: AlarmScope) => void;
+  setSummaryMode: (on: boolean) => void;
   setXaiLevel: (l: 1 | 2 | 3) => void;
   selectSatellite: (norad: string) => void;
   setGlobeView: (v: GlobeView) => void;
@@ -93,6 +100,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   selectedAlarmId: null,
   selectedAlarmNorad: null,
   alarmScope: 'sat',
+  summaryMode: false,
   xaiLevel: 1,
   selectedNorad: DEFAULT_NORAD,
   globeView: 'ALL',
@@ -140,6 +148,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
     set((s) => ({ version: s.version + 1 }));
   },
   setAlarmScope: (alarmScope) => set({ alarmScope }),
+  setSummaryMode: (summaryMode) => set({ summaryMode }),
   setXaiLevel: (xaiLevel) => set({ xaiLevel }),
 
   // Uydu secimi artik simulasyonu da secer: senaryo bu uyduya enjekte edilir,

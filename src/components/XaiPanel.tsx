@@ -92,8 +92,10 @@ export default function XaiPanel() {
           {!current ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
               Bu adımda henüz bir şey gelmedi.
-              <br />
-              Bir senaryo başlatın, model çıktıları sırayla gelir.
+              <span className="ozet-gizle">
+                <br />
+                Bir senaryo başlatın, model çıktıları sırayla gelir.
+              </span>
             </div>
           ) : !scenario ? (
             <div className="text-[11px] text-ops-faint text-center px-3 leading-relaxed">
@@ -129,7 +131,7 @@ export default function XaiPanel() {
         <div className="w-[190px] shrink-0 border-l border-ops-line p-2 flex flex-col gap-2 overflow-hidden">
           {current ? (
             <>
-              <div>
+              <div className="ozet-gizle">
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Ne gösteriyor</div>
                 <div className="text-[11px] text-ops-ai leading-snug mt-[2px]">{LEVEL_ANLAM[current.level]}</div>
               </div>
@@ -151,14 +153,14 @@ export default function XaiPanel() {
                 </div>
               </div>
               {current.band && (
-                <div>
+                <div className="ozet-gizle">
                   <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sapmanın sıklığı</div>
                   <div className="num text-[12px] text-ops-text mt-[2px]">{current.band}</div>
                 </div>
               )}
             </>
           ) : (
-            <div className="text-3xs text-ops-faint leading-relaxed">
+            <div className="ozet-gizle text-3xs text-ops-faint leading-relaxed">
               Kanıt gelince model adını, öne çıkan kanalları ve frekans bandını burada göreceksiniz.
             </div>
           )}

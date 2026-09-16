@@ -304,6 +304,52 @@ tahsisleridir, APID'ler gibi.
 **Durum bandı.** Solda ST[12] sabit limit durumu, sağda AI tespiti. İkisi
 ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi belirir.
 
+**Özet mod.** Üst şeritteki `ÖZET MOD` düğmesi (ya da `O`) ekranı yalnızca
+kritik bilgiye indirir. Havacılık ve uzay operasyonlarındaki *declutter* /
+*dark cockpit* ilkesi: nominalde ekran sessiz, sapmada parlak. Görünür metin
+öğesi aynı anda **670 → 286** (−%57) düşer.
+
+- **Paneller yerinde kalır.** Ayrı bir düzen değildir; operatör modu açıp
+  kapatırken gözü ne nerede arıyorsa orada bulur. Başlık yüksekliği ve küre
+  tuvali değişmez.
+- **Telemetri istisna tabanlıdır.** Limit içindeki parametreler tek satırda
+  toplanır (`5 parametre limit içinde — gizli: …`); yalnızca bir şey söyleyen
+  şeritler çizilir: AI skorları (her zaman), limit dışı kanallar, senaryo
+  sürerken XAI kanıtının ve CUSUM kırılmasının adlandırdığı kanallar, ve son
+  90 s içinde ST[12] geçişi olanlar (NOMİNAL'e dönüş dahil).
+- **Sürüklenmede `ch_42` gizlenmez.** Saf bir "limit dışı" filtresi onu
+  gizlerdi — kanal tasarım gereği limit içinde kalıyor ve demonun bütün
+  mesajı bu. Kanal, XAI onu adlandırdığı an (t+48) belirir; daha önce değil,
+  çünkü INFO paneli gibi özet modu da bir şey tespit edilmeden hikâyeyi
+  açmaz. Senaryo bitince ya da `N` ile çekilir: motor XAI kanıtını
+  temizlemediği için sinyaller aktif senaryoya kapılanır.
+- **Hiçbir şerit yerinden oynamaz.** Şeritler sabit 52 px'dir ve AI grubu
+  alta sabitlenir. Yükseklik tipik duruma değil **en kötü duruma** göre
+  seçildi: sekiz parametrenin hepsi aynı anda ilginç olabilir (örneğin nokta
+  senaryosundan hemen sonra kolektif). 8 × 52 + 24 = 440 px, kutu ~463 px.
+- **Karar büyür.** Durum bandındaki iki hüküm 26 → 44 px olur.
+- **Uyarı şeridi.** Sağ sütunun başında, en yeni onaysız orta/yüksek şiddetli
+  alarmı gösterir; `Alarmı aç` detay penceresini, `Detaya geç (O)` tam modu
+  açar. Şerit özet modunda **her zaman** yer kaplar (alarm yokken soluk bir
+  satırdır), böylece yeni bir alarm geldiğinde ekran operatörün gözü önünde
+  yeniden düzenlenmez. Ayrı bir ekran okuyucu duyurusu yapmaz —
+  `AlarmAnnouncer` zaten duyuruyor.
+- **Onaylanan alarmlar kuyruktan düşer**, kaç tanesinin gizlendiği alt
+  satırda yazar; hiçbir şey sessizce kaybolmaz.
+- **Gizlenenler:** OBT, SLE RAF ve istasyon alanları; küre lejantı, tema
+  satırı ve okuma satırı; Kepler kartı ve katalog satır ayrıntıları; paket
+  denetleyici şeridi (`P` yine açar); INFO'daki sayılar sütunu ve not şeridi;
+  geçiş planının filo listesi; XAI'nin sabit açıklama metni; tüm yardım ve
+  lejant satırları. **`SİMÜLE VERİ` rozeti her iki modda da görünür.**
+
+Mod kalıcı değildir; diğer görünüm modları gibi her açılışta kapalı başlar.
+Mekanizma erişilebilirlik ayarlarıyla aynıdır: `<html data-summary>` +
+`index.css`'teki `ozet-gizle` / `ozet-buyuk` / `ozet-genis` kuralları. Yalnızca
+gizlenince boşluk bırakacak yerlerde (telemetri, INFO ızgaraları, alarm
+kuyruğu) bileşen kendisi farklı çizer. Hangi bilginin kritik sayıldığı saf
+`src/engine/summary.ts` modülündedir ve gerçek simülasyon koşularıyla test
+edilir.
+
 **Senaryo konsolu.** Üç senaryo düğmesi, beş kademeli şiddet kaydırıcısı ve
 nominal akışa dönüş.
 
@@ -475,6 +521,7 @@ Sunum sırasında fareye uzanmadan:
 | `M` | Dünya: 3B küre ↔ 2B eşdikdörtgen harita |
 | `P` | Paket denetleyici penceresini aç/kapat |
 | `A` | Erişilebilirlik ayar penceresi |
+| `O` (Türkçe klavyede `Ö` de) | Özet mod: yalnızca kritik bilgi (aç/kapat) |
 | `Ctrl +` / `Ctrl −` / `Ctrl 0` | Arayüz ölçeği (tarayıcı yakınlaştırması değil; canvas'lar birlikte ölçeklenir) |
 | `Esc` | Açık pencereyi kapat |
 
@@ -888,7 +935,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-94 test, altı dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (32), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
+144 test, on bir dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/fleet.test.ts` (18), `src/engine/summary.test.ts` (17), `src/engine/satelliteInfo.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/ui/kameraTakip.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -916,6 +963,10 @@ npm test
 | Zaman aşımı, HTTP hatası ve eksik başlık doğru ayrışır | salon wifi'sinde asılı kalmamak |
 | Gömülü `gibs_current.json` biçimi ve katman adı doğru | yarım yazılmış çekimi CI yakalar |
 | Türkiye'nin üstü boş olan gün elenir (908 bayt ↔ 28 000 bayt) | eksik şeritle demoya çıkmamak; boyut tabanı bunu yakalamaz |
+| Özet modu: sürüklenmede `ch_42` tespitten sonra çizilir, limit içinde kalmasına rağmen | demonun ana kontrastı özet modunda da görünür |
+| Özet modu: hiçbir şey tespit edilmeden `ch_42` çizilmez (2 uydu × 3 şiddet) | hikâye tespitten önce açılmaz |
+| Özet modu: senaryo bitince / `N` ile XAI kanıtı şeridi tutmaz | motor kanıtı temizlemiyor; kapı telafi eder |
+| Özet modu: ST[12] tutması ihlalden değil NOMİNAL'e dönüşten sayılır | uzun süren ihlal limite döndüğü an kaybolmasın |
 
 ---
 

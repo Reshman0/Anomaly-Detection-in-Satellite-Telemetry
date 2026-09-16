@@ -91,7 +91,8 @@ export function PacketInspectorBar() {
       title="CCSDS paket / çerçeve / CADU denetleyicisini aç (P)"
       className={
         // Sigmayan parcalar alt satira sarar: yuksek arayuz olceginde de hicbiri kirpilmaz.
-        'panel shrink-0 min-h-[26px] flex flex-wrap items-center gap-x-3 px-2 py-[2px] text-left transition-colors ' +
+        // Ozet modunda serit tamamen gizlenir; P tusu pencereyi yine acar.
+        'ozet-gizle panel shrink-0 min-h-[26px] flex flex-wrap items-center gap-x-3 px-2 py-[2px] text-left transition-colors ' +
         (open ? 'border-ops-text bg-ops-sunken' : 'hover:bg-white/[0.035]')
       }
     >

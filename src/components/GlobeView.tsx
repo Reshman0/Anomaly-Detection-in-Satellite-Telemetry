@@ -668,7 +668,7 @@ export default function GlobeView() {
             TAKİP
           </button>
         </div>
-        <div className="absolute right-2 top-[26px] flex gap-[3px]">
+        <div className="ozet-gizle absolute right-2 top-[26px] flex gap-[3px]">
           {(['ops', 'political', 'physical', 'current'] as const).map((t) => (
             <button
               key={t}
@@ -738,12 +738,12 @@ export default function GlobeView() {
         <div
           ref={readout}
           className={
-            'absolute left-[204px] bottom-2 max-w-[calc(100%-212px)] num text-3xs text-ops-dim leading-[13px] bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
+            'ozet-gizle absolute left-[204px] bottom-2 max-w-[calc(100%-212px)] num text-3xs text-ops-dim leading-[13px] bg-ops-sunken/85 px-1.5 py-1 pointer-events-none' +
             (mapMode === '2D' ? ' hidden' : '')
           }
         />
         {mapMode === '3D' ? (
-          <div className="absolute right-2 top-[52px] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[min(60%,calc(100%-212px))]">
+          <div className="ozet-gizle absolute right-2 top-[52px] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-1 pointer-events-none leading-relaxed text-right max-w-[min(60%,calc(100%-212px))]">
             <div>
               <span className="text-ops-nominal">●</span> {GROUND_STATION.name} · görüş konisi ≥
               {GROUND_STATION.min_elevation_deg}°
@@ -765,7 +765,7 @@ export default function GlobeView() {
           /* 2B: harita alani degerli, lejand tek satir; ayrintisi title'da. */
           <div
             // Uydu listesinin (sol 196 px) ustune binmesin: sigmazsa alt satira sarar.
-            className="absolute right-2 bottom-2 max-w-[calc(100%-212px)] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-[2px] pointer-events-none leading-[13px]"
+            className="ozet-gizle absolute right-2 bottom-2 max-w-[calc(100%-212px)] text-3xs text-ops-faint bg-ops-sunken/85 px-1.5 py-[2px] pointer-events-none leading-[13px]"
             title={
               'Eşdikdörtgen izdüşüm · sürükle: kaydır · tekerlek: yakınlaş · çift tık: sıfırla · uyduya tıkla: seç · ' +
               'kesikli daire: istasyon görüş konisi · terminatör ve atmosfer efekti eklenmedi · ' +

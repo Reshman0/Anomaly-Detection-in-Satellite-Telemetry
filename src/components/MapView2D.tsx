@@ -464,7 +464,7 @@ export default function MapView2D() {
         ref={readout}
         // Gorunum dugmelerinin ALTINDA durur; boylece tam genislik kullanip
         // satira sigmayan okumayi alt satira sarabilir.
-        className="absolute left-2 top-[56px] max-w-[calc(100%-16px)] num text-3xs text-ops-dim leading-[13px] bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
+        className="ozet-gizle absolute left-2 top-[56px] max-w-[calc(100%-16px)] num text-3xs text-ops-dim leading-[13px] bg-ops-sunken/85 px-1.5 py-1 pointer-events-none"
       />
     </div>
   );
