@@ -18,8 +18,13 @@ import { SCENARIOS } from '../engine/scenarioRunner';
  * adim ses bitince ilerler. Yoksa `durationMs` kadar beklenir; altyazi her
  * durumda ekrandadir.
  */
+export type TourId = 'tam' | 'ozet';
+
 export interface TourStep {
+  /** Adim kimligi; ses dosyasinin adi da budur (`audio/<id>.mp3`). */
   id: string;
+  /** Hedef panelin `data-tour` degeri; verilmezse `id`. Ayni panel iki kez gezilebilir. */
+  target?: string;
   /** Ilerleme seridi ve hedef etiketi icin kisa ad. */
   short: string;
   title: string;
@@ -42,6 +47,18 @@ export function audioFor(id: string): string | undefined {
   return AUDIO[`./audio/${id}.mp3`];
 }
 
+/** Tur tam gorunumdeki panelleri gezer; Ozet modunda bu panellerin cogu yoktur. */
+function showFullConsole() {
+  const st = useConsole.getState();
+  if (st.summaryMode) st.setSummaryMode(false);
+}
+
+/** Ozet turu Ozet modunun panellerini gezer. */
+function showSummary() {
+  const st = useConsole.getState();
+  if (!st.summaryMode) st.setSummaryMode(true);
+}
+
 function startDrift() {
   const st = useConsole.getState();
   const drift = SCENARIOS.find((s) => s.id === 'drift');
@@ -58,6 +75,7 @@ export const TOUR_STEPS: TourStep[] = [
       'Görev adı, yer saati (UTC) ile uydu saati (OBT), yer istasyonu bağlantısı ve seçili uydu. Operatör “şu an uyduya erişebiliyor muyum?” sorusunun cevabını buradan okur.',
     look: 'AOS / LOS geri sayımı: uyduyla bağlantı penceresinin açılmasına ya da kapanmasına kalan süre.',
     durationMs: 10000,
+    onEnter: showFullConsole,
   },
   {
     id: 'dunya',
@@ -142,3 +160,109 @@ export const TOUR_STEPS: TourStep[] = [
     durationMs: 9000,
   },
 ];
+
+/**
+ * Ozet gorunum turu. Genel durum karti iki kez gezilir: once sakin hali, sonra
+ * suruklenme ilerledikten sonra (sabit limit NOMINAL, AI tespiti alarm).
+ * Zamanlama: suruklenme `oz-senaryo` adiminda baslar; `oz-durum-alarm`
+ * ~60 s, `oz-xai` ~90 s (3/3 kanit), `oz-oneri` ~100 s sonra (oneri 76 s'de gelir).
+ */
+export const OZET_STEPS: TourStep[] = [
+  {
+    id: 'oz-durum',
+    target: 'oz-durum',
+    short: 'Durum',
+    title: 'Özet görünüm: genel durum',
+    caption:
+      'Özet görünüm operatörün tek bakışta okuyacağı hükümdür: uydunun genel durumu, istasyonla temas penceresi ve anomali izleme aşaması tek bir kartta.',
+    look: 'Soldaki iki rozet: uydunun kendi sabit limit kontrolü ve yapay zekâ tespiti ayrı ayrı yazılır.',
+    durationMs: 10000,
+    onEnter: showSummary,
+  },
+  {
+    id: 'oz-senaryo',
+    target: 'senaryo',
+    short: 'Senaryo',
+    title: 'Senaryo konsolu',
+    caption:
+      'Gösterim için anomali senaryoları. Şimdi yavaş sürüklenme başlatıldı; özet görünümün bu sırada nasıl değiştiğini izleyeceğiz. Senaryolar gösterim amaçlı kurgulanmıştır.',
+    look: 'Seçili düğme: çalışan senaryo “Yavaş sürüklenme”.',
+    durationMs: 9000,
+    onEnter: startDrift,
+  },
+  {
+    id: 'oz-parametre',
+    target: 'oz-parametre',
+    short: 'Parametre',
+    title: 'Parametreler',
+    caption:
+      'Her kanalın son değeri ve limit bandındaki yeri. Grafik okumadan “değer nerede duruyor?” sorusunun cevabı; ◆ işaretli kutular yapay zekâ skorları.',
+    look: 'Renkli çubuktaki ince çizgi: değerin yeşil (nominal), sarı (uyarı) ve kırmızı (kritik) bölgeye göre konumu.',
+    durationMs: 11000,
+  },
+  {
+    id: 'oz-filo',
+    target: 'oz-filo',
+    short: 'Filo',
+    title: 'Filo durumu',
+    caption:
+      'Katalogdaki Türk uydularının kısa durumu: istasyondan görünüyor mu, yükseltisi kaç derece, onaysız alarmı var mı. Bir karta tıklamak o uyduyu seçer.',
+    look: '“SEÇİLİ” etiketli kart: şu an izlenen uydu.',
+    durationMs: 10000,
+  },
+  {
+    id: 'oz-telemetri',
+    target: 'oz-telemetri',
+    short: 'Telemetri',
+    title: 'Yalnızca dikkat isteyen kanallar',
+    caption:
+      'Özet görünüm her kanalı çizmez: sapan ya da operatörün sabitlediği kanallar kendiliğinden açılır. Yapay zekâ skorları her zaman altta durur.',
+    look: 'Kendiliğinden açılan ch_42: değeri hâlâ limit içinde, ama model onu dikkat isteyen kanal olarak işaretledi.',
+    durationMs: 11000,
+  },
+  {
+    id: 'oz-durum-alarm',
+    target: 'oz-durum',
+    short: 'Kontrast',
+    title: 'Aynı kart, birkaç saniye sonra',
+    caption:
+      'Sabit limit hâlâ NOMİNAL derken yapay zekâ skoru eşiği geçti: kart önce İZLEME, skor büyüdükçe ALARM der ve “KONTRAST” diye işaretlenir. Altındaki şerit onaysız alarmı gösterir. Sorun, limit aşılmadan önce görünür.',
+    look: 'İki rozet farklı söylüyor: ST[12] sabit limit NOMİNAL, AI tespiti İZLEME ya da ALARM.',
+    durationMs: 12000,
+  },
+  {
+    id: 'oz-dunya',
+    target: 'dunya',
+    short: 'Harita',
+    title: 'Harita',
+    caption:
+      'Özet görünümde uydu listesi gizlenir, harita genişler: uyduların anlık konumu (TLE + SGP4) ve Kahramankazan istasyonunun görüş alanı.',
+    look: 'Kesik daire: istasyonun uyduyu 5° üstünde görebildiği alan.',
+    durationMs: 10000,
+  },
+  {
+    id: 'oz-xai',
+    target: 'xai',
+    short: 'XAI',
+    title: 'Model neden alarm verdi?',
+    caption:
+      'Açıklanabilirlik paneli üç seviyede cevap verir: hangi anda, hangi kanalda ve hangi frekans yapısında sapma var. Operatör yalnızca alarmı değil, gerekçesini görür.',
+    look: 'Üç sekme: nerede sapmış, hangi kanal, ısı haritası. Sağda sorumlu kanal ve model.',
+    durationMs: 12000,
+  },
+  {
+    id: 'oz-oneri',
+    target: 'oz-oneri',
+    short: 'Öneri',
+    title: 'Öneri',
+    caption:
+      'Doğrulanan anomali için operatöre önerilen eylem, tek satırda. Ayrıntısı tam görünümdeki bildirimlerde.',
+    look: 'Soldaki rozet önerinin aciliyeti; yanında önerilen eylem.',
+    durationMs: 9000,
+  },
+];
+
+export const TOURS: Record<TourId, TourStep[]> = {
+  tam: TOUR_STEPS,
+  ozet: OZET_STEPS,
+};

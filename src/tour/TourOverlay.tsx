@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useConsole } from '../store';
-import { TOUR_STEPS, audioFor } from './tourScript';
+import { TOURS, audioFor } from './tourScript';
 import { useTour } from './tourStore';
 
 /**
@@ -81,23 +81,60 @@ interface Placement {
   scale: number;
 }
 
-function placeFor(layout: Layout, r: Rect, vw: number, vh: number): Placement {
+/** Alt karttan once kalan dikey alan (ust kenar, alt kenar). */
+function freeBand(vh: number, cardH: number) {
+  const top = vh * 0.03;
+  const bottom = vh - vh * 0.03 - cardH - Math.max(14, vh * 0.02);
+  return { top, bottom: Math.max(top + 80, bottom) };
+}
+
+function placeFor(layout: Layout, r: Rect, vw: number, vh: number, cardH: number): Placement {
   if (layout === 'side') {
     return { cx: vw * 0.33, cy: vh * 0.5, scale: Math.min((vw * 0.56) / r.width, (vh * 0.9) / r.height, 1.9) };
   }
   if (layout === 'wide') {
     return { cx: vw / 2, cy: vh * 0.12, scale: stripScale(r, vw) };
   }
-  return { cx: vw / 2, cy: vh * 0.36, scale: Math.min((vw * 0.92) / r.width, (vh * 0.6) / r.height, 1.9) };
+  const band = freeBand(vh, cardH);
+  const h = band.bottom - band.top;
+  return {
+    cx: vw / 2,
+    cy: (band.top + band.bottom) / 2,
+    scale: Math.min((vw * 0.92) / r.width, h / r.height, 1.9),
+  };
+}
+
+/**
+ * html2canvas yazinin taban cizgisini gizli bir 1x1 <img> ile olcer. Tailwind
+ * preflight'i `img { display: block }` yaptigi icin bu resim alt satira duser,
+ * olcum sasar ve tum yazilar goruntude birkac piksel asagi cizilir (rozet ve
+ * dugme yazilari cerceveye biner). Kural yalnizca o olcum resmini hedefler.
+ */
+const METRIC_FIX_ID = 'tour-h2c-metric-fix';
+function fixFontMetrics() {
+  if (document.getElementById(METRIC_FIX_ID)) return;
+  const s = document.createElement('style');
+  s.id = METRIC_FIX_ID;
+  s.textContent = 'img[src^="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP"]{display:inline!important}';
+  document.head.appendChild(s);
 }
 
 async function capture(target: HTMLElement, panelScale: number): Promise<Shot> {
+  fixFontMetrics();
   const root = document.getElementById('root') ?? document.body;
   const canvas = await html2canvas(root, {
     backgroundColor: null,
     logging: false,
     scale: panelScale,
     ignoreElements: (el) => el.hasAttribute('data-tour-overlay'),
+    // html2canvas metni tarayicidan birkac piksel asagi cizer; `truncate`
+    // (overflow: hidden) kutularinda harflerin alti kesilir. Yalnizca kopyada ve
+    // yalnizca gercekten sigan yazilarda kirpmayi kaldir.
+    onclone: (doc) => {
+      doc.querySelectorAll<HTMLElement>('.truncate').forEach((el) => {
+        if (el.scrollWidth <= el.clientWidth + 1) el.style.overflow = 'visible';
+      });
+    },
   });
   const rr = root.getBoundingClientRect();
   const tr = target.getBoundingClientRect();
@@ -146,6 +183,8 @@ const KEYFRAMES = `
 export default function TourOverlay() {
   const active = useTour((s) => s.active);
   const stepIndex = useTour((s) => s.stepIndex);
+  const tourId = useTour((s) => s.tour);
+  const steps = TOURS[tourId];
   const stop = useTour((s) => s.stop);
   const reduceMotion = useConsole((s) => s.a11y.reduceMotion);
 
@@ -156,13 +195,16 @@ export default function TourOverlay() {
   const [stepMs, setStepMs] = useState(0);
   /** Kartta gosterilen adim: kart kaybolurken siradaki adimin metni gorunmesin. */
   const [cardIndex, setCardIndex] = useState(0);
+  /** Kartin olculen yuksekligi: buyutulen panel kartin ustune yerlestirilir. */
+  const [cardH, setCardH] = useState(260);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const shotRef = useRef<Shot | null>(null);
   const ringRef = useRef<Rect | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   shotRef.current = shot;
   ringRef.current = ring;
 
-  const step = TOUR_STEPS[stepIndex];
+  const step = steps[stepIndex];
 
   // Tur kapaninca her seyi birak.
   useEffect(() => {
@@ -171,6 +213,16 @@ export default function TourOverlay() {
     setRing(null);
     setRingAnim(false);
     setPhase('idle');
+  }, [active]);
+
+  // Kart yuksekligi ekran boyutuna ve metne gore degisir; olc.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!active || !el) return;
+    const ro = new ResizeObserver(() => setCardH(el.offsetHeight));
+    ro.observe(el);
+    setCardH(el.offsetHeight);
+    return () => ro.disconnect();
   }, [active]);
 
   // Esc turu kapatir.
@@ -214,9 +266,10 @@ export default function TourOverlay() {
       await sleep(120);
       if (cancelled) return;
 
-      const target = document.querySelector<HTMLElement>(`[data-tour="${step.id}"]`);
+      const targetId = step.target ?? step.id;
+      const target = document.querySelector<HTMLElement>(`[data-tour="${targetId}"]`);
       if (!target || target.getBoundingClientRect().width < 2) {
-        console.warn(`[tur] Hedef bulunamadı: data-tour="${step.id}" — adım atlanıyor.`);
+        console.warn(`[tur] Hedef bulunamadı: data-tour="${targetId}" — adım atlanıyor.`);
         timer = setTimeout(advance, 400);
         return;
       }
@@ -250,13 +303,13 @@ export default function TourOverlay() {
       // 3) Panel yerinden kalkar ve ortaya ucar.
       setRing(next.from);
       setShot(next);
+      setCardIndex(stepIndex);
       setPhase('lift');
       await nextFrames();
       if (cancelled) return;
       setPhase('raise');
       await sleep(m(T.raise));
       if (cancelled) return;
-      setCardIndex(stepIndex);
       setPhase('show');
 
       // 4) Anlatim: ses varsa ses kadar, yoksa durationMs.
@@ -264,7 +317,10 @@ export default function TourOverlay() {
         setStepMs(ms);
         timer = setTimeout(advance, ms);
       };
-      const src = audioFor(step.id);
+      // `?sessiz`: stantta iki monitorde iki tur ayni anda konusmasin diye bu
+      // pencere yalnizca altyaziyla doner.
+      const muted = new URLSearchParams(window.location.search).has('sessiz');
+      const src = muted ? undefined : audioFor(step.id);
       if (!src) {
         hold(step.durationMs);
         return;
@@ -290,7 +346,7 @@ export default function TourOverlay() {
         audioRef.current = null;
       }
     };
-  }, [active, stepIndex, step, reduceMotion]);
+  }, [active, tourId, stepIndex, step, reduceMotion]);
 
   if (!active || !step) return null;
 
@@ -302,7 +358,7 @@ export default function TourOverlay() {
 
   const origin = shot?.from ?? ring;
   const layout: Layout = origin ? layoutFor(origin, vw) : 'bottom';
-  const place = shot ? placeFor(layout, shot.from, vw, vh) : null;
+  const place = shot ? placeFor(layout, shot.from, vw, vh, cardH) : null;
 
   // --- Hedef cercevesi (yuva) ---
   let ringEl: React.ReactNode = null;
@@ -459,7 +515,7 @@ export default function TourOverlay() {
       const stripH = height * place.scale;
       const partW = width * PART;
       const top0 = place.cy + stripH / 2 + 34;
-      const avail = vh * 0.7 - top0;
+      const avail = freeBand(vh, cardH).bottom - top0;
       const GAP = 36;
       const hs = Math.min((vw * 0.92) / partW, 3, (avail - GAP) / (2 * height));
       const w = partW * hs;
@@ -499,9 +555,10 @@ export default function TourOverlay() {
 
   // --- Aciklama karti ---
   const side = layout === 'side';
-  const cs = TOUR_STEPS[cardIndex] ?? step;
+  const cs = steps[cardIndex] ?? step;
   const card = (
     <div
+      ref={cardRef}
       className="absolute"
       aria-live="polite"
       style={{
@@ -513,7 +570,7 @@ export default function TourOverlay() {
         border: `1px solid ${acc(0.35)}`,
         borderTop: `4px solid ${acc(1)}`,
         boxShadow: `0 20px 60px rgb(0 0 0 / 0.6), 0 0 40px ${acc(0.12)}`,
-        padding: '18px 26px 20px',
+        padding: 'clamp(12px, 1.7vh, 18px) clamp(16px, 1.4vw, 26px) clamp(14px, 1.9vh, 20px)',
         opacity: showing ? 1 : 0,
         transition: `opacity ${dur(showing ? 450 : 200)}ms ease ${dur(showing ? 250 : 0)}ms`,
       }}
@@ -521,7 +578,7 @@ export default function TourOverlay() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-[13px] uppercase tracking-[0.2em] font-semibold" style={{ color: acc(1) }}>
-            AzSonra · tanıtım turu
+            AzSonra · tanıtım turu{tourId === 'ozet' ? ' · özet görünüm' : ''}
           </span>
           <span className="text-[11px] uppercase tracking-[0.14em] px-2 py-[1px] border border-white/30 text-white/70">
             simüle veri
@@ -531,13 +588,13 @@ export default function TourOverlay() {
           <span style={{ color: INK }} className="text-[22px] font-semibold">
             {pad2(cardIndex + 1)}
           </span>{' '}
-          / {pad2(TOUR_STEPS.length)}
+          / {pad2(steps.length)}
         </span>
       </div>
 
       {/* Adim seridi */}
       <div className="flex gap-[5px] mt-3">
-        {TOUR_STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <div key={s.id} className="flex-1 min-w-0">
             <div
               className="h-[6px]"
@@ -558,10 +615,10 @@ export default function TourOverlay() {
         ))}
       </div>
 
-      <div className="text-[34px] leading-[1.15] font-semibold mt-3" style={{ color: INK }}>
+      <div className="leading-[1.15] font-semibold mt-3" style={{ color: INK, fontSize: 'clamp(22px, 3.15vh, 34px)' }}>
         {cs.title}
       </div>
-      <div className="text-[21px] leading-[1.45] mt-2" style={{ color: INK_SOFT }}>
+      <div className="leading-[1.45] mt-2" style={{ color: INK_SOFT, fontSize: 'clamp(15px, 1.95vh, 21px)' }}>
         {cs.caption}
       </div>
       <div
@@ -571,7 +628,7 @@ export default function TourOverlay() {
         <span className="text-[13px] uppercase tracking-[0.16em] font-bold shrink-0" style={{ color: acc(1) }}>
           ▸ Buraya bakın
         </span>
-        <span className="text-[19px] leading-[1.4]" style={{ color: INK }}>
+        <span className="leading-[1.4]" style={{ color: INK, fontSize: 'clamp(14px, 1.76vh, 19px)' }}>
           {cs.look}
         </span>
       </div>
@@ -594,6 +651,7 @@ export default function TourOverlay() {
       data-tour-overlay=""
       data-tour-phase={phase}
       data-tour-step={step.id}
+      data-tour-shown={showing ? cs.id : ''}
       className="fixed inset-0 z-[1000] select-none overflow-hidden"
       role="dialog"
       aria-label="Tanıtım turu"

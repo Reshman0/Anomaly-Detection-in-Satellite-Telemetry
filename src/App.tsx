@@ -127,10 +127,13 @@ export default function App() {
   }, [summaryMode]);
 
   // Stant/kiosk: adres `?tur` iceriyorsa tanitim turu kendiliginden baslar
-  // (orn. dist/index.html?tur). Tarayici sesi engellerse tur altyazili surer.
+  // (orn. dist/index.html?tur = tam gorunum, ?tur=ozet = Ozet gorunum).
+  // Tarayici sesi engellerse tur altyazili surer.
   useEffect(() => {
-    if (!new URLSearchParams(window.location.search).has('tur')) return;
-    const t = setTimeout(() => useTour.getState().start(), 3000);
+    const q = new URLSearchParams(window.location.search);
+    if (!q.has('tur')) return;
+    const tour = q.get('tur') === 'ozet' ? 'ozet' : 'tam';
+    const t = setTimeout(() => useTour.getState().start(tour), 3000);
     return () => clearTimeout(t);
   }, []);
 
