@@ -109,7 +109,7 @@ export default function ScenarioConsole() {
                   panelde baslik iki satira kirilip kutudan tasiyordu. */}
               <div className="min-w-0">
                 <div className={'text-[12px] leading-tight ' + (isActive ? 'text-ops-ai' : 'text-ops-text')}>{s.button}</div>
-                <div className="num text-3xs text-ops-faint leading-[12px]">{s.model}</div>
+                <div className="ozet-gizle num text-3xs text-ops-faint leading-[12px]">{s.model}</div>
               </div>
               {isActive && (
                 <div className="h-[2px] bg-ops-line2 mt-1.5">

@@ -6,9 +6,9 @@ import { MIB } from './mib';
 /**
  * SGP4 yorunge yayilimi (satellite.js). TLE'ler dosyaya gomuludur; agdan cekilmez.
  *
- * Katalog Turkiye'nin yorungedeki uydularini icerir: TURKSAT GEO haberlesme
- * filosu, yer gozlem uydulari, Plan-S Connecta IoT takimyildizi ve akademik
- * kucuk uydular.
+ * Katalog Turkiye'nin AKTIF uydularini icerir: TURKSAT GEO haberlesme filosu
+ * (4A ve sonrasi) ve yer gozlem uydulari. Aktiflik kaynagi ve ekran adlarinin
+ * katalog adlarindan farki satellites.json'da (`_scope`, `_names`) yazar.
  *
  * Firlatma yili, yorunge sinifi, periyot ve GEO istasyon tutumu gostergesi
  * TLE'den HESAPLANIR; satellites.json'da iddia edilmez (yonerge §0).

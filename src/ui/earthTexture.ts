@@ -5,6 +5,9 @@ import countries from '../data/countries_110m.json';
 import bmngUrl from '../assets/earth/bmng_2048.jpg';
 import gibsUrl from '../assets/earth/gibs_current.jpg';
 import gibsMeta from '../assets/earth/gibs_current.json';
+import ankaraUrl from '../assets/earth/ankara_hls.jpg';
+import ankaraMetaJson from '../assets/earth/ankara_hls.json';
+import { FEATHER } from './yakinGoruntu';
 import { DEFAULT_TIMEOUT_MS, availableDate, fetchSnapshot, isPlausibleSnapshot, snapshotUrl } from './gibs';
 import type { EarthTheme } from '../store';
 
@@ -86,6 +89,13 @@ bmngImage.onerror = () => {
   bmngWaiters.splice(0).forEach((f) => f());
 };
 bmngImage.src = bmngUrl; // derlemede base64 olarak gomulur; ag istegi yok
+
+/**
+ * Goruntu temalarinda (fiziki, guncel) Turkiye'nin %18 sari vurgusu. Ankara
+ * yakin goruntusune de ayni ton uygulanir; yoksa parcanin kenarinda renk
+ * dikisi olusurdu.
+ */
+const TURKIYE_TINT = 'rgba(240,184,58,0.18)';
 
 /** Blue Marble yuklendiginde (ya da hemen) cagirir. */
 export function onBmng(cb: () => void): void {
@@ -304,7 +314,7 @@ function buildPhysicalCanvas(): HTMLCanvasElement {
     tracePolyline(g, line, false);
     g.stroke();
   }
-  drawTurkiyeOverlay(g, 'rgba(240,184,58,0.18)', '#ffe08a', 5);
+  drawTurkiyeOverlay(g, TURKIYE_TINT, '#ffe08a', 5);
   return cv;
 }
 
@@ -336,7 +346,7 @@ function redrawCurrent(src: CanvasImageSource): void {
     tracePolyline(g, line, false);
     g.stroke();
   }
-  drawTurkiyeOverlay(g, 'rgba(240,184,58,0.18)', '#ffe08a', 5);
+  drawTurkiyeOverlay(g, TURKIYE_TINT, '#ffe08a', 5);
   g.setTransform(1, 0, 0, 1, 0, 0);
 }
 
@@ -413,5 +423,92 @@ export function earthCanvas(theme: EarthTheme): HTMLCanvasElement | null {
           ? buildCurrentCanvas()
           : buildPhysicalCanvas();
   cache.set(theme, cv);
+  return cv;
+}
+
+// ---------------------------------------------------------------------------
+// ANKARA YAKIN GORUNTUSU: NASA HLS S30 (Sentinel-2), 30 m
+// ---------------------------------------------------------------------------
+
+/**
+ * Pakete gomulu bolgesel goruntu (scripts/fetch-ankara.mjs). Kure yakina
+ * gelince bu goruntu ayri bir parca olarak cizilir (GlobeView). Ag istegi yok.
+ */
+export interface AnkaraMeta {
+  date: string;
+  layer: string;
+  satellite: string;
+  bbox: { south: number; west: number; north: number; east: number };
+  width: number;
+  height: number;
+  resolution_m: number;
+  doi: string;
+  credit: string;
+}
+export const ankaraMeta = ankaraMetaJson as AnkaraMeta;
+
+const ankaraImage = new Image();
+let ankaraReady = false;
+const ankaraWaiters: (() => void)[] = [];
+ankaraImage.onload = () => {
+  ankaraReady = true;
+  ankaraWaiters.splice(0).forEach((f) => f());
+};
+// Cozulemezse parca hic gosterilmez; bekleyenler bosaltilir.
+ankaraImage.onerror = () => {
+  ankaraWaiters.splice(0);
+};
+ankaraImage.src = ankaraUrl; // derlemede base64 olarak gomulur; ag istegi yok
+
+/** Goruntu hazir olunca (ya da hemen) cagirir; aboneligi iptal eden fonksiyon doner. */
+export function onAnkara(cb: () => void): () => void {
+  if (ankaraReady) {
+    cb();
+    return () => {};
+  }
+  ankaraWaiters.push(cb);
+  return () => {
+    const i = ankaraWaiters.indexOf(cb);
+    if (i >= 0) ankaraWaiters.splice(i, 1);
+  };
+}
+
+let ankaraCv: HTMLCanvasElement | null = null;
+
+/**
+ * Parca dokusu: goruntu + cevreyle ayni Turkiye tonu + kenarlarda yumusak
+ * saydamlik. Cevre zemin ~20 km/piksel oldugu icin gecis kusursuz olamaz;
+ * amac sert bir dikdortgen kenari yumusatmak. Istasyon ve Kizilay tamamen
+ * opak ic bolgede kalir (bkz. yakinGoruntu.test.ts).
+ */
+export function ankaraCanvas(): HTMLCanvasElement | null {
+  if (!ankaraReady) return null;
+  if (ankaraCv) return ankaraCv;
+  const w = ankaraImage.naturalWidth;
+  const h = ankaraImage.naturalHeight;
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const g = cv.getContext('2d')!;
+  g.drawImage(ankaraImage, 0, 0);
+  // Ankara tamamen Turkiye icinde: cevre zeminle ayni vurgu.
+  g.fillStyle = TURKIYE_TINT;
+  g.fillRect(0, 0, w, h);
+
+  // Kenar yumusatma: once yatay, sonra dikey alfa maskesi.
+  g.globalCompositeOperation = 'destination-in';
+  const mask = (grad: CanvasGradient) => {
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(FEATHER, 'rgba(0,0,0,1)');
+    grad.addColorStop(1 - FEATHER, 'rgba(0,0,0,1)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, w, h);
+  };
+  mask(g.createLinearGradient(0, 0, w, 0));
+  mask(g.createLinearGradient(0, 0, 0, h));
+  g.globalCompositeOperation = 'source-over';
+
+  ankaraCv = cv;
   return cv;
 }

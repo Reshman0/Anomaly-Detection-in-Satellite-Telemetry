@@ -4,6 +4,7 @@ import { WINDOW_S } from '../engine/simulation';
 import { stateLabel } from '../engine/limitChecker';
 import { subsystemName } from '../engine/mib';
 import { COLOR, alpha, stateHex, stateTextClass } from '../ui/colors';
+import { valueRange } from '../ui/gosterge';
 import type { LimitState, MibParameter, Sample } from '../engine/types';
 
 interface Props {
@@ -16,19 +17,18 @@ interface Props {
   attentionRank: number;
   /** CUSUM ile bulunan yapisal kirilma ani (gorev saniyesi); yalnizca hedef kanalda. */
   breakT?: number | null;
+  /**
+   * Ozet panosu: dar, iki satirli etiket (ad + deger + durum). Deger ayrintisi
+   * (ham, alt sistem, orneklem) panonun parametre kutucuklarinda durur; grafik
+   * genis kalir. Yuksekligi `boxClass` belirler.
+   */
+  compact?: boolean;
+  /** Kapsayicinin boyut siniflari (yalnizca `compact`). Varsayilan sabit 52 px. */
+  boxClass?: string;
 }
 
 /** Kanit yuklenmeden once modelin baktigi pencere (saniye). */
 export const ATTENTION_WINDOW_S = 60;
-
-/** Serit dusey araligi: sert limit bandinin biraz disi. */
-function range(p: MibParameter): [number, number] {
-  const l = p.limits;
-  const hi = l.hard_high ?? 5;
-  const lo = l.hard_low ?? 0;
-  const pad = (hi - lo) * 0.12;
-  return [lo - pad, hi + pad];
-}
 
 function drawStrip(
   cv: HTMLCanvasElement,
@@ -52,7 +52,7 @@ function drawStrip(
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
 
-  const [lo, hi] = range(p);
+  const [lo, hi] = valueRange(p);
   const y = (v: number) => h - ((v - lo) / (hi - lo)) * h;
   const t0 = missionT - WINDOW_S;
   const x = (t: number) => ((t - t0) / WINDOW_S) * w;
@@ -189,7 +189,17 @@ function drawStrip(
  * Daha kisa pencerelerde serit kutusu kaydirir; seritler birbirinin ustune
  * tasmaz (overflow-hidden).
  */
-export default function TelemetryStrip({ p, buf, state, missionT, attention, attentionRank, breakT = null }: Props) {
+export default function TelemetryStrip({
+  p,
+  buf,
+  state,
+  missionT,
+  attention,
+  attentionRank,
+  breakT = null,
+  compact = false,
+  boxClass = 'h-[52px] flex-none',
+}: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const version = useConsole((s) => s.version);
 
@@ -198,10 +208,38 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
   }, [version, p, buf, state, missionT, attention, breakT]);
 
   const last = buf[buf.length - 1];
-  const [lo, hi] = range(p);
+  const [lo, hi] = valueRange(p);
 
   return (
-    <div className="flex items-stretch flex-1 min-h-[64px] shrink-0 border-b border-ops-line overflow-hidden">
+    <div
+      className={
+        compact
+          ? 'flex items-stretch border-b border-ops-line overflow-hidden ' + boxClass
+          : 'flex items-stretch flex-1 min-h-[64px] shrink-0 border-b border-ops-line overflow-hidden'
+      }
+    >
+      {compact ? (
+        // Iki satir: ad + XAI rozeti / deger + durum. En kisa seritte (44 px) de sigar.
+        <div className="w-[176px] shrink-0 px-2 py-[3px] border-r border-ops-line flex flex-col justify-center gap-[4px] overflow-hidden">
+          {/* Sabit satir yuksekligi: XAI rozeti (kenarlikli, 15 px) belirince
+              satir buyuyup ortalanmis ad 1 px kaymasin. */}
+          <div className="h-[15px] flex items-center gap-1.5 whitespace-nowrap">
+            {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
+            <span className="num text-[13px] leading-none text-ops-text">{p.pid}</span>
+            {attention && (
+              <span className="ml-auto text-3xs tracking-[0.1em] text-ops-ai border border-ops-ai/50 px-1 leading-[13px]">
+                XAI #{attentionRank}
+              </span>
+            )}
+          </div>
+          <div className="flex items-baseline gap-2 whitespace-nowrap">
+            <span className={'num text-[14px] leading-none ' + stateTextClass(state)}>
+              {last ? (last.eng >= 0 ? '+' : '') + last.eng.toFixed(3) : '—'}
+            </span>
+            <span className={'text-3xs uppercase tracking-[0.12em] leading-none ' + stateTextClass(state)}>{stateLabel(state)}</span>
+          </div>
+        </div>
+      ) : (
       <div className="w-[228px] shrink-0 px-2 py-1 border-r border-ops-line flex flex-col justify-between overflow-hidden">
         <div className="flex items-center gap-1.5">
           {p.derived && <span className="text-ops-ai text-[11px] leading-none">◆</span>}
@@ -237,10 +275,11 @@ export default function TelemetryStrip({ p, buf, state, missionT, attention, att
           </span>
         </div>
       </div>
+      )}
       <div className="relative flex-1 min-w-0">
         <canvas ref={ref} className="absolute inset-0 w-full h-full" />
-        <span className="absolute right-1 top-0 num text-3xs text-ops-faint">{hi.toFixed(1)}</span>
-        <span className="absolute right-1 bottom-0 num text-3xs text-ops-faint">{lo.toFixed(1)}</span>
+        <span className="ozet-gizle absolute right-1 top-0 num text-3xs text-ops-faint">{hi.toFixed(1)}</span>
+        <span className="ozet-gizle absolute right-1 bottom-0 num text-3xs text-ops-faint">{lo.toFixed(1)}</span>
       </div>
     </div>
   );

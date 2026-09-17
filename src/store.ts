@@ -9,7 +9,8 @@ import { applyA11y, buildPalette, clearA11y, loadA11y, saveA11y, type A11ySettin
 import { setPalette } from './ui/colors';
 
 /** Kure cerceveleme onayari: LEO'ya yakinlas ya da GEO halkasi dahil hepsini sigdir. */
-export type GlobeView = 'LEO' | 'ALL';
+/** ANKARA: Ankara yakin goruntusu (NASA HLS, 30 m) — kamera ~110 km'ye iner. */
+export type GlobeView = 'LEO' | 'ALL' | 'ANKARA';
 /**
  * Dunya zemini temasi: operasyon (koyu), siyasi harita, fiziki (NASA Blue
  * Marble, Aralik 2004), guncel (NASA GIBS gunluk VIIRS mozaigi).
@@ -37,6 +38,12 @@ interface ConsoleState {
   /** Secili alarmin uydusu — alarm baska bir uydunun kuyrugundan gelmis olabilir. */
   selectedAlarmNorad: string | null;
   alarmScope: AlarmScope;
+  /**
+   * Ozet modu: yalnizca kritik bilgi. Paneller yerinde kalir, detay gizlenir
+   * (bkz. index.css `html[data-summary]`, engine/summary.ts). Kalici degil —
+   * diger gorunum modlari gibi her acilista kapali baslar.
+   */
+  summaryMode: boolean;
   xaiLevel: 1 | 2 | 3;
   /** Ust seritteki AOS/LOS, yorunge izi ve gorus vektorunu suren uydu. */
   selectedNorad: string;
@@ -65,6 +72,7 @@ interface ConsoleState {
   selectAlarm: (a: Alarm | null) => void;
   ackAlarm: (id: number, norad: string) => void;
   setAlarmScope: (scope: AlarmScope) => void;
+  setSummaryMode: (on: boolean) => void;
   setXaiLevel: (l: 1 | 2 | 3) => void;
   selectSatellite: (norad: string) => void;
   setGlobeView: (v: GlobeView) => void;
@@ -93,6 +101,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
   selectedAlarmId: null,
   selectedAlarmNorad: null,
   alarmScope: 'sat',
+  summaryMode: false,
   xaiLevel: 1,
   selectedNorad: DEFAULT_NORAD,
   globeView: 'ALL',
@@ -140,6 +149,7 @@ export const useConsole = create<ConsoleState>((set, get) => ({
     set((s) => ({ version: s.version + 1 }));
   },
   setAlarmScope: (alarmScope) => set({ alarmScope }),
+  setSummaryMode: (summaryMode) => set({ summaryMode }),
   setXaiLevel: (xaiLevel) => set({ xaiLevel }),
 
   // Uydu secimi artik simulasyonu da secer: senaryo bu uyduya enjekte edilir,
@@ -157,8 +167,28 @@ export const useConsole = create<ConsoleState>((set, get) => ({
       version: s.version + 1,
     }));
   },
-  setGlobeView: (globeView) => set((s) => ({ globeView, globeFitNonce: s.globeFitNonce + 1, followSat: false })),
-  setFollow: (followSat) => set({ followSat }),
+  setGlobeView: (globeView) =>
+    set((s) => ({
+      globeView,
+      globeFitNonce: s.globeFitNonce + 1,
+      followSat: false,
+      // Yakin goruntu yalnizca 3B'de ve goruntu temalarinda (fiziki/guncel)
+      // cizilir. OPS/SIYASI'deyken fiziki zemine gecilir (emsal: setMapMode).
+      ...(globeView === 'ANKARA'
+        ? {
+            mapMode: '3D' as MapMode,
+            earthTheme: s.earthTheme === 'ops' || s.earthTheme === 'political' ? ('physical' as EarthTheme) : s.earthTheme,
+          }
+        : {}),
+    })),
+  // Yakin goruntudeyken takip acilirsa LEO cercevesine cikilir: ~110 km'de
+  // takip edilen uydu kameranin arkasinda kalirdi.
+  setFollow: (followSat) =>
+    set((s) =>
+      followSat && s.globeView === 'ANKARA'
+        ? { followSat, globeView: 'LEO', globeFitNonce: s.globeFitNonce + 1 }
+        : { followSat },
+    ),
   setEarthTheme: (earthTheme) => set({ earthTheme }),
   setImageryDaysBack: (imageryDaysBack) => set({ imageryDaysBack }),
   // 2B haritaya ilk gecis: koyu OPS zemini 2B'de anlamsiz kalir; fiziki (gercek

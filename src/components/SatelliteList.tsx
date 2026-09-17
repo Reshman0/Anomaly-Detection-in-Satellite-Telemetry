@@ -39,15 +39,16 @@ export default function SatelliteList() {
   const el = elementsOf(selSat);
 
   return (
-    <div className="absolute left-0 top-0 bottom-0 w-[196px] bg-ops-sunken border-r border-ops-line flex flex-col">
+    // Ozet modunda gizlenir: ayni bilgi ve secim alt siradaki filo kutucuklarinda.
+    <div className="ozet-gizle absolute left-0 top-0 bottom-0 w-[196px] bg-ops-sunken border-r border-ops-line flex flex-col">
     <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="px-2 py-1 border-b border-ops-line sticky top-0 bg-ops-sunken z-10">
         <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Uydu kataloğu</div>
-        <div className="text-3xs text-ops-faint mt-[1px]">
+        <div className="ozet-gizle text-3xs text-ops-faint mt-[1px]">
           gerçek zamanlı yükselti · ≥{GROUND_STATION.min_elevation_deg}° görünür
         </div>
         <div
-          className="text-3xs text-ops-faint mt-[1px]"
+          className="ozet-gizle text-3xs text-ops-faint mt-[1px]"
           title="Gerçek uyduların uçuş MIB'leri kamuya açık değildir. Her uydu, AZS-DEMO referans parametre setinin NORAD ile tohumlanmış bir örneğini koşar; uydurma SCID veya parametre adı kullanılmaz (yönerge §0)."
         >
           telemetri: AZS-DEMO referans modeli · NORAD tohumlu
@@ -125,9 +126,13 @@ export default function SatelliteList() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 text-3xs text-ops-faint leading-tight">
-                    <span className="num">{sat.orbitClass}</span>
-                    <span className="num">{sat.launchYear}</span>
-                    {b ? <span className={b.cls}>{b.text}</span> : <span className="num">{sat.periodMin.toFixed(0)} dk</span>}
+                    <span className="ozet-gizle num">{sat.orbitClass}</span>
+                    <span className="ozet-gizle num">{sat.launchYear}</span>
+                    {b ? (
+                      <span className={'ozet-gizle ' + b.cls}>{b.text}</span>
+                    ) : (
+                      <span className="ozet-gizle num">{sat.periodMin.toFixed(0)} dk</span>
+                    )}
                     {sum && sum.alarms > 0 && (
                       <span className={'num ml-auto shrink-0 ' + sv!.text}>
                         {sum.unacked > 0 ? sum.unacked + '/' + sum.alarms : sum.alarms} alarm
@@ -143,7 +148,7 @@ export default function SatelliteList() {
     </div>
 
     {/* Secili uydunun Kepler elemanlari — dogrudan TLE'den okunur */}
-    <div className="shrink-0 border-t border-ops-line2 bg-ops-panel px-2 py-1.5">
+    <div className="ozet-gizle shrink-0 border-t border-ops-line2 bg-ops-panel px-2 py-1.5">
       <div className="flex items-baseline justify-between">
         <span className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Yörünge elemanları</span>
         <span className="num text-3xs text-ops-faint">{selSat.intlDes}</span>

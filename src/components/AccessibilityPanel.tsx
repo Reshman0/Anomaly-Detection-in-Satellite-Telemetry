@@ -252,8 +252,8 @@ export default function AccessibilityPanel() {
 
             <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint mt-3 mb-1">Klavye</div>
             <div className="text-3xs text-ops-dim leading-relaxed">
-              <div><span className="num text-ops-text">A</span> bu pencere · <span className="num text-ops-text">P</span> paket denetleyici · <span className="num text-ops-text">M</span> 3B/2B harita</div>
-              <div><span className="num text-ops-text">1 2 3</span> senaryo · <span className="num text-ops-text">N</span> nominal · <span className="num text-ops-text">L T</span> küre çerçevesi · <span className="num text-ops-text">F</span> takip · <span className="num text-ops-text">0</span> hız 1×</div>
+              <div><span className="num text-ops-text">A</span> bu pencere · <span className="num text-ops-text">P</span> paket denetleyici · <span className="num text-ops-text">M</span> 3B/2B harita · <span className="num text-ops-text">O</span> özet mod</div>
+              <div><span className="num text-ops-text">1 2 3</span> senaryo · <span className="num text-ops-text">N</span> nominal · <span className="num text-ops-text">L T</span> küre çerçevesi · <span className="num text-ops-text">Y</span> Ankara yakın · <span className="num text-ops-text">F</span> takip · <span className="num text-ops-text">0</span> hız 1×</div>
               <div><span className="num text-ops-text">Esc</span> açık pencereyi kapatır · <span className="num text-ops-text">Tab</span> ile tüm düğmeler gezilir</div>
             </div>
           </div>

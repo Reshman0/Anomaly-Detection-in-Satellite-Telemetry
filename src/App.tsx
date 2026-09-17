@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useConsole } from './store';
 import TopBar from './components/TopBar';
+import OzetPanosu from './components/OzetPanosu';
+import OzetFilo from './components/OzetFilo';
 import GlobeView from './components/GlobeView';
 import TelemetryPanel from './components/TelemetryPanel';
 import PacketInspector, { PacketInspectorBar } from './components/PacketInspector';
@@ -55,6 +57,16 @@ export default function App() {
       }
       if (st.packetOpen) return; // paket denetleyici penceresi acik
       switch (e.key) {
+        // Ozet modu. Pencere acikken calismaz (yukaridaki korumalar): arkadaki
+        // ekran operator gormeden yeniden duzenlenmesin. Turkce klavyede Ö
+        // tusu 'ö' gonderir; kucuk harfe cevirme yerel ayara bagli oldugu icin
+        // durumlar acikca yazilir.
+        case 'o':
+        case 'O':
+        case 'ö':
+        case 'Ö':
+          st.setSummaryMode(!st.summaryMode);
+          break;
         case 'a':
         case 'A':
           st.setA11yOpen(true);
@@ -82,6 +94,11 @@ export default function App() {
         case 'T':
           st.setGlobeView('ALL');
           break;
+        case 'y':
+        case 'Y':
+          // "yakin": Ankara yakin goruntusu (NASA HLS, 30 m).
+          st.setGlobeView('ANKARA');
+          break;
         case 'f':
         case 'F':
           st.setFollow(!st.followSat);
@@ -101,6 +118,13 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // Ozet modu <html>'e yazilir; CSS katmani (index.css) detayi oradan gizler.
+  // Erisilebilirlik bayraklari da ayni yoldan gider (ui/a11y.ts applyA11y).
+  const summaryMode = useConsole((s) => s.summaryMode);
+  useEffect(() => {
+    document.documentElement.dataset.summary = summaryMode ? '1' : '0';
+  }, [summaryMode]);
 
   // Stant/kiosk: adres `?tur` iceriyorsa tanitim turu kendiliginden baslar
   // (orn. dist/index.html?tur). Tarayici sesi engellerse tur altyazili surer.
@@ -138,22 +162,38 @@ export default function App() {
         {/* Sag sutun kendi icinde kayar: yuksek arayuz olceginde Durum seridi
             kirpilmaz, kaydirilarak okunur. */}
         <div className="flex flex-col min-h-0 gap-px overflow-y-auto">
-          <TelemetryPanel />
-          <PacketInspectorBar />
-          <div className="h-[196px] shrink min-h-[120px] flex flex-col">
-            <InfoPanel />
-          </div>
-          <StatusBand />
+          {/* Ozet modu tam gorunumun panellerini gizlemez, kendi panosunu cizer. */}
+          {summaryMode ? (
+            <OzetPanosu />
+          ) : (
+            <>
+              <TelemetryPanel />
+              <PacketInspectorBar />
+              <div className="h-[196px] shrink min-h-[120px] flex flex-col">
+                <InfoPanel />
+              </div>
+              <StatusBand />
+            </>
+          )}
         </div>
       </main>
       {/* Alt sira oransal: 1920'de eski sabit genisliklere (300/490/430/700) denk gelir,
-          1536'da alarm kuyrugu 100 px'e sikismaz. */}
-      <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,22%)_minmax(0,36%)] gap-px">
-        <ScenarioConsole />
-        <AlarmQueue />
-        <PassBoard />
-        <XaiPanel />
-      </div>
+          1536'da alarm kuyrugu 100 px'e sikismaz. Ozet modunda alarm kuyrugu ve
+          gecis plani yerine filo durumu gelir (alarm ve temas durum kartinda). */}
+      {summaryMode ? (
+        <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,36%)] gap-px">
+          <ScenarioConsole />
+          <OzetFilo />
+          <XaiPanel />
+        </div>
+      ) : (
+        <div className="h-[236px] shrink-0 grid grid-cols-[minmax(0,16%)_minmax(0,1fr)_minmax(0,22%)_minmax(0,36%)] gap-px">
+          <ScenarioConsole />
+          <AlarmQueue />
+          <PassBoard />
+          <XaiPanel />
+        </div>
+      )}
       <PacketInspector />
       <AlarmDetail />
       <AccessibilityPanel />

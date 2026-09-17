@@ -129,7 +129,7 @@ export default function XaiPanel() {
         <div className="w-[190px] shrink-0 border-l border-ops-line p-2 flex flex-col gap-2 overflow-hidden">
           {current ? (
             <>
-              <div>
+              <div className="ozet-gizle">
                 <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Ne gösteriyor</div>
                 <div className="text-[11px] text-ops-ai leading-snug mt-[2px]">{LEVEL_ANLAM[current.level]}</div>
               </div>
@@ -151,7 +151,7 @@ export default function XaiPanel() {
                 </div>
               </div>
               {current.band && (
-                <div>
+                <div className="ozet-gizle">
                   <div className="text-3xs uppercase tracking-[0.16em] text-ops-faint">Sapmanın sıklığı</div>
                   <div className="num text-[12px] text-ops-text mt-[2px]">{current.band}</div>
                 </div>

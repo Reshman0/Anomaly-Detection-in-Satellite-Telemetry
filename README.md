@@ -54,6 +54,7 @@ anonimleştirilmiş adlandırmasından gelir; bu yüzden mühendislik birimi yok
 | Senaryoları tohumlu ve tekrarlanabilir oynatır | Playback/geri sarma, çoklu operatör, hesap yönetimi sunmaz |
 | Tek dosya, internetsiz çalışır | Backend, veritabanı, WebSocket kullanmaz |
 | GÜNCEL temada gerçek NASA GIBS mozaiği gösterir (gömülü) | Mozaiği açılışta çekmez — yalnızca operatör `↻` derse |
+| Küre Ankara'ya yaklaşınca 30 m'lik gerçek görüntü gösterir (NASA HLS, gömülü) | Bu görüntüyü Göktürk görüntüsü diye sunmaz; ağdan çekmez |
 
 Ekranın bir köşesinde `SİMÜLE VERİ — KAVRAMSAL GÖSTERİM` rozeti **sürekli
 görünür.** Kaldırmayın.
@@ -96,10 +97,10 @@ npm run preview
 
 ### Dağıtım çıktısı
 
-`npm run build` **tek bir `dist/index.html` dosyası** üretir (~2,3 MB). Tüm
-JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri, XAI görselleri ve iki
-dünya dokusu (Blue Marble ~280 kB + GIBS günlük mozaik ~595 kB) bu dosyanın
-içine gömülüdür.
+`npm run build` **tek bir `dist/index.html` dosyası** üretir (~3,4 MB). Tüm
+JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri, XAI görselleri ve üç
+görüntü (Blue Marble ~280 kB + GIBS günlük mozaik ~595 kB + Ankara yakın
+görüntüsü ~812 kB) bu dosyanın içine gömülüdür.
 
 - İnternetsiz bir dizüstünde `file://` ile doğrudan açılır.
 - Basit bir statik sunucuyla da çalışır.
@@ -112,7 +113,7 @@ içine gömülüdür.
   basmadıkça hiçbir istek oluşmaz, bastığında tek bir GET atılır ve
   başarısız olursa gömülü mozaik ekranda kalır (bkz. §10 madde 6). Gün seçimi
   hem 3B kürede hem 2B haritada aynı düğme satırındadır; gösterilen mozaiğin
-  gerçek tarihi lejandda yazar (gömülü sürümün tarihi seçilen günden farklı
+  gerçek tarihi `↻` düğmesinin ipucunda yazar (gömülü sürümün tarihi seçilen günden farklı
   olabilir).
 - Fontlar sistem fontlarıdır (Consolas / Segoe UI ve yedekleri); indirilen font
   yoktur.
@@ -146,11 +147,11 @@ korelasyonu izlenimi), hız çarpanı, `SLE RAF` durumu (uydu görüş alanında
 `ACTIVE`, dışındayken `READY`), yer istasyonu, AOS/LOS geri sayımı, anlık
 yükselti açısı ve kullanılan TLE'nin yaşı.
 
-**Küre.** `satellite.js` ile gerçek SGP4. **Türkiye'nin yörüngedeki 32
-uydusunun tamamı** gerçek zamanlı konumlarıyla çizilir: TÜRKSAT GEO haberleşme
-filosu, yer gözlem uyduları (GÖKTÜRK, İMECE, RASAT, BİLSAT), Plan-S Connecta
-IoT takımyıldızı ve akademik küçük uydular. Her uydu için hem gövde işareti hem
-**yer izdüşümü** (dünya yüzeyindeki anlık konum) gösterilir.
+**Küre.** `satellite.js` ile gerçek SGP4. **Türkiye'nin 9 aktif uydusu**
+gerçek zamanlı konumlarıyla çizilir: TÜRKSAT GEO haberleşme filosu (4A, 4B, 5A,
+5B, 6A) ve yer gözlem uyduları (GÖKTÜRK-1, GÖKTÜRK-2, GÖKTÜRK-2B, RASAT). Her
+uydu için hem gövde işareti hem **yer izdüşümü** (dünya yüzeyindeki anlık
+konum) gösterilir.
 
 Soldaki katalog listesinden bir uydu seçilir; seçili uydu üst şeritteki AOS/LOS
 geri sayımını, yörünge izini, görüş konisini ve görüş vektörünü sürer.
@@ -169,8 +170,7 @@ verisinden bir canvas dokusu); hazır bir görüntü dosyası yüklenmez, dolay�
 > gerçek ölçekte çizilse küre noktaya dönerdi. Alçak yörüngede sapma %2'nin
 > altındadır, yukarıda logaritmik olarak sıkışır (GEO halkası ~2 yarıçapa
 > iner; kürenin ekranda büyük kalmasını bu sağlar). **Okunan km, derece ve
-> zaman değerleri her zaman gerçektir**; sıkıştırma yalnızca çizimdedir ve
-> ekranda yazılıdır.
+> zaman değerleri her zaman gerçektir**; sıkıştırma yalnızca çizimdedir.
 
 Küre durumsal farkındalık içindir. Telemetri akışı tek bir göreve — `AZS-DEMO`
 — aittir ve uydu seçiminden etkilenmez (yönerge §11: ikinci bir uydu misyonu
@@ -232,7 +232,10 @@ anda görünen her uyduya ince yeşil bir görüş vektörü çizilir; panel ba�
 görünen uydu sayısını gösterir.
 
 **Kamera takibi.** `TAKİP` düğmesi (ya da `F`) kamerayı seçili uydunun üzerine
-kilitler; dünya altında döner. Fareyle müdahale takibi keser.
+kilitler; dünya altında döner. Fareyle müdahale takibi keser. Kamera yüzeye
+yakınken takip açılırsa kamera birkaç karede eski yakınlaşma sınırına
+(~2230 km) yumuşakça çıkar; yoksa takip edilen uydu kameranın arkasında
+kalırdı. ANKARA görünümündeyken takip açılırsa LEO çerçevesine geçilir.
 
 **Zemin temaları.** Kürenin sağ üstündeki `OPS · SİYASİ · FİZİKİ · GÜNCEL` düğmeleri:
 
@@ -240,8 +243,8 @@ kilitler; dünya altında döner. Fareyle müdahale takibi keser.
 |---|---|---|
 | **OPS** | Koyu operasyon zemini: dolu kıtalar, kıyı çizgisi, ülke sınırları, Türkiye vurgulu | Natural Earth 110m, canvas'ta üretilir |
 | **SİYASİ** | Klasik siyasi harita: her ülke ayrı pastel dolgu, koyu sınırlar, **Türkçe ülke adları** (büyüklüğe göre ölçekli; küçük ülkeler okunmayacağı için atlanır), Türkiye amber | Natural Earth 110m, `NAME_TR` alanı |
-| **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
-| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi lejandda her zaman yazar | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
+| **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı. Ankara yakın görüntüsü bu temada görünür | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
+| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi `↻` düğmesinin ipucunda yazar. Ankara yakın görüntüsü bu temada da görünür | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
 
 Dört temada da uydular, görüş konisi, yörünge izi ve GEO kuşağı aynı kalır;
 yalnızca zemin, kenar halkası ve paralel/meridyen ağının rengi değişir. Dokular
@@ -250,16 +253,52 @@ görüntüler NASA'nın gerçek verisidir.
 
 **GÜNCEL temada iki ayrım önemlidir.** (1) Bu bir **günlük mozaiktir**, anlık
 yayın değil: bir günün yörünge şeritlerinden dikilir, bu yüzden arayüzde
-hiçbir yerde "canlı" yazmaz — düğmenin yanında **alım tarihi** durur.
+hiçbir yerde "canlı" yazmaz; **alım tarihi** `↻` düğmesinin ipucunda durur.
 (2) Kutup gecesindeki bölgelerde **veri yoktur**: VIIRS görünür bantta çalışır,
 aydınlanmayan enlemler siyah kalır. Bu boşluk 2004 dokusuyla **doldurulmaz** —
 iki farklı tarihli görüntüyü tek görüntü gibi birleştirmek §0'a aykırı olurdu;
-lejand siyah kuşağın kutup gecesi olduğunu yazar.
+GÜNCEL düğmesinin ipucu siyah kuşağın kutup gecesi olduğunu yazar.
 
 Ekrandaki `SİMÜLE VERİ` rozeti **telemetri** içindir. GÜNCEL temadaki görüntü
 gerçek NASA ölçümüdür; üzerindeki bulutlar da §11'in dışladığı dekoratif bir
 bulut katmanı değil, ölçümün kendisidir. Terminatör ve atmosfer efekti hâlâ
 hiçbir temada yoktur.
+
+**Ankara yakın görüntüsü.** Küre dokusu ~20 km/pikseldir; Ankara orada bir
+iki pikseldir. Bu yüzden Ankara üzerinde **30 m çözünürlüklü** ayrı bir görüntü
+parçası vardır: `LEO · TÜMÜ · ANKARA` satırındaki `ANKARA` düğmesi (ya da `Y`)
+kamerayı ~110 km'ye indirir, tekerlekle **40 km'ye** kadar yaklaşılır. Parça
+kamera ~1500 km'nin altına inince belirmeye başlar, ~600 km'de tam görünür.
+
+| | |
+|---|---|
+| Kaynak | NASA HLS S30 v2.0 (Harmonized Landsat Sentinel-2), katman `HLS_S30_Nadir_BRDF_Adjusted_Reflectance`, doi:10.5067/HLS/HLSS30.002 |
+| Uydu / tarih | Sentinel-2, **15 Nisan 2026** (sabit; bkz. aşağıda) |
+| Kapsam | enlem 39.70–40.25, boylam 32.45–33.10 (~61×55 km): Kahramankazan yer istasyonu ve Ankara kent merkezi |
+| Boyut | 2400×2030 piksel (yerde ~23×30 m), JPEG ~812 kB, pakete gömülü — ağ isteği yok |
+| Atıf | *Contains modified Copernicus Sentinel data 2026*. NASA veri setini kısıtlamasız paylaşır; görüntü Copernicus verisinden türetildiği için atıf ekranda durur |
+
+- **Yalnızca 3B kürede.** 2B haritada yakın görüntü yoktur; `ANKARA`'ya basmak
+  3B'ye geçer.
+- **Yalnızca FİZİKİ ve GÜNCEL temalarında.** OPS veya SİYASİ açıkken `ANKARA`'ya
+  basılırsa zemin FİZİKİ'ye geçer.
+- **Atıf çipi.** Parça ekrandayken kürenin sol üstünde üç satır durur:
+  `YAKIN GÖRÜNTÜ · Ankara · 15 Nisan 2026`,
+  `NASA HLS · Sentinel-2 (Copernicus) · 30 m`,
+  `Göktürk görüntüsü değildir · kamera 111 km`. Üzerine gelince katman adı,
+  DOI, kutu ve piksel boyutu okunur.
+- **Farklı tarihler yan yana.** Çevre zemin (Blue Marble 2004 ya da GIBS dünü)
+  ile parça aynı gün değildir; kenarlar %10 yumuşatılır ama dikiş kusursuz
+  değildir. Türkiye'nin %18 sarı vurgusu parçaya da uygulanır ki kenarda renk
+  sıçraması olmasın.
+- **Kamera.** Eski yakınlaşma sınırının (~2230 km) üstünde tekerlek hızı,
+  işaretçi boyutları ve kırpma **aynen** eskisi gibidir; sürükleme hızı LEO ve
+  TÜMÜ ön ayarlarında aynıdır, küreye yaklaştıkça görüşün sabit bir oranını
+  kaydıracak şekilde yavaşlar. ~1200 km'nin altında her tekerlek çentiği
+  irtifayı ~%22 azaltır; ~640 km'nin altında yakın kırpma düzlemi irtifayla
+  küçülür (zemin kırpılmaz); 2230 km'nin altında istasyon ve uydu işaretçileri
+  küçülüp alçalır (70 km'lik istasyon topu şehri örtmesin diye). Hesaplar
+  `src/ui/yakinGoruntu.ts` içindedir ve birim testlidir.
 
 **2B harita.** Kürenin sağ üstündeki `3B | 2B` düğmesi (ya da `M`) dünyayı
 eşdikdörtgen (plate carrée) izdüşümde açar (`src/components/MapView2D.tsx`).
@@ -303,6 +342,67 @@ tahsisleridir, APID'ler gibi.
 
 **Durum bandı.** Solda ST[12] sabit limit durumu, sağda AI tespiti. İkisi
 ayrıştığında sağ taraf morla vurgulanır ve `← KONTRAST` etiketi belirir.
+
+**Özet mod.** Üst şeritteki `ÖZET MOD` düğmesi (ya da `O`) ekranı yalnızca
+kritik bilgiye indirir. Havacılık ve uzay operasyonlarındaki *declutter* /
+*dark cockpit* ilkesi: nominalde ekran sakin, sapmada renkli. Doğrudan metin
+taşıyan görünür öğe sayısı nominalde **340 → 190** (−%44) düşer (1920×1080).
+
+Özet mod tam görünümün panellerini gizleyerek değil, **kendi panosuyla**
+çizilir (`src/components/OzetPanosu.tsx`). Küre ve senaryo konsolu yerinde
+kalır; sağ sütun ve alt sıra değişir. Yukarıdan aşağı operatörün soru sırası:
+
+| Bölüm | Soru | Ne gösterir |
+|---|---|---|
+| **Durum kartı** | Her şey yolunda mı? | Tek hüküm (`● NOMİNAL` · `▲`/`◆ İZLEME` · `▲`/`◆ ALARM`), dayanağı ve sapan parametreler; ST[12] ve AI için ayrı rozet. Limitler sessizken AI konuşuyorsa **KONTRAST** rozeti |
+| | Temas ne zaman? | Seçili uydunun AOS/LOS geri sayımı, yükseltisi, görünürlüğü (SGP4) |
+| | Olay var mı? | Anomali aşaması (`İZLEME` → `ŞÜPHE` → `DOĞRULANDI`, INFO paneliyle aynı kural), senaryo ilerlemesi |
+| | Onaysız alarm? | En yeni onaysız orta/yüksek alarm, `Alarmı aç` ve `Detaya geç (O)`. Alarm yoksa diğer uydulardaki onaysız alarmları yazar |
+| **Parametreler** | Hangi kanal, limite ne kadar yakın? | Sekiz kutucuk: son değer, limit durumu ve sert/yumuşak/nominal bölgeli yatay gösterge. Sapan kanal kırmızı/amber, limit içinde ama tespit edilmiş kanal mor çerçeve ve `XAI #n` |
+| **Telemetri** | Nasıl değişiyor? | Yalnızca bir şey söyleyen ham kanallar büyük grafik olarak; AI skorları altta sabit. Hiçbir şey yoksa "Ham kanalların hepsi limit içinde" |
+| **Öneri** | Ne yapmalıyım? | Doğrulanan anomalinin aciliyet rozetli eylem önerisi; öncesinde "izlemeyi sürdür, komut gönderme" |
+| **Filo durumu** (alt sıra) | Başka uyduda sorun var mı? | Dokuz uydu kutucuğu: yükselti, görünürlük, alarm/onaysız sayısı; tıklayınca seçer |
+
+- **Telemetri istisna tabanlıdır.** Grafikte ham kanal yalnızca bir şey
+  söylüyorsa çizilir: limit dışındaysa, senaryo sürerken XAI kanıtı ya da
+  CUSUM kırılması onu adlandırdıysa, ya da son 90 s içinde ST[12] geçişi
+  olduysa (NOMİNAL'e dönüş dahil). Operatör sapmayan bir kanalı kutucuğuna
+  tıklayarak grafiğe **sabitleyebilir**.
+- **Sürüklenmede `ch_42` gizlenmez.** Saf bir "limit dışı" filtresi onu
+  gizlerdi — kanal tasarım gereği limit içinde kalıyor ve demonun bütün
+  mesajı bu. Kanal, XAI onu adlandırdığı an (t+48) belirir; daha önce değil,
+  çünkü INFO paneli gibi özet modu da bir şey tespit edilmeden hikâyeyi
+  açmaz. Senaryo bitince ya da `N` ile çekilir: motor XAI kanıtını
+  temizlemediği için sinyaller aktif senaryoya kapılanır.
+- **AI şeritleri yerinden oynamaz.** Ham şeritler kalan yüksekliği paylaşır;
+  AI grubu altta sabittir. Sürüklenme, nokta ve kolektif senaryoları art arda
+  koşturulduğunda AI grubunun konumu değişmez, sağ sütun taşmaz (ölçüldü).
+  Küçük ekranda (1536×864) telemetri bölümü kendi içinde kayar.
+- **Uyarı satırı her zaman yer kaplar** (alarm yokken sakin bir satırdır);
+  yeni bir alarm geldiğinde pano operatörün gözü önünde yeniden
+  düzenlenmez. Ayrı bir ekran okuyucu duyurusu yapmaz — `AlarmAnnouncer`
+  zaten duyuruyor.
+- **Hüküm önceliği:** ST[12] sert ihlali > AI sert eşiği > ST[12] yumuşak
+  ihlali > AI yumuşak eşiği. Eşikler MIB'den okunur. Renk tek başına anlam
+  taşımaz: `● ▲ ◆` işaretleri ve durum sözcükleri her modda kalır.
+- **Özet modunda olmayanlar:** alarm kuyruğu ve geçiş planı (alarm ve temas
+  durum kartında), kürenin katalog listesi (seçim filo kutucuklarında; küre
+  genişler), OBT, SLE RAF, istasyon, temas ve seçili uydu alanları (durum
+  kartında), kürenin tema satırı, mozaik tazeleme durumu ve okuma satırı,
+  paket denetleyici şeridi (`P` yine açar), INFO paneli. **`SİMÜLE VERİ`
+  rozeti her iki modda da görünür.** Ankara yakın görüntüsünün atıf çipi de
+  gizlenmez: ekrandaki görüntünün kaynak bildirimidir. `ANKARA` düğmesi özet
+  modunda da çalışır; tema satırı gizli olduğu için OPS'tan FİZİKİ'ye geçişi
+  kendisi yapar.
+
+Mod kalıcı değildir; diğer görünüm modları gibi her açılışta kapalı başlar.
+Pano yeni veri üretmez: hepsi tam görünümün kullandığı kaynaklardan okunur.
+Her iki modda da çizilen öğeler (üst şerit, küre, XAI) `<html data-summary>`
+ve `index.css`'teki `ozet-gizle` / `ozet-tam` / `ozet-sol` kurallarıyla
+sadeleşir. Hangi bilginin kritik sayıldığı ve hüküm saf
+`src/engine/summary.ts` modülündedir, limit göstergesinin bölgeleri
+`src/ui/gosterge.ts`'tedir; ikisi de birim testlidir (hüküm gerçek
+simülasyon koşularıyla).
 
 **Senaryo konsolu.** Üç senaryo düğmesi, beş kademeli şiddet kaydırıcısı ve
 nominal akışa dönüş.
@@ -470,11 +570,13 @@ Sunum sırasında fareye uzanmadan:
 | `1` `2` `3` | Nokta anomalisi · Yavaş sürüklenme · Kolektif sapma |
 | `N` | Nominal akışa dön |
 | `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır |
+| `Y` | Küre: Ankara yakın görüntüsü (NASA HLS, 30 m; ~110 km) |
 | `F` | Seçili uyduyu kamerayla takip et (aç/kapat) |
 | `0` | Hızı 1×'e al |
 | `M` | Dünya: 3B küre ↔ 2B eşdikdörtgen harita |
 | `P` | Paket denetleyici penceresini aç/kapat |
 | `A` | Erişilebilirlik ayar penceresi |
+| `O` (Türkçe klavyede `Ö` de) | Özet mod: yalnızca kritik bilgi (aç/kapat) |
 | `Ctrl +` / `Ctrl −` / `Ctrl 0` | Arayüz ölçeği (tarayıcı yakınlaştırması değil; canvas'lar birlikte ölçeklenir) |
 | `Esc` | Açık pencereyi kapat |
 
@@ -502,7 +604,7 @@ src/
     apid_table.json     APID tahsis tablosu
     scenario_*.json     nominal / point / drift / collective (+ story ve info adımları)
     mission_notes.json  nominal INFO paneli görev notları
-    tle.txt             gömülü TLE kataloğu (32 uydu, 3 satırlık standart biçim)
+    tle.txt             gömülü TLE kataloğu (9 aktif uydu, 3 satırlık standart biçim)
     satellites.json     uydu meta verisi: işletici, görev türü, grup
     land_110m.json      Natural Earth 110m kıta çizgileri (kamu malı)
     borders_110m.json   Natural Earth 110m ülke kara sınırları (kamu malı)
@@ -510,6 +612,8 @@ src/
     countries_110m.json Natural Earth 110m ülke poligonları + Türkçe adlar (siyasi tema)
   assets/earth/
     bmng_2048.jpg       NASA Blue Marble NG, 2048×1024 (fiziki tema), kamu malı
+    gibs_current.*      NASA GIBS günlük mozaik + alım tarihi (güncel tema)
+    ankara_hls.*        NASA HLS S30, Ankara 2400×2030, 30 m + atıf/DOI (yakın görüntü)
   engine/               saf TypeScript — React'ten bağımsız
     types.ts            ortak tipler
     mib.ts              MIB yükleme, kalibrasyon (raw ↔ mühendislik)
@@ -525,7 +629,11 @@ src/
     orbit.ts            SGP4, AOS/LOS, geçiş tahmini, gökyüzü izi, Kepler elemanları
     simulation.ts       hepsini birleştiren düzenleyici
   components/           arayüz (her panel bir dosya)
+  components/OzetPanosu.tsx  özet modunun sağ sütunu (durum kartı, parametreler, grafik, öneri)
+  components/OzetFilo.tsx    özet modunun filo durumu kutucukları
   ui/colors.ts          durum renkleri
+  ui/earthTexture.ts    zemin dokuları (4 tema) ve Ankara parçasının dokusu
+  ui/yakinGoruntu.ts    yakın görüntü: parça eşlemesi, irtifaya bağlı kamera ayarları
   assets/xai/           bildiriden alınan gerçek XAI görselleri
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
 ```
@@ -715,11 +823,36 @@ dokunmaz** — elde çalışan bir görüntü varken onu bozmak, hiç görüntü
 olmamasından kötüdür. Betik bilerek `build`e bağlanmamıştır; bağlansaydı
 derleme internet ister, CI ve offline hikâyesi çökerdi.
 
-Yanındaki `gibs_current.json` alım tarihini taşır; arayüzdeki "13 Eylül 2026
-günlük mozaik" etiketi oradan gelir. Bir birim testi bu dosyanın biçimini ve
+Yanındaki `gibs_current.json` alım tarihini taşır; `↻` düğmesinin
+ipucundaki "Gösterilen: 13 Eylül 2026 (gömülü)" tarihi oradan gelir. Bir birim testi bu dosyanın biçimini ve
 katman adını doğrular, yani yarım yazılmış bir çekim CI'da yakalanır.
 
 **Sunumdan önce:** `npm run imagery && npm run build`.
+
+### Ankara yakın görüntüsünü yeniden çekmek
+
+`src/assets/earth/ankara_hls.jpg` ve yanındaki `ankara_hls.json` şu komutla
+üretilir:
+
+```bash
+npm run imagery:ankara
+```
+
+Tarih **sabittir** (`scripts/fetch-ankara.mjs` içinde `2026-04-15`) ve
+otomatik seçilmez: dosya boyutu bulutlu günü ayırt etmiyor (ölçülen:
+büyük ölçüde açık 28 Ağustos 55 kB, bulutla kaplı 30 Ağustos 51 kB). 15 Nisan,
+150 günlük taramada bölgeyi tam kaplayan 34 günün en temizidir: maskeli piksel
+%0,017, istasyon ve Kızılay çevresinde %0. Bu yüzden komut **sunum öncesi
+adımlara eklenmez**; yalnızca dosya kaybolursa ya da kutu/tarih bilerek
+değiştirilirse çalıştırılır.
+
+Betik yazmadan önce şunları doğrular, biri tutmazsa mevcut dosyalara dokunmadan
+çıkar: HTTP 200 ve `image/jpeg`, `Data-Present` false değil,
+`Acquisition-Time` sabit tarihle aynı, ilk baytlar `FF D8 FF`, ≥ 500 kB, ve
+istasyon ile Kızılay çevresindeki 128×128 kırpmaların her biri ≥ 1500 bayt
+(ölçülen: dolu 3235 / 4104 bayt, verisiz 380 bayt). Kutu ve tarih
+`src/ui/yakinGoruntu.ts` ile aynı olmalıdır; bir birim testi yan dosyayı
+modülle karşılaştırır.
 
 ### Uydu kataloğunu güncellemek
 
@@ -736,7 +869,7 @@ Yeni bir uydu eklemek için TLE'sini `tle.txt`'e, meta verisini
 `src/data/satellites.json` içindeki `satellites` dizisine ekleyin:
 
 ```jsonc
-{ "norad": "56178", "name": "İMECE", "group": "obs",
+{ "norad": "56178", "name": "GÖKTÜRK-2B", "group": "obs",
   "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" }
 ```
 
@@ -747,18 +880,36 @@ alanın karşılığını bilmiyorsan ekrana koyma).
 
 İstasyon tutumu göstergesi şöyle türetilir: bir GEO uydusunun eğimi 0.5°'nin
 altında ve ortalama hareketi bir yıldız gününe (1.0027379 devir/gün) eşitse
-uydu aktif olarak tutuluyordur. TÜRKSAT 1B, 1C ve 2A bu testten geçemez —
-eğimleri 9°–14°'ye sürüklenmiştir — ve listede `yörünge tutumu yok` olarak
-görünür. Bu bir iddia değil, TLE'nin kendisinden okunan bir sonuçtur.
+uydu aktif olarak tutuluyordur. Katalogdaki beş TÜRKSAT uydusunun beşi de bu
+testi geçer (eğimler 0.01°–0.09°) ve listede `istasyon tutumlu` olarak görünür;
+testi geçemeyen bir GEO uydusu `yörünge tutumu yok` olarak işaretlenir. Bu bir
+iddia değil, TLE'nin kendisinden okunan bir sonuçtur.
 
-Katalog kapsamı: Celestrak genel kataloğunda hâlâ yörünge kaydı bulunan Türk
-uyduları. Yörüngeden düşmüş küçük uydular (UBAKUSAT, BeEagleSat, HAVELSAT,
-Grizu-263A) katalogda bulunmadığı için listede yoktur.
+**Katalog kapsamı: Türkiye'nin aktif uyduları.** TÜRKSAT filosunda 4A ve
+sonrası listelenir; Plan-S Connecta ve üniversite/amatör kategorileri kapsam
+dışıdır. Bir uydunun aktif sayılması için **iki bağımsız kaynak** birlikte
+aranır: CelesTrak SATCAT'teki `OPS_STATUS_CODE` alanının `+` (operasyonel)
+olması ve uydunun CelesTrak `active` GP grubunda bulunması. Son denetim
+(2026-09-16): dokuz uydunun dokuzu iki kaynakta da aktif; BİLSAT-1'in (2003)
+SATCAT durumu boş ve aktif grupta yok, bu yüzden çıkarıldı. Denetimi
+yinelemek için:
+
+```bash
+curl -s "https://celestrak.org/satcat/records.php?CATNR=56178&FORMAT=json"
+```
+
+**Ekran adları ile katalog adları.** Ekran adları ekip kararıdır ve kamu
+kataloğundaki addan farklı olabilir: NORAD 56178 ekranda **GÖKTÜRK-2B**,
+katalogda `IMECE`; NORAD 41875 ekranda **GÖKTÜRK-1**, katalogda `GOKTURK 1A`
+olarak kayıtlıdır. Kimlik her zaman NORAD numarası ve uluslararası
+tanımlayıcıdır — ikisi de TLE'den okunur ve uydu bilgi penceresinde yazar;
+bir jüri üyesi kataloğu açıp NORAD ile doğrulayabilir. Eşleme
+`satellites.json` içindeki `_names` alanında da belgelidir.
 
 Açılışta seçili gelen uydu `satellites.json` içindeki `default_norad` ile
 belirlenir. **Uyarı:** GEO uydusunda AOS/LOS geçişi olmaz — üst şerit bu durumda
 `sürekli görünür` yazar. Geçiş dinamiği göstermek istiyorsanız LEO bir uydu
-seçin; varsayılan İMECE'dir.
+seçin; varsayılan GÖKTÜRK-2B'dir (NORAD 56178).
 
 ### Dünya zeminini değiştirmek
 
@@ -866,6 +1017,8 @@ for (let i = 0; i < 130; i++) __azs.getState().tick(1000);
 | Uydu TLE'leri | Celestrak GP (celestrak.org), son yayınlanmış kayıtlar |
 | Ülke poligonları ve Türkçe adlar | Natural Earth 110m admin_0, `NAME_TR` |
 | Fiziki zemin görüntüsü | NASA Blue Marble Next Generation, Aralık 2004, kamu malı |
+| Güncel zemin görüntüsü | NASA EOSDIS GIBS · VIIRS SNPP CorrectedReflectance TrueColor |
+| Ankara yakın görüntüsü | NASA HLS S30 v2.0, doi:10.5067/HLS/HLSS30.002 · Contains modified Copernicus Sentinel data 2026 |
 | 2B harita izdüşümü | eşdikdörtgen (plate carrée), Natural Earth / NASA BMNG ile aynı doku |
 | Alarm detayı: `TM[5,x]` alanları, PMON tanımı, `TM[12,12]` alanları | ECSS-E-ST-70-41C §6.5, §6.12 |
 | Alarm detayı: OOL bilgisi, operasyonel sonuç, alarm bağlamı | ECSS-E-ST-70-11C |
@@ -888,7 +1041,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-94 test, altı dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (32), `src/engine/fleet.test.ts` (18), `src/engine/reedSolomon.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/changePoint.test.ts` (5).
+174 test, on üç dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/summary.test.ts` (24), `src/engine/fleet.test.ts` (18), `src/engine/satelliteInfo.test.ts` (15), `src/ui/yakinGoruntu.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/gosterge.test.ts` (6), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -916,6 +1069,22 @@ npm test
 | Zaman aşımı, HTTP hatası ve eksik başlık doğru ayrışır | salon wifi'sinde asılı kalmamak |
 | Gömülü `gibs_current.json` biçimi ve katman adı doğru | yarım yazılmış çekimi CI yakalar |
 | Türkiye'nin üstü boş olan gün elenir (908 bayt ↔ 28 000 bayt) | eksik şeritle demoya çıkmamak; boyut tabanı bunu yakalamaz |
+| Özet modu: sürüklenmede `ch_42` tespitten sonra çizilir, limit içinde kalmasına rağmen | demonun ana kontrastı özet modunda da görünür |
+| Özet modu: hiçbir şey tespit edilmeden `ch_42` çizilmez (2 uydu × 3 şiddet) | hikâye tespitten önce açılmaz |
+| Özet modu: senaryo bitince / `N` ile XAI kanıtı şeridi tutmaz | motor kanıtı temizlemiyor; kapı telafi eder |
+| Özet modu: ST[12] tutması ihlalden değil NOMİNAL'e dönüşten sayılır | uzun süren ihlal limite döndüğü an kaybolmasın |
+| Özet panosu hükmü: ST[12] sert > AI sert > ST[12] yumuşak > AI yumuşak; KONTRAST yalnızca limitler sessizken | tek hüküm yanlış kaynağı göstermesin |
+| Özet panosu hükmü gerçek koşuda: sürüklenme doğrulanınca `◆ ALARM` + KONTRAST, nokta ihlalinde `▲ ALARM` | demonun iki ana anı panoda doğru okunur |
+| Limit göstergesi bölgeleri aralığı boşluksuz kaplar, sınırları MIB limitleriyle aynı | kutucuktaki imleç yanlış bölgede görünmesin |
+| Yakın görüntü parçasının köşeleri enlem/boylamla birebir örtüşür, kuzey yukarıda | yanlış eşleme şehri 60 km kaydırır ya da aynalar |
+| İstasyon ve Kızılay parçanın yumuşatılmamış iç bölgesinde | kenar yumuşatması kritik yeri soldurmasın |
+| Eski yakınlaşma sınırının üstünde tekerlek, işaretçi ve kırpma değerleri aynı; sürükleme hızı LEO/TÜMÜ ön ayarlarında aynı | yakın görüntü bugünkü küre davranışını bozmaz |
+| Yakın kırpma düzlemi zemini ve istasyon işaretini hiç kesmez | 40 km'de şehir kırpılmasın |
+| Tekerlek çentiği yüzeye yakın irtifayı sabit oranla küçültür, ≤ 20 çentikte tabana iner | tek çentikte yüzeyin altına düşmemek |
+| `ANKARA` çerçevesi kutuyu 0,6–1,8 en-boy oranlarında sığdırır | farklı ekranlarda şehir kesilmesin |
+| `ankara_hls.json` kutu, tarih, katman ve boyutta modülle aynı; atıf ve DOI mevcut | betik ↔ modül kaymasını CI yakalar |
+| Atıf çipi kaynağı, tarihi ve "Göktürk görüntüsü değildir" ibaresini taşır | §0: ekrandaki görüntünün kaynağı yanlış anlaşılmasın |
+| Takip yüzeye yakın açılırsa mesafe kademeli yükselir, üstünde korunur | uydu kameranın arkasında kalmasın |
 
 ---
 
@@ -967,7 +1136,7 @@ taşınıyor. PNG konulduğu anda öncelik ona geçer. Kanıtların `top_channel
 enjekte edilen kanallarla eşitlendi ki iddia ile hesap çelişmesin.
 
 **6. Uydu başına anomali hafızası ve tek MIB.** Şartname §11 "ikinci bir uydu
-misyonu"nu kapsam dışı bırakır. Ekip talebiyle katalogdaki 32 uydunun her biri
+misyonu"nu kapsam dışı bırakır. Ekip talebiyle katalogdaki 9 uydunun her biri
 artık **kendi alarm kuyruğuna ve anomali hafızasına** sahip; senaryo her zaman
 **seçili uyduya** enjekte edilir. Gerçek uyduların uçuş MIB'leri kamuya açık
 olmadığı için her uydu, AZS-DEMO referans parametre setinin NORAD ile
@@ -977,8 +1146,10 @@ gerçek uyduya uydurma SCID veya uydurma parametre adı atanmaz (§0). Ekran bun
 NORAD tohumlu`), üst şerit (`model AZS-DEMO`) ve alarm detayının STANDART
 sekmesindeki `Telemetri kaynağı` satırı.
 
-**Yalnızca seçili uydu telemetri üretir.** 32 uydunun tamamını canlı koşturmak
-açılışta 32×600 ön-doldurma adımı ve karede 32 kat paket üretimi demekti.
+**Yalnızca seçili uydu telemetri üretir.** Kataloğun tamamını canlı koşturmak
+açılışta uydu başına 600 ön-doldurma adımı ve karede uydu sayısı kadar paket
+üretimi demekti (karar 32 uyduluk katalogla alındı; bugünkü 9 uyduda da
+geçerli).
 Seçilmemiş uydu uykudadır (kare başına maliyeti sıfır); geri seçildiğinde
 *kaldığı yerden değil, güncel görev saatinden* devam eder. Uyanışta alarmlar,
 bildirimler, koşu sayaçları ve servis sayaçları **korunur**; tampon, paketler,
@@ -997,7 +1168,7 @@ iddiası harfiyen doğru kalır ve DevTools ile yanlışlanamaz.
 
 Başarısızlık hiçbir şeyi bozmaz: 8 saniyelik zaman aşımı, tek `try/catch`
 (CORS, DNS, çevrimdışı, iptal, bozuk JPEG), ve hata hâlinde **pikseller hiç
-değişmez** — gömülü mozaik ekranda kalır, lejandda Türkçe sebep görünür
+değişmez** — gömülü mozaik ekranda kalır, kürenin sağ üstünde Türkçe sebep görünür
 ("ağa ulaşılamadı", "zaman aşımı"). `navigator.onLine === false` ise istek hiç
 atılmaz.
 
@@ -1006,6 +1177,15 @@ güvenle yüklenir. GÜNCEL canvas'ı 2048×1024'tür (kaynak da öyle — 4096'
 germek var olmayan bilgiyi uydururdu) ve **nesne olarak tekdir**: tazeleme aynı
 canvas'ın içine yeniden çizer, böylece hem doku önbelleği hem three.js dokusu
 bayatlayamaz.
+
+**8. Ankara yakın görüntüsü, §0 ve §1.** Görüntü pakete gömülüdür; açılışta
+ve yakınlaşırken ağ isteği yapılmaz (§1 korunur). Ekrandaki görüntü Türk
+uydusundan değil, NASA'nın Sentinel-2 türevi ürününden gelir. Bir yer istasyonu
+konsolunda bu kolayca "Göktürk görüntüsü" diye okunabileceği için atıf çipi
+parça ekrandayken **her zaman** görünür ve bunu açıkça yazar (§0). Görüntü
+2026-04-15 tarihlidir ve çevre zeminle aynı gün değildir; çip tarihi yazar.
+Yakın görüntü yalnızca 3B kürededir; 2B harita için ayrı yakınlaştırma, çizim
+ve ölçek çubuğu düzeltmeleri gerekeceğinden kapsam dışı bırakıldı.
 
 **3. Kanal adları.** `ch_42` ve `ch_75` yönergede geçtiği gibi bırakıldı.
 Konsolun dolu görünmesi için ESA-ADB adlandırma şemasına uygun `ch_11`, `ch_12`,
@@ -1052,7 +1232,8 @@ transfer frame kodlaması, Reed-Solomon, RF katmanı · playback/geri sarma modu
 terminator çizgisi, **dekoratif** bulut dokusu, atmosfer efekti · ikinci ekran ·
 karanlık/aydınlık tema geçişi · uydu başına **gerçek** MIB (katalogdaki her uydu
 AZS-DEMO referans modelinin bir örneğini koşar, bkz. §10 madde 6) · aynı anda
-birden fazla uydudan canlı telemetri
+birden fazla uydudan canlı telemetri · 2B haritada yakın görüntü ·
+Ankara dışında yakın görüntü, birden fazla tarihin birleştirilmesi
 
 ---
 

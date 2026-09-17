@@ -140,6 +140,22 @@ html[data-pattern='1'] .src-ai {
   border-left-style: dotted;
 }
 
+/* ---- Ozet modu (html[data-summary], bkz. src/App.tsx, OzetPanosu.tsx) ----
+   Sag sutun ve alt sira ozet modunda kendi panosunu cizer. Bu siniflar
+   yalnizca her iki modda da cizilen ogeler icindir (ust serit, kure, senaryo
+   konsolu, XAI). Pencere/portal icerigine asla konmaz. Ozgulluk (0,2,1)
+   Tailwind yardimcilarini zaten yener. */
+html[data-summary='1'] .ozet-gizle {
+  display: none !important;
+}
+/* Kure katalog listesinin yerini de kullanir; ustteki bindirme sola yaslanir. */
+html[data-summary='1'] .ozet-tam {
+  left: 0;
+}
+html[data-summary='1'] .ozet-sol {
+  left: 8px;
+}
+
 /* Ekran okuyucu icin gorunmez metin. */
 .sr-only {
   position: absolute;
