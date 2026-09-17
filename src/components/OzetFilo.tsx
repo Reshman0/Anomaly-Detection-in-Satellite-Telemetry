@@ -28,7 +28,7 @@ export default function OzetFilo() {
   const onaysiz = rows.reduce((n, r) => n + (r.sum?.unacked ?? 0), 0);
 
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section data-tour="oz-filo" className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span>Filo durumu</span>
         <span className="normal-case tracking-normal text-ops-faint">

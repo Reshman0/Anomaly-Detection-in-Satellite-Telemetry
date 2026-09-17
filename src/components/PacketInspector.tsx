@@ -86,6 +86,7 @@ export function PacketInspectorBar() {
 
   return (
     <button
+      data-tour="paket"
       onClick={() => setOpen(!open)}
       aria-label="Paket denetleyici penceresini aç"
       title="CCSDS paket / çerçeve / CADU denetleyicisini aç (P)"

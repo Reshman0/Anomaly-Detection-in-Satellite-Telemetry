@@ -200,14 +200,15 @@ export default function PassBoard() {
   const p = board.selectedPass;
 
   return (
-    <section className="panel flex flex-col min-h-0">
-      <div className="panel-title flex items-center justify-between">
-        <span>Geçiş planı · {GROUND_STATION.name}</span>
-        <span className="normal-case tracking-normal text-ops-faint num">SGP4 · ufuk {HORIZON_S / 3600} sa</span>
+    <section data-tour="gecis" className="panel flex flex-col min-h-0">
+      <div className="panel-title flex items-center justify-between gap-2">
+        <span className="truncate min-w-0">Geçiş planı · {GROUND_STATION.name}</span>
+        <span className="normal-case tracking-normal text-ops-faint num shrink-0 whitespace-nowrap">SGP4 · ufuk {HORIZON_S / 3600} sa</span>
       </div>
       <div className="flex-1 min-h-0 flex">
         {/* Gokyuzu grafigi */}
-        <div className="w-[196px] shrink-0 border-r border-ops-line flex flex-col">
+        {/* Dar panelde (1366-1536 px ekran) liste sigsin diye grafik de daralir. */}
+        <div className="w-[clamp(120px,46%,196px)] shrink-0 border-r border-ops-line flex flex-col">
           <div className="relative flex-1 min-h-0">
             <canvas ref={skyRef} className="absolute inset-0 w-full h-full" />
           </div>
@@ -239,12 +240,12 @@ export default function PassBoard() {
 
         {/* Filo gecis listesi */}
         <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="grid grid-cols-[1fr_52px_46px_40px_40px] gap-x-1 px-2 py-[3px] text-3xs uppercase tracking-[0.1em] text-ops-faint border-b border-ops-line sticky top-0 bg-ops-sunken">
-            <span>Uydu</span>
-            <span className="text-right">AOS</span>
-            <span className="text-right">Süre</span>
-            <span className="text-right">Tepe</span>
-            <span className="text-right">Kalan</span>
+          {/* Liste sutunu 1920 px'te bile ~230 px: bes sutun yan yana sigmaz,
+              uydu adi harf harf kirilirdi. Her gecis iki satir: ad + kalan,
+              altinda AOS / sure / tepe. */}
+          <div className="flex justify-between gap-2 px-2 py-[3px] text-3xs uppercase tracking-[0.1em] text-ops-faint border-b border-ops-line sticky top-0 bg-ops-sunken">
+            <span className="truncate min-w-0">Uydu</span>
+            <span className="shrink-0">Kalan</span>
           </div>
           {board.fleet.length === 0 && (
             <div className="px-2 py-2 text-3xs text-ops-faint">Ufuk içinde geçiş yok.</div>
@@ -256,19 +257,24 @@ export default function PassBoard() {
               <button
                 key={f.sat.norad + ':' + Math.round(f.aosMs / 1000)}
                 onClick={() => selectSatellite(f.sat.norad)}
+                title={`${f.sat.name} · AOS ${fmtTime(f.aosMs)} · ${Math.round(f.durationS / 60)} dk · tepe ${f.maxElDeg.toFixed(0)}°`}
                 className={
-                  'w-full grid grid-cols-[1fr_52px_46px_40px_40px] gap-x-1 px-2 py-[3px] text-3xs border-b border-ops-line/60 text-left transition-colors ' +
+                  'w-full block px-2 py-[3px] text-3xs border-b border-ops-line/60 text-left transition-colors ' +
                   (isSel ? 'bg-white/[0.07]' : 'hover:bg-white/[0.03]')
                 }
               >
-                <span className={'leading-tight break-words min-w-0 ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}>{f.sat.name}</span>
-                <span className="num text-right text-ops-dim">{fmtTime(f.aosMs)}</span>
-                <span className="num text-right text-ops-faint">{Math.round(f.durationS / 60)} dk</span>
-                <span className={'num text-right ' + (f.maxElDeg >= 30 ? 'text-ops-nominal' : 'text-ops-faint')}>
-                  {f.maxElDeg.toFixed(0)}°
+                <span className="flex items-baseline justify-between gap-2 min-w-0">
+                  <span className={'truncate min-w-0 text-2xs leading-[1.4] ' + (isSel ? 'text-ops-text' : 'text-ops-dim')}>
+                    {f.sat.name}
+                  </span>
+                  <span className={'num shrink-0 ' + (active ? 'text-ops-nominal' : 'text-ops-faint')}>
+                    {active ? 'ŞİMDİ' : fmtCountdown((f.aosMs - utcMs) / 1000)}
+                  </span>
                 </span>
-                <span className={'num text-right ' + (active ? 'text-ops-nominal' : 'text-ops-faint')}>
-                  {active ? 'ŞİMDİ' : fmtCountdown((f.aosMs - utcMs) / 1000)}
+                <span className="flex items-baseline gap-x-2 num leading-tight">
+                  <span className="text-ops-dim">{fmtTime(f.aosMs)}</span>
+                  <span className="text-ops-faint">{Math.round(f.durationS / 60)} dk</span>
+                  <span className={f.maxElDeg >= 30 ? 'text-ops-nominal' : 'text-ops-faint'}>{f.maxElDeg.toFixed(0)}°</span>
                 </span>
               </button>
             );

@@ -33,7 +33,7 @@ export default function StatusBand() {
     .sort((a, b) => b.v - a.v)[0];
 
   return (
-    <section className="panel shrink-0">
+    <section data-tour="durum" className="panel shrink-0">
       <div className="panel-title">Durum</div>
       <div className="grid grid-cols-2">
         <div className="px-3 py-2 border-r border-ops-line">

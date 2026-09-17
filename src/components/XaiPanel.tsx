@@ -62,7 +62,7 @@ export default function XaiPanel() {
   }, [evidence.length, evidence, setLevel]);
 
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section data-tour="xai" className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span>Model neden alarm verdi</span>
         <span className="normal-case tracking-normal text-ops-faint">{evidence.length}/3 kanıt hazır</span>

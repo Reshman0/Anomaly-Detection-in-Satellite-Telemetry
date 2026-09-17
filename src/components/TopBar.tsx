@@ -67,7 +67,7 @@ export default function TopBar() {
 
   // Serit sigmadiginda alanlar kirpilmaz, alt satira sarar.
   return (
-    <header className="min-h-[52px] shrink-0 flex flex-wrap items-stretch bg-ops-panel border-b border-ops-line2">
+    <header data-tour="ust-serit" className="min-h-[52px] shrink-0 flex flex-wrap items-stretch bg-ops-panel border-b border-ops-line2">
       <div className="flex flex-col justify-center px-3 border-r border-ops-line2 bg-ops-sunken shrink-0 grow">
         <div className="text-3xs uppercase tracking-[0.18em] text-ops-faint leading-none">Görev</div>
         <div className="num text-[15px] leading-tight mt-[2px] text-ops-text">{MIB.mission}</div>

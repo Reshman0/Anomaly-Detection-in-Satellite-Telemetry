@@ -124,7 +124,7 @@ function DurumKarti() {
   const acikOneri = sim.notifications.length;
 
   return (
-    <section aria-label="Genel durum" className={'panel shrink-0 border-l-4 ' + tone.edge}>
+    <section data-tour="oz-durum" aria-label="Genel durum" className={'panel shrink-0 border-l-4 ' + tone.edge}>
       <div className={'grid grid-cols-[minmax(0,1fr)_196px_236px] min-h-[124px] transition-colors ' + tone.wash}>
         {/* Hukum */}
         <div className="px-4 pt-3 pb-3 min-w-0 flex flex-col">
@@ -252,7 +252,7 @@ function ParametreKutulari({
 }) {
   const sim = useConsole((s) => s.sim);
   return (
-    <section className="panel shrink-0">
+    <section data-tour="oz-parametre" className="panel shrink-0">
       <div className="panel-title flex items-center justify-between">
         <span>Parametreler · son değer ve limit konumu</span>
         <span className="normal-case tracking-normal text-ops-faint">ham kanala tıkla → grafiğe sabitle</span>
@@ -396,7 +396,7 @@ function Grafikler({ pids, ranks }: { pids: Set<string>; ranks: Map<string, numb
 
   return (
     // Kucuk ekranda (ornegin 1536x864) bolum kendi icinde kayar; sag sutun tasmaz.
-    <section className="panel flex-1 min-h-[140px] flex flex-col">
+    <section data-tour="oz-telemetri" className="panel flex-1 min-h-[140px] flex flex-col">
       <div className="panel-title flex items-center justify-between">
         <span>Telemetri · sapan ve sabitlenen kanallar</span>
         <span className="normal-case tracking-normal text-ops-faint">son {WINDOW_S / 60} dk · dikey çizgiler 60 s</span>
@@ -466,7 +466,7 @@ function OneriKarti() {
   }
 
   return (
-    <section aria-label="Öneri" className="panel shrink-0 h-[58px] flex items-stretch">
+    <section data-tour="oz-oneri" aria-label="Öneri" className="panel shrink-0 h-[58px] flex items-stretch">
       <div className="w-[108px] shrink-0 px-3 flex flex-col justify-center gap-1.5 border-r border-ops-line bg-ops-sunken">
         <Etiket>Öneri</Etiket>
         {rozet ? (

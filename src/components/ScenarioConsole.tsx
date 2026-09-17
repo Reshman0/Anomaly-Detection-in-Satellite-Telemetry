@@ -5,7 +5,10 @@ import { NOMINAL_SCENARIO, SCENARIOS, SEVERITY_STEPS } from '../engine/scenarioR
 import { satByNorad } from '../engine/orbit';
 import { arayuzOlcegi, portalHedefi } from './useModalKeys';
 
-const SEVERITY_GLYPHS = ['▁', '▂', '▃', '▄', '▅'];
+/** Siddet kademelerinin cubuk yuksekligi (px). Eskiden ▁▂▃▄▅ karakterleriydi;
+ *  `leading-none` ile bu karakterler yazi tipine gore kirpiliyor ya da
+ *  kayboluyordu. Cubuk CSS ile cizilir, her ekranda ayni gorunur. */
+const SEVERITY_BARS = [4, 6, 8, 10, 12];
 
 /** Aciklama kartinin genisligi ve pencere kenarindan birakacagi pay (olceksiz px). */
 const KART_W = 340;
@@ -77,7 +80,7 @@ export default function ScenarioConsole() {
   };
 
   return (
-    <section className="panel flex flex-col min-h-0">
+    <section data-tour="senaryo" className="panel flex flex-col min-h-0">
       <div className="panel-title flex items-center justify-between">
         <span>Senaryo konsolu</span>
         <span className="normal-case tracking-normal text-ops-faint">
@@ -126,19 +129,21 @@ export default function ScenarioConsole() {
             <span className="num text-3xs text-ops-dim">×{SEVERITY_STEPS[severityIndex].toFixed(2)}</span>
           </div>
           <div className="flex items-end gap-1 mt-1">
-            {SEVERITY_GLYPHS.map((gl, i) => (
+            {SEVERITY_BARS.map((h, i) => (
               <button
                 key={i}
                 onClick={() => setSeverity(i)}
                 title={'şiddet ×' + SEVERITY_STEPS[i]}
+                aria-label={'şiddet ×' + SEVERITY_STEPS[i]}
+                aria-pressed={i === severityIndex}
                 className={
-                  'flex-1 num text-[13px] leading-none py-[3px] border transition-colors ' +
+                  'flex-1 h-[20px] flex items-end justify-center pb-[3px] border transition-colors ' +
                   (i === severityIndex
                     ? 'border-ops-ai text-ops-ai bg-ops-ai/10'
                     : 'border-ops-line2 text-ops-faint hover:text-ops-dim')
                 }
               >
-                {gl}
+                <span className="block w-[7px] bg-current" style={{ height: h }} />
               </button>
             ))}
           </div>
