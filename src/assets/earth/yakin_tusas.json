@@ -1,0 +1,35 @@
+{
+  "name": "tusas",
+  "label": "TUSAŞ",
+  "place": "TUSAŞ yerleşkesi, pist ve Saray OSB · Kahramankazan, Ankara",
+  "date": "2026-09-12",
+  "item": "S2B_T36TVK_20260912T084537_L2A",
+  "collection": "sentinel-2-c1-l2a",
+  "platform": "sentinel-2b",
+  "product": "L2A",
+  "tile": "36TVK",
+  "source": "Earth Search (Element 84) · AWS Open Data",
+  "bbox": {
+    "south": 40,
+    "west": 32.51,
+    "north": 40.135,
+    "east": 32.685
+  },
+  "width": 1489,
+  "height": 1501,
+  "resolution_m": 10,
+  "formula": "Copernicus Browser True color: Sentinel-2 L2A optimized True Color (Sentinel Hub custom-scripts); yansıma = DN × 0.0001 − 0.1",
+  "credit": "Contains modified Copernicus Sentinel data 2026",
+  "cloud_fraction": 0,
+  "skipped_zero_samples": 8,
+  "scl_fractions": {
+    "2": 0.003119,
+    "4": 0.032397,
+    "5": 0.963532,
+    "6": 0.000034,
+    "7": 0.000917
+  },
+  "bytes": 663042,
+  "sha256": "c0fe410dab435150c1fee7fad9b6a5ce352f5bdb06647b4c3770cbdf4e32b7d1",
+  "fetchedAt": "2026-09-18T09:41:51.556Z"
+}

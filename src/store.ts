@@ -9,8 +9,8 @@ import { applyA11y, buildPalette, clearA11y, loadA11y, saveA11y, type A11ySettin
 import { setPalette } from './ui/colors';
 
 /** Kure cerceveleme onayari: LEO'ya yakinlas ya da GEO halkasi dahil hepsini sigdir. */
-/** ANKARA: Ankara yakin goruntusu (NASA HLS, 30 m) — kamera ~110 km'ye iner. */
-export type GlobeView = 'LEO' | 'ALL' | 'ANKARA';
+/** TUSAS: TUSAS / Kahramankazan yakin goruntusu (Sentinel-2 L2A, 10 m) — kamera ~20 km'ye iner. */
+export type GlobeView = 'LEO' | 'ALL' | 'TUSAS';
 /**
  * Dunya zemini temasi: operasyon (koyu), siyasi harita, fiziki (NASA Blue
  * Marble, Aralik 2004), guncel (NASA GIBS gunluk VIIRS mozaigi).
@@ -174,18 +174,18 @@ export const useConsole = create<ConsoleState>((set, get) => ({
       followSat: false,
       // Yakin goruntu yalnizca 3B'de ve goruntu temalarinda (fiziki/guncel)
       // cizilir. OPS/SIYASI'deyken fiziki zemine gecilir (emsal: setMapMode).
-      ...(globeView === 'ANKARA'
+      ...(globeView === 'TUSAS'
         ? {
             mapMode: '3D' as MapMode,
             earthTheme: s.earthTheme === 'ops' || s.earthTheme === 'political' ? ('physical' as EarthTheme) : s.earthTheme,
           }
         : {}),
     })),
-  // Yakin goruntudeyken takip acilirsa LEO cercevesine cikilir: ~110 km'de
+  // Yakin goruntudeyken takip acilirsa LEO cercevesine cikilir: ~20 km'de
   // takip edilen uydu kameranin arkasinda kalirdi.
   setFollow: (followSat) =>
     set((s) =>
-      followSat && s.globeView === 'ANKARA'
+      followSat && s.globeView === 'TUSAS'
         ? { followSat, globeView: 'LEO', globeFitNonce: s.globeFitNonce + 1 }
         : { followSat },
     ),
