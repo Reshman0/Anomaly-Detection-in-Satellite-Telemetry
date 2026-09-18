@@ -273,6 +273,21 @@ Tekerlekle **8 km'ye** kadar yaklaşılır. Uzaklaşınca TUSAŞ parçası 30 m'
 Ankara parçasına, o da küreye karışır. Parçalar kamera ~450 km'nin altına inince
 belirmeye başlar, ~200 km'de tam görünür.
 
+**Kamera uçuşu.** `TUSAŞ`, `LEO` ve `TÜMÜ` ön ayarları kamerayı ışınlamaz,
+**uçurur** (`src/ui/kameraUcusu.ts`). Dünyanın neresinde olursanız olun kamera
+küre üzerinde büyük çember boyunca süzülür ve irtifayı logaritmik ölçekte
+değiştirir: 32 000 km'den 19 km'ye inerken her eşit zaman diliminde irtifa aynı
+oranda azalır, son saniyede yer "çarpmaz". Uzak ve alçak bir yerden (örneğin
+Japonya üstü 100 km) kalkılırsa kamera önce yükselir, küre dönerken görünür,
+sonra alçalır; yakın sıçramada (Kızılay → TUSAŞ) yükselmez. Uçuş 1,2–5 saniye
+sürer (açı, irtifa oranı ve tümsekle uzar).
+
+- Fareyle ya da tekerlekle müdahale uçuşu olduğu yerde durdurur.
+- Anlık kalan durumlar: ilk açılış, pencere boyutu değişimi, takip (`F`) açıkken,
+  ve erişilebilirlikte **hareketi azalt** açıkken (WCAG 2.3.3).
+- Uçuş zamana bağlıdır, kare hızına değil; sekme arka plandaysa geri gelince
+  kamera doğrudan hedeftedir.
+
 | | TUSAŞ (iç parça) | Ankara (dış parça) |
 |---|---|---|
 | Kapsam | 40.000–40.135 K, 32.510–32.685 D (~15×15 km) | 39.70–40.25 K, 32.45–33.10 D (~61×55 km) |
@@ -594,8 +609,8 @@ Sunum sırasında fareye uzanmadan:
 |---|---|
 | `1` `2` `3` | Nokta anomalisi · Yavaş sürüklenme · Kolektif sapma |
 | `N` | Nominal akışa dön |
-| `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır |
-| `Y` | Küre: TUSAŞ / Kahramankazan yakın görüntüsü (Sentinel-2 L2A, 10 m; ~19 km) |
+| `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır (kamera uçarak gider) |
+| `Y` | Küre: TUSAŞ / Kahramankazan yakın görüntüsü (Sentinel-2 L2A, 10 m; ~19 km; kamera dünyanın her yerinden uçarak gelir) |
 | `F` | Seçili uyduyu kamerayla takip et (aç/kapat) |
 | `0` | Hızı 1×'e al |
 | `M` | Dünya: 3B küre ↔ 2B eşdikdörtgen harita |
@@ -660,6 +675,7 @@ src/
   ui/colors.ts          durum renkleri
   ui/earthTexture.ts    zemin dokuları (4 tema) ve yakın görüntü parçalarının dokusu
   ui/yakinGoruntu.ts    yakın görüntü: parça eşlemesi, TUSAŞ çerçevesi, irtifaya bağlı kamera, çip
+  ui/kameraUcusu.ts     ön ayara kamera uçuşu: büyük çember + logaritmik irtifa + tümsek
   assets/xai/           bildiriden alınan gerçek XAI görselleri
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
 ```
@@ -1074,7 +1090,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-182 test, on üç dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/summary.test.ts` (24), `src/ui/yakinGoruntu.test.ts` (23), `src/engine/fleet.test.ts` (18), `src/engine/satelliteInfo.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/gosterge.test.ts` (6), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
+202 test, on dört dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/summary.test.ts` (24), `src/ui/yakinGoruntu.test.ts` (23), `src/ui/kameraUcusu.test.ts` (20), `src/engine/fleet.test.ts` (18), `src/engine/satelliteInfo.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/gosterge.test.ts` (6), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -1119,6 +1135,8 @@ npm test
 | İki yan dosya aynı sahne, tarih ve renk formülünü taşır; kutular modülle aynı; bulut oranı eşiğin altında | betik ↔ modül kaymasını CI yakalar |
 | Atıf çipi TUSAŞ'ta 10 m'lik, yüksekten ya da Kızılay üstünde 30 m'lik parçayı anlatır; kaynağı, tarihi ve "Göktürk görüntüsü değildir" ibaresini taşır | §0: ekrandaki görüntünün kaynağı yanlış anlaşılmasın |
 | Takip yüzeye yakın açılırsa mesafe kademeli yükselir, üstünde korunur | uydu kameranın arkasında kalmasın |
+| Kamera uçuşu beş farklı başlangıçtan (TÜMÜ, dünyanın öbür yüzü, Japonya 100 km, Kızılay 80 km, tam ters yön) tam hedefe varır, yere hiç inmez, hedefe olan açı hiç büyümez, 60 Hz'de kare başına yer değiştirme irtifanın %10'unu geçmez | uçuş sırasında yer ekranda sıçramasın, kamera geri dönmesin |
+| Uzak ve alçak kalkışta kamera ≥ 5000 km'ye yükselir; yakın sıçramada irtifa yalnızca azalır | yolculuk görünsün, kısa geçiş gereksiz yükselmesin |
 
 ---
 
