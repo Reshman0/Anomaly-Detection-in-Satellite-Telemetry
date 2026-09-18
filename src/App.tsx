@@ -96,8 +96,8 @@ export default function App() {
           break;
         case 'y':
         case 'Y':
-          // "yakin": Ankara yakin goruntusu (NASA HLS, 30 m).
-          st.setGlobeView('ANKARA');
+          // "yakin": TUSAS / Kahramankazan yakin goruntusu (Sentinel-2 L2A, 10 m).
+          st.setGlobeView('TUSAS');
           break;
         case 'f':
         case 'F':

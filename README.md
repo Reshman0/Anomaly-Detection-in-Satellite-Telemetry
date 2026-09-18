@@ -54,7 +54,7 @@ anonimleştirilmiş adlandırmasından gelir; bu yüzden mühendislik birimi yok
 | Senaryoları tohumlu ve tekrarlanabilir oynatır | Playback/geri sarma, çoklu operatör, hesap yönetimi sunmaz |
 | Tek dosya, internetsiz çalışır | Backend, veritabanı, WebSocket kullanmaz |
 | GÜNCEL temada gerçek NASA GIBS mozaiği gösterir (gömülü) | Mozaiği açılışta çekmez — yalnızca operatör `↻` derse |
-| Küre Ankara'ya yaklaşınca 30 m'lik gerçek görüntü gösterir (NASA HLS, gömülü) | Bu görüntüyü Göktürk görüntüsü diye sunmaz; ağdan çekmez |
+| Küre TUSAŞ'a yaklaşınca 10 m'lik gerçek Sentinel-2 görüntüsü gösterir (gömülü) | Bu görüntüyü Göktürk görüntüsü diye sunmaz; ağdan çekmez |
 
 Ekranın bir köşesinde `SİMÜLE VERİ — KAVRAMSAL GÖSTERİM` rozeti **sürekli
 görünür.** Kaldırmayın.
@@ -97,10 +97,10 @@ npm run preview
 
 ### Dağıtım çıktısı
 
-`npm run build` **tek bir `dist/index.html` dosyası** üretir (~3,4 MB). Tüm
-JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri, XAI görselleri ve üç
-görüntü (Blue Marble ~280 kB + GIBS günlük mozaik ~595 kB + Ankara yakın
-görüntüsü ~812 kB) bu dosyanın içine gömülüdür.
+`npm run build` **tek bir `dist/index.html` dosyası** üretir (~7,5 MB). Tüm
+JavaScript, CSS, MIB, senaryolar, TLE, kıta çizgileri, XAI görselleri, tanıtım
+turu sesleri ve dört görüntü (Blue Marble ~280 kB + GIBS günlük mozaik ~595 kB +
+yakın görüntü: TUSAŞ ~663 kB, Ankara ~1,4 MB) bu dosyanın içine gömülüdür.
 
 - İnternetsiz bir dizüstünde `file://` ile doğrudan açılır.
 - Basit bir statik sunucuyla da çalışır.
@@ -235,7 +235,7 @@ görünen uydu sayısını gösterir.
 kilitler; dünya altında döner. Fareyle müdahale takibi keser. Kamera yüzeye
 yakınken takip açılırsa kamera birkaç karede eski yakınlaşma sınırına
 (~2230 km) yumuşakça çıkar; yoksa takip edilen uydu kameranın arkasında
-kalırdı. ANKARA görünümündeyken takip açılırsa LEO çerçevesine geçilir.
+kalırdı. TUSAŞ görünümündeyken takip açılırsa LEO çerçevesine geçilir.
 
 **Zemin temaları.** Kürenin sağ üstündeki `OPS · SİYASİ · FİZİKİ · GÜNCEL` düğmeleri:
 
@@ -243,8 +243,8 @@ kalırdı. ANKARA görünümündeyken takip açılırsa LEO çerçevesine geçil
 |---|---|---|
 | **OPS** | Koyu operasyon zemini: dolu kıtalar, kıyı çizgisi, ülke sınırları, Türkiye vurgulu | Natural Earth 110m, canvas'ta üretilir |
 | **SİYASİ** | Klasik siyasi harita: her ülke ayrı pastel dolgu, koyu sınırlar, **Türkçe ülke adları** (büyüklüğe göre ölçekli; küçük ülkeler okunmayacağı için atlanır), Türkiye amber | Natural Earth 110m, `NAME_TR` alanı |
-| **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı. Ankara yakın görüntüsü bu temada görünür | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
-| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi `↻` düğmesinin ipucunda yazar. Ankara yakın görüntüsü bu temada da görünür | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
+| **FİZİKİ** | Gerçek uydu mozaiği: topografya gölgeli, batimetri işlenmiş, bulutsuz; üstüne ince beyaz sınırlar ve Türkiye anahattı. yakın görüntü (TUSAŞ, Ankara) bu temada görünür | NASA Blue Marble Next Generation (Aralık 2004), kamu malı, 2048×1024 JPEG olarak gömülü (~280 kB) |
+| **GÜNCEL** | **Dünün** gerçek günlük mozaiği: gerçek bulut desenleri, gerçek tarih; aynı beyaz sınırlar ve Türkiye anahattı. Alım tarihi `↻` düğmesinin ipucunda yazar. yakın görüntü (TUSAŞ, Ankara) bu temada da görünür | NASA EOSDIS GIBS/Worldview · VIIRS SNPP CorrectedReflectance TrueColor, kamu malı, 2048×1024 JPEG gömülü (~595 kB); `npm run imagery` ile tazelenir |
 
 Dört temada da uydular, görüş konisi, yörünge izi ve GEO kuşağı aynı kalır;
 yalnızca zemin, kenar halkası ve paralel/meridyen ağının rengi değişir. Dokular
@@ -264,33 +264,73 @@ gerçek NASA ölçümüdür; üzerindeki bulutlar da §11'in dışladığı deko
 bulut katmanı değil, ölçümün kendisidir. Terminatör ve atmosfer efekti hâlâ
 hiçbir temada yoktur.
 
-**Ankara yakın görüntüsü.** Küre dokusu ~20 km/pikseldir; Ankara orada bir
-iki pikseldir. Bu yüzden Ankara üzerinde **30 m çözünürlüklü** ayrı bir görüntü
-parçası vardır: `LEO · TÜMÜ · ANKARA` satırındaki `ANKARA` düğmesi (ya da `Y`)
-kamerayı ~110 km'ye indirir, tekerlekle **40 km'ye** kadar yaklaşılır. Parça
-kamera ~1500 km'nin altına inince belirmeye başlar, ~600 km'de tam görünür.
+**Yakın görüntü: TUSAŞ ve Ankara.** Küre dokusu ~20 km/pikseldir; Ankara
+orada bir iki pikseldir. Bu yüzden Kahramankazan üzerinde iç içe iki gerçek uydu
+görüntüsü vardır: `LEO · TÜMÜ · TUSAŞ` satırındaki `TUSAŞ` düğmesi (ya da `Y`)
+kamerayı ~19 km'ye indirir ve **TUSAŞ yerleşkesini, pisti ve Saray OSB'yi**
+Abdullah Hoca'nın Copernicus Browser çerçevesiyle aynı kesitte gösterir.
+Tekerlekle **8 km'ye** kadar yaklaşılır. Uzaklaşınca TUSAŞ parçası 30 m'lik
+Ankara parçasına, o da küreye karışır. Parçalar kamera ~450 km'nin altına inince
+belirmeye başlar, ~200 km'de tam görünür.
+
+**Kamera uçuşu.** `TUSAŞ`, `LEO` ve `TÜMÜ` ön ayarları kamerayı ışınlamaz,
+**uçurur** (`src/ui/kameraUcusu.ts`). Dünyanın neresinde olursanız olun kamera
+küre üzerinde büyük çember boyunca süzülür ve irtifayı logaritmik ölçekte
+değiştirir: 32 000 km'den 19 km'ye inerken her eşit zaman diliminde irtifa aynı
+oranda azalır, son saniyede yer "çarpmaz". Uzak ve alçak bir yerden (örneğin
+Japonya üstü 100 km) kalkılırsa kamera önce yükselir, küre dönerken görünür,
+sonra alçalır; yakın sıçramada (Kızılay → TUSAŞ) yükselmez. Uçuş 1,2–5 saniye
+sürer (açı, irtifa oranı ve tümsekle uzar).
+
+- Fareyle ya da tekerlekle müdahale uçuşu olduğu yerde durdurur.
+- Anlık kalan durumlar: ilk açılış, pencere boyutu değişimi, takip (`F`) açıkken,
+  ve erişilebilirlikte **hareketi azalt** açıkken (WCAG 2.3.3).
+- Uçuş zamana bağlıdır, kare hızına değil; sekme arka plandaysa geri gelince
+  kamera doğrudan hedeftedir.
+
+| | TUSAŞ (iç parça) | Ankara (dış parça) |
+|---|---|---|
+| Kapsam | 40.000–40.135 K, 32.510–32.685 D (~15×15 km) | 39.70–40.25 K, 32.45–33.10 D (~61×55 km) |
+| Piksel | 1489×1501, yerde ~10 m | 1846×2039, yerde ~30 m |
+| Dosya | `yakin_tusas.jpg` ~663 kB | `yakin_ankara.jpg` ~1,4 MB |
+
+Her iki parça için ortak:
 
 | | |
 |---|---|
-| Kaynak | NASA HLS S30 v2.0 (Harmonized Landsat Sentinel-2), katman `HLS_S30_Nadir_BRDF_Adjusted_Reflectance`, doi:10.5067/HLS/HLSS30.002 |
-| Uydu / tarih | Sentinel-2, **15 Nisan 2026** (sabit; bkz. aşağıda) |
-| Kapsam | enlem 39.70–40.25, boylam 32.45–33.10 (~61×55 km): Kahramankazan yer istasyonu ve Ankara kent merkezi |
-| Boyut | 2400×2030 piksel (yerde ~23×30 m), JPEG ~812 kB, pakete gömülü — ağ isteği yok |
-| Atıf | *Contains modified Copernicus Sentinel data 2026*. NASA veri setini kısıtlamasız paylaşır; görüntü Copernicus verisinden türetildiği için atıf ekranda durur |
+| Veri | Copernicus Sentinel-2 L2A, sahne `S2B_T36TVK_20260912T084537_L2A` (**12 Eylül 2026**, karede %0,001 bulut) |
+| Erişim | Element 84 Earth Search, AWS Open Data (`sentinel-2-c1-l2a`); hesap ve anahtar gerekmez, yalnızca build öncesi |
+| Renk | Copernicus Browser'ın varsayılan "True color" görünümü: Sentinel Hub'ın *Sentinel-2 L2A optimized True Color* betiği (parlak alanları sıkıştıran kontrast eğrisi, gama 1,8, doygunluk 1,2, sRGB). Düz "2,5 × kazanç" formülü toprağı turuncuya, beyaz çatıları patlamış beyaza çeviriyordu |
+| Atıf | *Contains modified Copernicus Sentinel data 2026* |
 
-- **Yalnızca 3B kürede.** 2B haritada yakın görüntü yoktur; `ANKARA`'ya basmak
+- **Neden bu sahne.** Hocanın linki tarihsiz; Copernicus Browser bu durumda en
+  son uygun tarihi açar. 12 Eylül karede neredeyse sıfır bulutlu; SCL'ye göre
+  TUSAŞ kutusunda bulut ve gölge %0, Ankara kutusunda %0,002. Önceki 15 Nisan
+  HLS görüntüsünde Ankara kutusunda dağınık bulutlar vardı.
+- **Aynı sahne, aynı formül.** İki parça iç içe geçerken yalnızca çözünürlük
+  değişir, renk ve tarih değişmez. Türkiye'nin %18 sarı vurgusu parçalara
+  uygulanmaz; eskiden görüntüyü soluk ve sarı gösteriyordu. Dış parçanın
+  kenarındaki küre zeminine geçişi %10 kenar yumuşatması taşır; 200–450 km
+  arasında parça, koyu zemin üzerinde yumuşak kenarlı açık bir alan olarak
+  seçilir.
+- **Konum doğrulandı.** 30 m'lik görüntü, NASA'nın bağımsız georeferansla
+  ürettiği eski HLS görüntüsüyle kenar haritası üzerinden çapraz
+  ilişkilendirildi. En iyi eşleşme sıfır kaymada; alt piksel kayma Ankara'da
+  0,5 m, TUSAŞ bölgesinde 3,9 m (1 piksel = 30 m).
+- **Yalnızca 3B kürede.** 2B haritada yakın görüntü yoktur; `TUSAŞ`'a basmak
   3B'ye geçer.
-- **Yalnızca FİZİKİ ve GÜNCEL temalarında.** OPS veya SİYASİ açıkken `ANKARA`'ya
+- **Yalnızca FİZİKİ ve GÜNCEL temalarında.** OPS veya SİYASİ açıkken `TUSAŞ`'a
   basılırsa zemin FİZİKİ'ye geçer.
 - **Atıf çipi.** Parça ekrandayken kürenin sol üstünde üç satır durur:
-  `YAKIN GÖRÜNTÜ · Ankara · 15 Nisan 2026`,
-  `NASA HLS · Sentinel-2 (Copernicus) · 30 m`,
-  `Göktürk görüntüsü değildir · kamera 111 km`. Üzerine gelince katman adı,
-  DOI, kutu ve piksel boyutu okunur.
-- **Farklı tarihler yan yana.** Çevre zemin (Blue Marble 2004 ya da GIBS dünü)
-  ile parça aynı gün değildir; kenarlar %10 yumuşatılır ama dikiş kusursuz
-  değildir. Türkiye'nin %18 sarı vurgusu parçaya da uygulanır ki kenarda renk
-  sıçraması olmasın.
+  `YAKIN GÖRÜNTÜ · TUSAŞ · 12 Eylül 2026`,
+  `Copernicus Sentinel-2 L2A · 10 m`,
+  `Göktürk görüntüsü değildir · kamera 19 km`. Bakış merkezi TUSAŞ kutusundan
+  çıkınca ya da kutu görüşün üçte birinden küçük kalınca çip Ankara / 30 m'ye
+  geçer. Üzerine gelince sahne kimliği, renk formülü, kaynak, kutu ve piksel
+  boyutu okunur.
+- **Etiket ya da pin yok.** Hocanın ekran görüntüsündeki yer adları
+  OpenStreetMap verisidir; doğrulamadığımız bir konuma etiket koymayız (§0).
+  Yer adını çip söyler.
 - **Kamera.** Eski yakınlaşma sınırının (~2230 km) üstünde tekerlek hızı,
   işaretçi boyutları ve kırpma **aynen** eskisi gibidir; sürükleme hızı LEO ve
   TÜMÜ ön ayarlarında aynıdır, küreye yaklaştıkça görüşün sabit bir oranını
@@ -390,8 +430,8 @@ kalır; sağ sütun ve alt sıra değişir. Yukarıdan aşağı operatörün sor
   genişler), OBT, SLE RAF, istasyon, temas ve seçili uydu alanları (durum
   kartında), kürenin tema satırı, mozaik tazeleme durumu ve okuma satırı,
   paket denetleyici şeridi (`P` yine açar), INFO paneli. **`SİMÜLE VERİ`
-  rozeti her iki modda da görünür.** Ankara yakın görüntüsünün atıf çipi de
-  gizlenmez: ekrandaki görüntünün kaynak bildirimidir. `ANKARA` düğmesi özet
+  rozeti her iki modda da görünür.** Yakın görüntünün atıf çipi de
+  gizlenmez: ekrandaki görüntünün kaynak bildirimidir. `TUSAŞ` düğmesi özet
   modunda da çalışır; tema satırı gizli olduğu için OPS'tan FİZİKİ'ye geçişi
   kendisi yapar.
 
@@ -569,8 +609,8 @@ Sunum sırasında fareye uzanmadan:
 |---|---|
 | `1` `2` `3` | Nokta anomalisi · Yavaş sürüklenme · Kolektif sapma |
 | `N` | Nominal akışa dön |
-| `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır |
-| `Y` | Küre: Ankara yakın görüntüsü (NASA HLS, 30 m; ~110 km) |
+| `L` / `T` | Küre: alçak yörüngeye yakınlaş / tüm filoyu sığdır (kamera uçarak gider) |
+| `Y` | Küre: TUSAŞ / Kahramankazan yakın görüntüsü (Sentinel-2 L2A, 10 m; ~19 km; kamera dünyanın her yerinden uçarak gelir) |
 | `F` | Seçili uyduyu kamerayla takip et (aç/kapat) |
 | `0` | Hızı 1×'e al |
 | `M` | Dünya: 3B küre ↔ 2B eşdikdörtgen harita |
@@ -613,7 +653,8 @@ src/
   assets/earth/
     bmng_2048.jpg       NASA Blue Marble NG, 2048×1024 (fiziki tema), kamu malı
     gibs_current.*      NASA GIBS günlük mozaik + alım tarihi (güncel tema)
-    ankara_hls.*        NASA HLS S30, Ankara 2400×2030, 30 m + atıf/DOI (yakın görüntü)
+    yakin_tusas.*       Sentinel-2 L2A, TUSAŞ 10 m + sahne, formül, SCL, atıf (yakın görüntü)
+    yakin_ankara.*      Sentinel-2 L2A, Ankara 30 m, aynı sahne (yakın görüntü, dış parça)
   engine/               saf TypeScript — React'ten bağımsız
     types.ts            ortak tipler
     mib.ts              MIB yükleme, kalibrasyon (raw ↔ mühendislik)
@@ -632,8 +673,9 @@ src/
   components/OzetPanosu.tsx  özet modunun sağ sütunu (durum kartı, parametreler, grafik, öneri)
   components/OzetFilo.tsx    özet modunun filo durumu kutucukları
   ui/colors.ts          durum renkleri
-  ui/earthTexture.ts    zemin dokuları (4 tema) ve Ankara parçasının dokusu
-  ui/yakinGoruntu.ts    yakın görüntü: parça eşlemesi, irtifaya bağlı kamera ayarları
+  ui/earthTexture.ts    zemin dokuları (4 tema) ve yakın görüntü parçalarının dokusu
+  ui/yakinGoruntu.ts    yakın görüntü: parça eşlemesi, TUSAŞ çerçevesi, irtifaya bağlı kamera, çip
+  ui/kameraUcusu.ts     ön ayara kamera uçuşu: büyük çember + logaritmik irtifa + tümsek
   assets/xai/           bildiriden alınan gerçek XAI görselleri
   store.ts              zustand — tek `Simulation` örneği + tazeleme sayacı
 ```
@@ -829,30 +871,37 @@ katman adını doğrular, yani yarım yazılmış bir çekim CI'da yakalanır.
 
 **Sunumdan önce:** `npm run imagery && npm run build`.
 
-### Ankara yakın görüntüsünü yeniden çekmek
+### Yakın görüntüyü yeniden üretmek
 
-`src/assets/earth/ankara_hls.jpg` ve yanındaki `ankara_hls.json` şu komutla
-üretilir:
+`src/assets/earth/yakin_tusas.*` ve `yakin_ankara.*` şu komutla üretilir:
 
 ```bash
-npm run imagery:ankara
+npm run imagery:yakin
 ```
 
-Tarih **sabittir** (`scripts/fetch-ankara.mjs` içinde `2026-04-15`) ve
-otomatik seçilmez: dosya boyutu bulutlu günü ayırt etmiyor (ölçülen:
-büyük ölçüde açık 28 Ağustos 55 kB, bulutla kaplı 30 Ağustos 51 kB). 15 Nisan,
-150 günlük taramada bölgeyi tam kaplayan 34 günün en temizidir: maskeli piksel
-%0,017, istasyon ve Kızılay çevresinde %0. Bu yüzden komut **sunum öncesi
-adımlara eklenmez**; yalnızca dosya kaybolursa ya da kutu/tarih bilerek
-değiştirilirse çalıştırılır.
+Betik (`scripts/fetch-yakin.mjs`) Earth Search'ten sahne kaydını alır, B04 /
+B03 / B02 (10 m) ve SCL (20 m) Cloud-Optimized GeoTIFF'lerinden **yalnızca
+gereken pencereyi** HTTP Range ile okur (Ankara için 20 m'lik önizleme
+katmanı), her çıktı pikselini `proj4` ile UTM 36N'ye çevirip çift doğrusal
+örnekler, Copernicus Browser renk formülünü uygular ve JPEG yazar. Yaklaşık
+20 saniye sürer. `geotiff`, `proj4`, `jpeg-js` yalnızca bu betikte kullanılır
+(devDependencies); pakete girmez.
 
-Betik yazmadan önce şunları doğrular, biri tutmazsa mevcut dosyalara dokunmadan
-çıkar: HTTP 200 ve `image/jpeg`, `Data-Present` false değil,
-`Acquisition-Time` sabit tarihle aynı, ilk baytlar `FF D8 FF`, ≥ 500 kB, ve
-istasyon ile Kızılay çevresindeki 128×128 kırpmaların her biri ≥ 1500 bayt
-(ölçülen: dolu 3235 / 4104 bayt, verisiz 380 bayt). Kutu ve tarih
-`src/ui/yakinGoruntu.ts` ile aynı olmalıdır; bir birim testi yan dosyayı
-modülle karşılaştırır.
+Sahne **sabittir** (`S2B_T36TVK_20260912T084537_L2A`), otomatik seçilmez; bu
+yüzden komut **sunum öncesi adımlara eklenmez**. Yalnızca dosya kaybolursa ya
+da kutu / sahne bilerek değiştirilirse çalıştırılır.
+
+Yazmadan önce şunları doğrular; biri tutmazsa mevcut dosyalara dokunmadan çıkar:
+
+- Sahne kimliği, tarih, EPSG ve bant ızgarası sabitle aynı.
+- Veri yok pikseli yok. Tekil DN 0 örnekleri (bozuk dedektör pikseli) atlanır,
+  oranı ≤ %0,01. Ölçülen: TUSAŞ penceresinde yalnızca B02'de 5 tekil sıfır.
+- SCL'ye göre bulut ve gölge TUSAŞ'ta ≤ %0,01, Ankara'da ≤ %0,5.
+- Izgara ara değerlemesinin tam izdüşümden sapması < 1 cm (ölçülen ~0,1 mm).
+- JPEG taban boyutu.
+
+Kutular `src/ui/yakinGoruntu.ts` ile aynı olmalıdır; bir birim testi yan
+dosyaları modülle karşılaştırır.
 
 ### Uydu kataloğunu güncellemek
 
@@ -1018,7 +1067,7 @@ for (let i = 0; i < 130; i++) __azs.getState().tick(1000);
 | Ülke poligonları ve Türkçe adlar | Natural Earth 110m admin_0, `NAME_TR` |
 | Fiziki zemin görüntüsü | NASA Blue Marble Next Generation, Aralık 2004, kamu malı |
 | Güncel zemin görüntüsü | NASA EOSDIS GIBS · VIIRS SNPP CorrectedReflectance TrueColor |
-| Ankara yakın görüntüsü | NASA HLS S30 v2.0, doi:10.5067/HLS/HLSS30.002 · Contains modified Copernicus Sentinel data 2026 |
+| Yakın görüntü (TUSAŞ 10 m, Ankara 30 m) | Copernicus Sentinel-2 L2A, sahne S2B_T36TVK_20260912T084537_L2A (Earth Search / AWS Open Data) · Contains modified Copernicus Sentinel data 2026 |
 | 2B harita izdüşümü | eşdikdörtgen (plate carrée), Natural Earth / NASA BMNG ile aynı doku |
 | Alarm detayı: `TM[5,x]` alanları, PMON tanımı, `TM[12,12]` alanları | ECSS-E-ST-70-41C §6.5, §6.12 |
 | Alarm detayı: OOL bilgisi, operasyonel sonuç, alarm bağlamı | ECSS-E-ST-70-11C |
@@ -1041,7 +1090,7 @@ sayacı APID + servis + alt tip üçlüsü başına ayrıdır.
 npm test
 ```
 
-174 test, on üç dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/summary.test.ts` (24), `src/engine/fleet.test.ts` (18), `src/engine/satelliteInfo.test.ts` (15), `src/ui/yakinGoruntu.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/gosterge.test.ts` (6), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
+202 test, on dört dosyada: `src/engine/limitChecker.test.ts` (30), `src/ui/gibs.test.ts` (35), `src/engine/summary.test.ts` (24), `src/ui/yakinGoruntu.test.ts` (23), `src/ui/kameraUcusu.test.ts` (20), `src/engine/fleet.test.ts` (18), `src/engine/satelliteInfo.test.ts` (15), `src/engine/xaiFigures.test.ts` (8), `src/ui/gosterge.test.ts` (6), `src/ui/kameraTakip.test.ts` (6), `src/engine/reedSolomon.test.ts` (5), `src/engine/changePoint.test.ts` (5), `src/engine/spectral.test.ts` (4), `src/engine/xaiArsivi.test.ts` (3).
 
 | Ne doğrulanıyor | Neden önemli |
 |---|---|
@@ -1076,15 +1125,18 @@ npm test
 | Özet panosu hükmü: ST[12] sert > AI sert > ST[12] yumuşak > AI yumuşak; KONTRAST yalnızca limitler sessizken | tek hüküm yanlış kaynağı göstermesin |
 | Özet panosu hükmü gerçek koşuda: sürüklenme doğrulanınca `◆ ALARM` + KONTRAST, nokta ihlalinde `▲ ALARM` | demonun iki ana anı panoda doğru okunur |
 | Limit göstergesi bölgeleri aralığı boşluksuz kaplar, sınırları MIB limitleriyle aynı | kutucuktaki imleç yanlış bölgede görünmesin |
-| Yakın görüntü parçasının köşeleri enlem/boylamla birebir örtüşür, kuzey yukarıda | yanlış eşleme şehri 60 km kaydırır ya da aynalar |
-| İstasyon ve Kızılay parçanın yumuşatılmamış iç bölgesinde | kenar yumuşatması kritik yeri soldurmasın |
+| Yakın görüntü parçalarının (TUSAŞ, Ankara) köşeleri enlem/boylamla birebir örtüşür, kuzey yukarıda | yanlış eşleme yeri km'lerce kaydırır ya da aynalar |
+| İstasyon ve Kızılay Ankara parçasının, hocanın çerçevesi TUSAŞ parçasının yumuşatılmamış iç bölgesinde; TUSAŞ'ın opak olduğu her yerde Ankara da opak | kenar yumuşatması kritik yeri soldurmasın, küre zemini sızmasın |
+| Pikseller yerde ~10 m (TUSAŞ) ve ~30 m (Ankara), en ve boy ayrı ayrı | yan dosya ile görüntü tutarlı |
 | Eski yakınlaşma sınırının üstünde tekerlek, işaretçi ve kırpma değerleri aynı; sürükleme hızı LEO/TÜMÜ ön ayarlarında aynı | yakın görüntü bugünkü küre davranışını bozmaz |
-| Yakın kırpma düzlemi zemini ve istasyon işaretini hiç kesmez | 40 km'de şehir kırpılmasın |
-| Tekerlek çentiği yüzeye yakın irtifayı sabit oranla küçültür, ≤ 20 çentikte tabana iner | tek çentikte yüzeyin altına düşmemek |
-| `ANKARA` çerçevesi kutuyu 0,6–1,8 en-boy oranlarında sığdırır | farklı ekranlarda şehir kesilmesin |
-| `ankara_hls.json` kutu, tarih, katman ve boyutta modülle aynı; atıf ve DOI mevcut | betik ↔ modül kaymasını CI yakalar |
-| Atıf çipi kaynağı, tarihi ve "Göktürk görüntüsü değildir" ibaresini taşır | §0: ekrandaki görüntünün kaynağı yanlış anlaşılmasın |
+| Yakın kırpma düzlemi zemini ve istasyon işaretini hiç kesmez | 8 km'de zemin kırpılmasın |
+| Tekerlek çentiği yüzeye yakın irtifayı sabit oranla küçültür, ≤ 25 çentikte 8 km tabana iner | tek çentikte yüzeyin altına düşmemek |
+| `TUSAŞ` ön ayarı hocanın çerçevesini 0,6–1,8 en-boy oranlarında sığdırır (0,8'de ~19 km) | farklı ekranlarda TUSAŞ kesilmesin |
+| İki yan dosya aynı sahne, tarih ve renk formülünü taşır; kutular modülle aynı; bulut oranı eşiğin altında | betik ↔ modül kaymasını CI yakalar |
+| Atıf çipi TUSAŞ'ta 10 m'lik, yüksekten ya da Kızılay üstünde 30 m'lik parçayı anlatır; kaynağı, tarihi ve "Göktürk görüntüsü değildir" ibaresini taşır | §0: ekrandaki görüntünün kaynağı yanlış anlaşılmasın |
 | Takip yüzeye yakın açılırsa mesafe kademeli yükselir, üstünde korunur | uydu kameranın arkasında kalmasın |
+| Kamera uçuşu beş farklı başlangıçtan (TÜMÜ, dünyanın öbür yüzü, Japonya 100 km, Kızılay 80 km, tam ters yön) tam hedefe varır, yere hiç inmez, hedefe olan açı hiç büyümez, 60 Hz'de kare başına yer değiştirme irtifanın %10'unu geçmez | uçuş sırasında yer ekranda sıçramasın, kamera geri dönmesin |
+| Uzak ve alçak kalkışta kamera ≥ 5000 km'ye yükselir; yakın sıçramada irtifa yalnızca azalır | yolculuk görünsün, kısa geçiş gereksiz yükselmesin |
 
 ---
 
@@ -1178,12 +1230,12 @@ germek var olmayan bilgiyi uydururdu) ve **nesne olarak tekdir**: tazeleme aynı
 canvas'ın içine yeniden çizer, böylece hem doku önbelleği hem three.js dokusu
 bayatlayamaz.
 
-**8. Ankara yakın görüntüsü, §0 ve §1.** Görüntü pakete gömülüdür; açılışta
-ve yakınlaşırken ağ isteği yapılmaz (§1 korunur). Ekrandaki görüntü Türk
-uydusundan değil, NASA'nın Sentinel-2 türevi ürününden gelir. Bir yer istasyonu
+**8. Yakın görüntü (TUSAŞ, Ankara), §0 ve §1.** Görüntüler pakete gömülüdür;
+açılışta ve yakınlaşırken ağ isteği yapılmaz (§1 korunur). Ekrandaki görüntü
+Türk uydusundan değil, Copernicus Sentinel-2'den gelir. Bir yer istasyonu
 konsolunda bu kolayca "Göktürk görüntüsü" diye okunabileceği için atıf çipi
 parça ekrandayken **her zaman** görünür ve bunu açıkça yazar (§0). Görüntü
-2026-04-15 tarihlidir ve çevre zeminle aynı gün değildir; çip tarihi yazar.
+2026-09-12 tarihlidir ve çevre zeminle aynı gün değildir; çip tarihi yazar.
 Yakın görüntü yalnızca 3B kürededir; 2B harita için ayrı yakınlaştırma, çizim
 ve ölçek çubuğu düzeltmeleri gerekeceğinden kapsam dışı bırakıldı.
 
@@ -1233,7 +1285,8 @@ terminator çizgisi, **dekoratif** bulut dokusu, atmosfer efekti · ikinci ekran
 karanlık/aydınlık tema geçişi · uydu başına **gerçek** MIB (katalogdaki her uydu
 AZS-DEMO referans modelinin bir örneğini koşar, bkz. §10 madde 6) · aynı anda
 birden fazla uydudan canlı telemetri · 2B haritada yakın görüntü ·
-Ankara dışında yakın görüntü, birden fazla tarihin birleştirilmesi
+Kahramankazan/Ankara dışında yakın görüntü, birden fazla tarihin birleştirilmesi ·
+yakın görüntüde harita etiketi ya da pin
 
 ---
 

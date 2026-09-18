@@ -5,8 +5,10 @@ import countries from '../data/countries_110m.json';
 import bmngUrl from '../assets/earth/bmng_2048.jpg';
 import gibsUrl from '../assets/earth/gibs_current.jpg';
 import gibsMeta from '../assets/earth/gibs_current.json';
-import ankaraUrl from '../assets/earth/ankara_hls.jpg';
-import ankaraMetaJson from '../assets/earth/ankara_hls.json';
+import yakinAnkaraUrl from '../assets/earth/yakin_ankara.jpg';
+import yakinAnkaraJson from '../assets/earth/yakin_ankara.json';
+import yakinTusasUrl from '../assets/earth/yakin_tusas.jpg';
+import yakinTusasJson from '../assets/earth/yakin_tusas.json';
 import { FEATHER } from './yakinGoruntu';
 import { DEFAULT_TIMEOUT_MS, availableDate, fetchSnapshot, isPlausibleSnapshot, snapshotUrl } from './gibs';
 import type { EarthTheme } from '../store';
@@ -91,9 +93,9 @@ bmngImage.onerror = () => {
 bmngImage.src = bmngUrl; // derlemede base64 olarak gomulur; ag istegi yok
 
 /**
- * Goruntu temalarinda (fiziki, guncel) Turkiye'nin %18 sari vurgusu. Ankara
- * yakin goruntusune de ayni ton uygulanir; yoksa parcanin kenarinda renk
- * dikisi olusurdu.
+ * Goruntu temalarinda (fiziki, guncel) Turkiye'nin %18 sari vurgusu. Yakin
+ * goruntu parcalarina UYGULANMAZ: ton yakinda goruntuyu soluk ve sari
+ * gosteriyordu; parcanin kenarindaki gecisi %10 yumusatma tasir.
  */
 const TURKIYE_TINT = 'rgba(240,184,58,0.18)';
 
@@ -427,88 +429,104 @@ export function earthCanvas(theme: EarthTheme): HTMLCanvasElement | null {
 }
 
 // ---------------------------------------------------------------------------
-// ANKARA YAKIN GORUNTUSU: NASA HLS S30 (Sentinel-2), 30 m
+// YAKIN GORUNTU: Copernicus Sentinel-2 L2A — Ankara 30 m, TUSAS 10 m
 // ---------------------------------------------------------------------------
 
 /**
- * Pakete gomulu bolgesel goruntu (scripts/fetch-ankara.mjs). Kure yakina
- * gelince bu goruntu ayri bir parca olarak cizilir (GlobeView). Ag istegi yok.
+ * Pakete gomulu bolgesel goruntulerin yan dosyasi (scripts/fetch-yakin.mjs).
+ * Iki goruntu ayni sahneden, ayni renk formuluyle uretilir. Ag istegi yok.
  */
-export interface AnkaraMeta {
+export interface YakinMeta {
+  name: string;
+  /** Cipin ilk satirindaki kisa ad. */
+  label: string;
+  /** Yer tarifi (cip ipucu). */
+  place: string;
   date: string;
-  layer: string;
-  satellite: string;
+  item: string;
+  collection: string;
+  platform: string;
+  product: string;
+  tile: string;
+  source: string;
   bbox: { south: number; west: number; north: number; east: number };
   width: number;
   height: number;
   resolution_m: number;
-  doi: string;
+  formula: string;
   credit: string;
+  cloud_fraction: number;
 }
-export const ankaraMeta = ankaraMetaJson as AnkaraMeta;
 
-const ankaraImage = new Image();
-let ankaraReady = false;
-const ankaraWaiters: (() => void)[] = [];
-ankaraImage.onload = () => {
-  ankaraReady = true;
-  ankaraWaiters.splice(0).forEach((f) => f());
-};
-// Cozulemezse parca hic gosterilmez; bekleyenler bosaltilir.
-ankaraImage.onerror = () => {
-  ankaraWaiters.splice(0);
-};
-ankaraImage.src = ankaraUrl; // derlemede base64 olarak gomulur; ag istegi yok
+export interface YakinKatman {
+  meta: YakinMeta;
+  /** Goruntu hazir olunca (ya da hemen) cagirir; aboneligi iptal eden fonksiyon doner. */
+  onReady: (cb: () => void) => () => void;
+  /**
+   * Parca dokusu: goruntu + kenarlarda yumusak saydamlik (her kenarda
+   * FEATHER). Turkiye tonu yok. Hazir degilse null.
+   */
+  canvas: () => HTMLCanvasElement | null;
+}
 
-/** Goruntu hazir olunca (ya da hemen) cagirir; aboneligi iptal eden fonksiyon doner. */
-export function onAnkara(cb: () => void): () => void {
-  if (ankaraReady) {
-    cb();
-    return () => {};
-  }
-  ankaraWaiters.push(cb);
-  return () => {
-    const i = ankaraWaiters.indexOf(cb);
-    if (i >= 0) ankaraWaiters.splice(i, 1);
+function yakinKatman(url: string, meta: YakinMeta): YakinKatman {
+  const image = new Image();
+  let ready = false;
+  const waiters: (() => void)[] = [];
+  image.onload = () => {
+    ready = true;
+    waiters.splice(0).forEach((f) => f());
+  };
+  // Cozulemezse parca hic gosterilmez; bekleyenler bosaltilir.
+  image.onerror = () => {
+    waiters.splice(0);
+  };
+  image.src = url; // derlemede base64 olarak gomulur; ag istegi yok
+
+  let cv: HTMLCanvasElement | null = null;
+  return {
+    meta,
+    onReady(cb) {
+      if (ready) {
+        cb();
+        return () => {};
+      }
+      waiters.push(cb);
+      return () => {
+        const i = waiters.indexOf(cb);
+        if (i >= 0) waiters.splice(i, 1);
+      };
+    },
+    canvas() {
+      if (!ready) return null;
+      if (cv) return cv;
+      const w = image.naturalWidth;
+      const h = image.naturalHeight;
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const g = c.getContext('2d')!;
+      g.drawImage(image, 0, 0);
+      // Kenar yumusatma: once yatay, sonra dikey alfa maskesi.
+      g.globalCompositeOperation = 'destination-in';
+      const mask = (grad: CanvasGradient) => {
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(FEATHER, 'rgba(0,0,0,1)');
+        grad.addColorStop(1 - FEATHER, 'rgba(0,0,0,1)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, w, h);
+      };
+      mask(g.createLinearGradient(0, 0, w, 0));
+      mask(g.createLinearGradient(0, 0, 0, h));
+      g.globalCompositeOperation = 'source-over';
+      cv = c;
+      return c;
+    },
   };
 }
 
-let ankaraCv: HTMLCanvasElement | null = null;
-
-/**
- * Parca dokusu: goruntu + cevreyle ayni Turkiye tonu + kenarlarda yumusak
- * saydamlik. Cevre zemin ~20 km/piksel oldugu icin gecis kusursuz olamaz;
- * amac sert bir dikdortgen kenari yumusatmak. Istasyon ve Kizilay tamamen
- * opak ic bolgede kalir (bkz. yakinGoruntu.test.ts).
- */
-export function ankaraCanvas(): HTMLCanvasElement | null {
-  if (!ankaraReady) return null;
-  if (ankaraCv) return ankaraCv;
-  const w = ankaraImage.naturalWidth;
-  const h = ankaraImage.naturalHeight;
-  const cv = document.createElement('canvas');
-  cv.width = w;
-  cv.height = h;
-  const g = cv.getContext('2d')!;
-  g.drawImage(ankaraImage, 0, 0);
-  // Ankara tamamen Turkiye icinde: cevre zeminle ayni vurgu.
-  g.fillStyle = TURKIYE_TINT;
-  g.fillRect(0, 0, w, h);
-
-  // Kenar yumusatma: once yatay, sonra dikey alfa maskesi.
-  g.globalCompositeOperation = 'destination-in';
-  const mask = (grad: CanvasGradient) => {
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(FEATHER, 'rgba(0,0,0,1)');
-    grad.addColorStop(1 - FEATHER, 'rgba(0,0,0,1)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, w, h);
-  };
-  mask(g.createLinearGradient(0, 0, w, 0));
-  mask(g.createLinearGradient(0, 0, 0, h));
-  g.globalCompositeOperation = 'source-over';
-
-  ankaraCv = cv;
-  return cv;
-}
+/** Genis parca: Ankara, 61 x 55 km, 30 m. */
+export const yakinAnkara = yakinKatman(yakinAnkaraUrl, yakinAnkaraJson as YakinMeta);
+/** Ic parca: TUSAS / Kahramankazan, 15 x 15 km, 10 m. */
+export const yakinTusas = yakinKatman(yakinTusasUrl, yakinTusasJson as YakinMeta);

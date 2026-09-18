@@ -9,7 +9,7 @@ import * as THREE from 'three';
  * vektorun boyu kisaliyordu ve kamera her karede biraz daha yaklasiyordu —
  * takip acilinca kure kendiliginden zoomlanmis gibi gorunuyordu.
  *
- * Istisna: kamera `minUzaklik`in altindaysa (ornegin Ankara yakin
+ * Istisna: kamera `minUzaklik`in altindaysa (ornegin TUSAS yakin
  * goruntusundeyken takip acildi) mesafe ayni payla yumusakca yukselir. Yoksa
  * ~100 km'de takip edilen uydu kameranin arkasinda kalirdi.
  *

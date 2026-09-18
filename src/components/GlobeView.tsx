@@ -3,26 +3,28 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useConsole, type EarthTheme, type GlobeView as GorunumOnayari } from '../store';
 import {
-  ankaraCanvas,
-  ankaraMeta,
   currentImagery,
   earthCanvas,
-  onAnkara,
   onBmng,
   onImageryChange,
   refreshCurrentImagery,
+  yakinAnkara,
+  yakinTusas,
+  type YakinKatman,
+  type YakinMeta,
 } from '../ui/earthTexture';
 import {
-  ANKARA_CENTER,
   EARTH_KM,
   FOLLOW_MIN_DISTANCE,
+  MIN_ALT_KM,
   MIN_DISTANCE,
+  TUSAS_FRAME,
   altitudeKm,
   chipLines,
-  fitAltitudeKm,
+  chipTarget,
+  fitFrameAltitudeKm,
   markerScale,
   nearPlaneFor,
-  patchInView,
   patchOpacity,
   rotateSpeedFor,
   sphereParams,
@@ -44,6 +46,7 @@ import {
 } from '../engine/orbit';
 import { COLOR } from '../ui/colors';
 import { takipKonumu } from '../ui/kameraTakip';
+import { ucusKonumu, ucusPlani, type Ucus } from '../ui/kameraUcusu';
 import SatelliteList from './SatelliteList';
 
 const D2R = Math.PI / 180;
@@ -71,13 +74,27 @@ const FIT_RADIUS: Record<'LEO' | 'ALL', number> = { LEO: 1.22, ALL: GEO_DISPLAY_
 const VIEW_META: Record<GorunumOnayari, { label: string; title: string }> = {
   LEO: { label: 'LEO', title: 'Alçak yörüngeye yakınlaş (L, yalnızca 3B)' },
   ALL: { label: 'TÜMÜ', title: 'GEO kuşağı dahil tüm filoyu sığdır (T, yalnızca 3B)' },
-  ANKARA: {
-    label: 'ANKARA',
+  TUSAS: {
+    label: 'TUSAŞ',
     title:
-      'Ankara yakın görüntüsü: NASA HLS · Sentinel-2 · 30 m (Y). Kamera ~110 km\'ye iner; ' +
+      'TUSAŞ / Kahramankazan yakın görüntüsü: Copernicus Sentinel-2 L2A · 10 m (Y). Kamera ~20 km\'ye iner; ' +
       'görüntü FİZİKİ ve GÜNCEL temalarda çizilir, gerekirse FİZİKİ\'ye geçilir.',
   },
 };
+
+/** Atif cipinin ipucu: ekrandaki parcanin kaynagi (yonerge §0). */
+function chipTitle(m: YakinMeta): string {
+  const b = m.bbox;
+  return (
+    m.place + '\n' +
+    'Copernicus Sentinel-2 L2A · sahne ' + m.item + '\n' +
+    'Renk: ' + m.formula + '\n' +
+    m.credit + '\n' +
+    'Kaynak: ' + m.source + '\n' +
+    'Kutu: ' + b.south + '–' + b.north + '°K, ' + b.west + '–' + b.east + '°D · piksel ~' + m.resolution_m + ' m\n' +
+    'Pakete gömülü, ağ isteği yok. Çevre zemin ~20 km/piksel ve farklı tarihli.'
+  );
+}
 
 // toVec (enlem/boylam -> kure koordinati) ui/yakinGoruntu.ts'te: parca geometrisi ayni eslemeyi kullanir.
 
@@ -257,7 +274,7 @@ export default function GlobeView() {
 
   // Kamerayi yeniden cerceveleyecek callback; efekt icinde doldurulur.
   const refit = useRef<(() => void) | null>(null);
-  // Ankara yakin goruntusunun atif cipi; gorunurlugu ve metni cizim dongusunde.
+  // Yakin goruntunun (TUSAS / Ankara) atif cipi; gorunurlugu ve metni cizim dongusunde.
   const chip = useRef<HTMLDivElement>(null);
   const setDamping = useRef<((on: boolean) => void) | null>(null);
 
@@ -281,33 +298,41 @@ export default function GlobeView() {
     const earthMat = new THREE.MeshBasicMaterial({ map: toTexture(earthCanvas('ops')!) });
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), earthMat));
 
-    // Ankara yakin goruntusu: dunyanin ustunde ayri bir kure parcasi. Ankara
-    // tek bir 96x64 hucresinin icinde; o hucrenin yuzu r=1'in 1.9-3.4 km
-    // ALTINDA, bu yuzden r=1'deki parca her zaman onde (derinlik kaydirmasi
-    // gerekmez). Saydamlar opaklardan sonra cizilir; renderOrder -1 onu dunya
-    // ile gorus cizgileri / yer noktalari arasina koyar. depthWrite, yer
-    // noktasinin r=1 altindaki yarisini gizler.
-    const patchSp = sphereParams();
-    const patchMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: true, opacity: 0 });
-    const patch = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 16, 16, patchSp.phiStart, patchSp.phiLength, patchSp.thetaStart, patchSp.thetaLength),
-      patchMat,
-    );
-    patch.renderOrder = -1;
-    patch.visible = false;
-    scene.add(patch);
-    let patchTex: THREE.Texture | null = null;
+    // Yakin goruntu: dunyanin ustunde ic ice iki kure parcasi, ayni Sentinel-2
+    // sahnesinden (Ankara 30 m, TUSAS 10 m). Ankara tek bir 96x64 hucresinin
+    // icinde; o hucrenin yuzu r=1'in 1.9-3.4 km ALTINDA, bu yuzden r=1'deki
+    // parca her zaman onde. TUSAS parcasi 6 m (1e-6) yukarida ve Ankara'dan
+    // SONRA cizilir (renderOrder -1 > -2): onun derinligini gecer; derinlik
+    // adimi 8 km'de ~1 mm, 1500 km'de ~0.4 m. Saydamlar opaklardan sonra
+    // cizilir; negatif renderOrder parcalari dunya ile gorus cizgileri / yer
+    // noktalari arasina koyar. depthWrite, yer noktasinin r=1 altini gizler.
+    const makePatch = (katman: YakinKatman, r: number, order: number) => {
+      const sp = sphereParams(katman.meta.bbox);
+      const mat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: true, opacity: 0 });
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 16, 16, sp.phiStart, sp.phiLength, sp.thetaStart, sp.thetaLength),
+        mat,
+      );
+      mesh.renderOrder = order;
+      mesh.visible = false;
+      scene.add(mesh);
+      const p = { katman, mesh, mat, tex: null as THREE.Texture | null, off: () => {} };
+      p.off = katman.onReady(() => {
+        const cv = katman.canvas();
+        if (!cv || p.tex) return;
+        p.tex = toTexture(cv);
+        mat.map = p.tex;
+        mat.needsUpdate = true;
+        // GPU yuklemesi demo ortasinda degil, acilista olsun.
+        renderer.initTexture(p.tex);
+      });
+      return p;
+    };
+    const ankaraPatch = makePatch(yakinAnkara, 1, -2);
+    const tusasPatch = makePatch(yakinTusas, 1 + 1e-6, -1);
+    const patches = [ankaraPatch, tusasPatch];
     // Kurede gercekten CIZILEN tema (swap ertelenebilir ya da atlanabilir).
     let shownTheme: EarthTheme = 'ops';
-    const offAnkara = onAnkara(() => {
-      const cv = ankaraCanvas();
-      if (!cv || patchTex) return;
-      patchTex = toTexture(cv);
-      patchMat.map = patchTex;
-      patchMat.needsUpdate = true;
-      // ~26 MB'lik GPU yuklemesi demo ortasinda degil, acilista olsun.
-      renderer.initTexture(patchTex);
-    });
     // Kure siluetini ayirmak icin ince bir kenar halkasi (ic yuzu cizilen buyuk kure).
     const rimMat = new THREE.MeshBasicMaterial({ color: THEME_STYLE.ops.rim, side: THREE.BackSide });
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.014, 64, 48), rimMat));
@@ -450,11 +475,15 @@ export default function GlobeView() {
 
     // Kullanici kamerayi elle oynatana kadar sahne panele sigacak sekilde cerceveler.
     let userMoved = false;
+    // On ayara kamera ucusu (ui/kameraUcusu.ts); null: ucus yok.
+    let ucus: { plan: Ucus; t0: number } | null = null;
     controls.addEventListener('start', () => {
       // OrbitControls 'start'i zoom hesabindan ONCE gonderir: bu centik icin
       // hiz buradan okunur (ozel tekerlek isleyicisi gerekmez).
       controls.zoomSpeed = zoomSpeedFor(camera.position.length());
       userMoved = true;
+      // Elle mudahale ucusu oldugu yerde birakir.
+      ucus = null;
       // Elle mudahale takibi keser.
       if (useConsole.getState().followSat) useConsole.getState().setFollow(false);
     });
@@ -466,29 +495,49 @@ export default function GlobeView() {
       return radius / Math.min(Math.sin(vFov), Math.sin(hFov));
     };
 
-    const frame = () => {
+    /** On ayarin kamera konumu. LEO / TUMU yonu korur, yalnizca uzakligi degistirir. */
+    const hedefKonum = (): THREE.Vector3 => {
       const view = useConsole.getState().globeView;
       const aspect = camera.aspect || 1;
-      if (view === 'ANKARA') {
-        // Onceki suruklemeden kalan sonumleme hareketini bosalt; yoksa eski
-        // hizla hesaplanmis donus ~110 km'de uygulanir ve gorus Ankara'dan kayar.
-        const damp = controls.enableDamping;
-        controls.enableDamping = false;
-        controls.update();
-        controls.enableDamping = damp;
-        camera.position.copy(
-          toVec(ANKARA_CENTER.lat, ANKARA_CENTER.lon, 1 + fitAltitudeKm(aspect, camera.fov) / EARTH_KM),
-        );
+      if (view === 'TUSAS') {
+        // Hocanin Copernicus cercevesi (10.7 x 6.7 km) tuvalin en-boyuna gore sigar.
+        const altKm = Math.max(MIN_ALT_KM, fitFrameAltitudeKm(aspect, camera.fov, TUSAS_FRAME.widthKm, TUSAS_FRAME.heightKm));
+        return toVec(TUSAS_FRAME.lat, TUSAS_FRAME.lon, 1 + altKm / EARTH_KM);
+      }
+      return camera.position.clone().setLength(fitDistance(aspect, FIT_RADIUS[view]));
+    };
+
+    /**
+     * Kamerayi on ayara goturur. `animate`: dunyanin neresinden olursa olsun
+     * kure uzerinde suzulerek gider (ui/kameraUcusu.ts). Anlik: ilk acilis,
+     * pencere boyutu, takip acikken (takip yonu kendisi surer) ve "hareketi
+     * azalt" ayari acikken (WCAG 2.3.3).
+     */
+    const frame = (animate: boolean) => {
+      // Onceki suruklemeden kalan sonumleme hareketini bosalt; yoksa eski hizla
+      // hesaplanmis donus ucus sirasinda ya da ~20 km'de uygulanir, gorus kayar.
+      const damp = controls.enableDamping;
+      controls.enableDamping = false;
+      controls.update();
+      controls.enableDamping = damp;
+      const hedef = hedefKonum();
+      const st = useConsole.getState();
+      if (!animate || st.a11y.reduceMotion || st.followSat) {
+        ucus = null;
+        camera.position.copy(hedef);
         controls.update();
         return;
       }
-      camera.position.setLength(fitDistance(aspect, FIT_RADIUS[view]));
+      ucus = { plan: ucusPlani(camera.position, hedef), t0: performance.now() };
     };
 
     camera.position.copy(toVec(GROUND_STATION.lat_deg, GROUND_STATION.lon_deg, 5));
+    // Ilk cerceve (mount) anliktir: acilista kamera ucmaz.
+    let ilkCerceve = true;
     refit.current = () => {
       userMoved = false;
-      frame();
+      frame(!ilkCerceve);
+      ilkCerceve = false;
     };
 
     const resize = () => {
@@ -498,7 +547,8 @@ export default function GlobeView() {
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      if (!userMoved) frame();
+      // Boyut degisimi anlik cerceveler; ucus suruyorsa yeni hedefe ucmaya devam eder.
+      if (!userMoved) frame(ucus !== null);
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -513,6 +563,14 @@ export default function GlobeView() {
       const state = useConsole.getState();
       // 2B harita acikken kure gizlidir; WebGL cizimi atlanir, sahne canli kalir.
       if (state.mapMode === '2D') return;
+
+      // On ayar ucusu: zamana bagli (kare hizindan bagimsiz); sekme arka
+      // plandaysa geri gelince dogrudan hedefte olur.
+      if (ucus) {
+        const t = (performance.now() - ucus.t0) / ucus.plan.durationMs;
+        camera.position.copy(ucusKonumu(ucus.plan, t));
+        if (t >= 1) ucus = null;
+      }
       const utcMs = state.sim.clock.utcMs();
       const selected = state.selectedNorad;
 
@@ -641,20 +699,26 @@ export default function GlobeView() {
       const op = patchOpacity(alt);
       const imagery = shownTheme === 'physical' || shownTheme === 'current';
       // Yalnizca opaklik 0 degil, gorunmez: uzakta derinlik adimi km mertebesinde.
-      patch.visible = patchTex !== null && imagery && op > 0;
-      patchMat.opacity = op;
+      for (const p of patches) {
+        p.mesh.visible = p.tex !== null && imagery && op > 0;
+        p.mat.opacity = op;
+      }
       if (chip.current) {
         const tanV = Math.tan((camera.fov / 2) * D2R);
-        const onScreen = patch.visible && patchInView(camera.position, Math.hypot(tanV, tanV * camera.aspect));
+        const target = chipTarget(camera.position, tanV, camera.aspect, tusasPatch.katman.meta.bbox, ankaraPatch.katman.meta.bbox);
+        const src = target === 'inner' ? tusasPatch : target === 'outer' ? ankaraPatch : null;
+        const onScreen = src !== null && src.mesh.visible;
         chip.current.style.display = onScreen ? '' : 'none';
         const km = Math.round(alt);
         // 2B'den donunce cip yeniden olusur (bos): kimlik degisince de yazilir.
-        if (onScreen && (km !== lastChipKm || chip.current !== lastChipEl)) {
+        if (onScreen && (km !== lastChipKm || chip.current !== lastChipEl || src.katman !== lastChipSrc)) {
           lastChipKm = km;
           lastChipEl = chip.current;
-          const lines = chipLines(alt, ankaraMeta.date);
+          lastChipSrc = src.katman;
+          const lines = chipLines(alt, src.katman.meta);
           const rows = chip.current.children;
           for (let i = 0; i < lines.length && i < rows.length; i++) rows[i].textContent = lines[i];
+          chip.current.title = chipTitle(src.katman.meta);
         }
       }
 
@@ -662,6 +726,7 @@ export default function GlobeView() {
     };
     let lastChipKm = -1;
     let lastChipEl: HTMLDivElement | null = null;
+    let lastChipSrc: YakinKatman | null = null;
     loop();
 
     // GUNCEL mozaik degistiginde (gomulu cozuldu ya da agdan tazelendi): canvas
@@ -679,10 +744,12 @@ export default function GlobeView() {
 
     return () => {
       offImagery();
-      offAnkara();
-      patchTex?.dispose();
-      patch.geometry.dispose();
-      patchMat.dispose();
+      for (const p of patches) {
+        p.off();
+        p.tex?.dispose();
+        p.mesh.geometry.dispose();
+        p.mat.dispose();
+      }
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
@@ -735,23 +802,15 @@ export default function GlobeView() {
 
         <SatelliteList />
 
-        {/* Ankara yakin goruntusunun kaynak bildirimi (yonerge §0). Yalnizca parca
-            gercekten ekrandayken gorunur. Ozet modunda GIZLENMEZ: ekrandaki
+        {/* Yakin goruntunun kaynak bildirimi (yonerge §0). Yalnizca parca gercekten
+            ekrandayken gorunur; metni ve ipucu ekrandaki parcaya gore (TUSAS 10 m /
+            Ankara 30 m) dongude yazilir. Ozet modunda GIZLENMEZ: ekrandaki
             goruntunun kaynagini soyler, SIMULE VERI rozeti gibi. */}
         {mapMode === '3D' && (
           <div
             ref={chip}
             style={{ display: 'none' }}
             className="ozet-sol absolute left-[204px] top-2 max-w-[250px] text-3xs leading-[13px] bg-ops-sunken/90 border border-ops-line2 px-1.5 py-1 pointer-events-auto"
-            title={
-              'Katman: ' + ankaraMeta.layer + ' (BRDF düzeltilmiş yansıma)\n' +
-              'NASA HLS S30 v2.0 · doi:' + ankaraMeta.doi + '\n' +
-              'Contains modified Copernicus Sentinel data 2026\n' +
-              'Kutu: ' + ankaraMeta.bbox.south + '–' + ankaraMeta.bbox.north + '°K, ' +
-              ankaraMeta.bbox.west + '–' + ankaraMeta.bbox.east + '°D · piksel ~23×30 m\n' +
-              'Pakete gömülü, ağ isteği yok. Çevre zemin ~20 km/piksel ve farklı tarihli.\n' +
-              'Türkiye vurgusu (%18 sarı) bu görüntüye de uygulanmıştır.'
-            }
           >
             <div className="text-ops-text tracking-[0.06em]" />
             <div className="text-ops-dim" />
@@ -777,12 +836,12 @@ export default function GlobeView() {
             </button>
           ))}
           <span className="w-1" />
-          {(['LEO', 'ALL', 'ANKARA'] as const).map((v) => (
+          {(['LEO', 'ALL', 'TUSAS'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setGlobeView(v)}
-              // ANKARA 2B'deyken de basilabilir: 3B'ye gecip yakinlasir.
-              disabled={mapMode === '2D' && v !== 'ANKARA'}
+              // TUSAS 2B'deyken de basilabilir: 3B'ye gecip yakinlasir.
+              disabled={mapMode === '2D' && v !== 'TUSAS'}
               aria-pressed={globeView === v}
               title={VIEW_META[v].title}
               className={
