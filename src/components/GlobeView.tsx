@@ -46,6 +46,7 @@ import {
 } from '../engine/orbit';
 import { COLOR } from '../ui/colors';
 import { takipKonumu } from '../ui/kameraTakip';
+import { ucusKonumu, ucusPlani, type Ucus } from '../ui/kameraUcusu';
 import SatelliteList from './SatelliteList';
 
 const D2R = Math.PI / 180;
@@ -474,11 +475,15 @@ export default function GlobeView() {
 
     // Kullanici kamerayi elle oynatana kadar sahne panele sigacak sekilde cerceveler.
     let userMoved = false;
+    // On ayara kamera ucusu (ui/kameraUcusu.ts); null: ucus yok.
+    let ucus: { plan: Ucus; t0: number } | null = null;
     controls.addEventListener('start', () => {
       // OrbitControls 'start'i zoom hesabindan ONCE gonderir: bu centik icin
       // hiz buradan okunur (ozel tekerlek isleyicisi gerekmez).
       controls.zoomSpeed = zoomSpeedFor(camera.position.length());
       userMoved = true;
+      // Elle mudahale ucusu oldugu yerde birakir.
+      ucus = null;
       // Elle mudahale takibi keser.
       if (useConsole.getState().followSat) useConsole.getState().setFollow(false);
     });
@@ -490,29 +495,49 @@ export default function GlobeView() {
       return radius / Math.min(Math.sin(vFov), Math.sin(hFov));
     };
 
-    const frame = () => {
+    /** On ayarin kamera konumu. LEO / TUMU yonu korur, yalnizca uzakligi degistirir. */
+    const hedefKonum = (): THREE.Vector3 => {
       const view = useConsole.getState().globeView;
       const aspect = camera.aspect || 1;
       if (view === 'TUSAS') {
-        // Onceki suruklemeden kalan sonumleme hareketini bosalt; yoksa eski
-        // hizla hesaplanmis donus ~20 km'de uygulanir ve gorus TUSAS'tan kayar.
-        const damp = controls.enableDamping;
-        controls.enableDamping = false;
-        controls.update();
-        controls.enableDamping = damp;
         // Hocanin Copernicus cercevesi (10.7 x 6.7 km) tuvalin en-boyuna gore sigar.
         const altKm = Math.max(MIN_ALT_KM, fitFrameAltitudeKm(aspect, camera.fov, TUSAS_FRAME.widthKm, TUSAS_FRAME.heightKm));
-        camera.position.copy(toVec(TUSAS_FRAME.lat, TUSAS_FRAME.lon, 1 + altKm / EARTH_KM));
+        return toVec(TUSAS_FRAME.lat, TUSAS_FRAME.lon, 1 + altKm / EARTH_KM);
+      }
+      return camera.position.clone().setLength(fitDistance(aspect, FIT_RADIUS[view]));
+    };
+
+    /**
+     * Kamerayi on ayara goturur. `animate`: dunyanin neresinden olursa olsun
+     * kure uzerinde suzulerek gider (ui/kameraUcusu.ts). Anlik: ilk acilis,
+     * pencere boyutu, takip acikken (takip yonu kendisi surer) ve "hareketi
+     * azalt" ayari acikken (WCAG 2.3.3).
+     */
+    const frame = (animate: boolean) => {
+      // Onceki suruklemeden kalan sonumleme hareketini bosalt; yoksa eski hizla
+      // hesaplanmis donus ucus sirasinda ya da ~20 km'de uygulanir, gorus kayar.
+      const damp = controls.enableDamping;
+      controls.enableDamping = false;
+      controls.update();
+      controls.enableDamping = damp;
+      const hedef = hedefKonum();
+      const st = useConsole.getState();
+      if (!animate || st.a11y.reduceMotion || st.followSat) {
+        ucus = null;
+        camera.position.copy(hedef);
         controls.update();
         return;
       }
-      camera.position.setLength(fitDistance(aspect, FIT_RADIUS[view]));
+      ucus = { plan: ucusPlani(camera.position, hedef), t0: performance.now() };
     };
 
     camera.position.copy(toVec(GROUND_STATION.lat_deg, GROUND_STATION.lon_deg, 5));
+    // Ilk cerceve (mount) anliktir: acilista kamera ucmaz.
+    let ilkCerceve = true;
     refit.current = () => {
       userMoved = false;
-      frame();
+      frame(!ilkCerceve);
+      ilkCerceve = false;
     };
 
     const resize = () => {
@@ -522,7 +547,8 @@ export default function GlobeView() {
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      if (!userMoved) frame();
+      // Boyut degisimi anlik cerceveler; ucus suruyorsa yeni hedefe ucmaya devam eder.
+      if (!userMoved) frame(ucus !== null);
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -537,6 +563,14 @@ export default function GlobeView() {
       const state = useConsole.getState();
       // 2B harita acikken kure gizlidir; WebGL cizimi atlanir, sahne canli kalir.
       if (state.mapMode === '2D') return;
+
+      // On ayar ucusu: zamana bagli (kare hizindan bagimsiz); sekme arka
+      // plandaysa geri gelince dogrudan hedefte olur.
+      if (ucus) {
+        const t = (performance.now() - ucus.t0) / ucus.plan.durationMs;
+        camera.position.copy(ucusKonumu(ucus.plan, t));
+        if (t >= 1) ucus = null;
+      }
       const utcMs = state.sim.clock.utcMs();
       const selected = state.selectedNorad;
 
