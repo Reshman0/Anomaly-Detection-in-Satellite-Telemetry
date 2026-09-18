@@ -23,6 +23,11 @@ export type TourId = 'tam' | 'ozet';
 export interface TourStep {
   /** Adim kimligi; ses dosyasinin adi da budur (`audio/<id>.mp3`). */
   id: string;
+  /**
+   * `cover`: panel gostermeyen kapak adimi (acilis / kapanis). Konsol kararir,
+   * kart ortada durur; hedef panel aranmaz.
+   */
+  kind?: 'cover';
   /** Hedef panelin `data-tour` degeri; verilmezse `id`. Ayni panel iki kez gezilebilir. */
   target?: string;
   /** Ilerleme seridi ve hedef etiketi icin kisa ad. */
@@ -262,7 +267,34 @@ export const OZET_STEPS: TourStep[] = [
   },
 ];
 
+/** Acilis kapagi: turun basinda projeyi ve konsolu tanitir. */
+function intro(onEnter: () => void): TourStep {
+  return {
+    id: 'giris',
+    kind: 'cover',
+    short: 'Giriş',
+    title: 'AzSonra · yer istasyonu konsolu',
+    caption:
+      'Uydu telemetrisinde açıklanabilir yapay zekâ ile anomali tespiti projesinin operatör arayüzüne hoş geldiniz. Şimdi ekrandaki panelleri tek tek gezeceğiz: uydunun konumundan telemetriye, alarmlardan modelin gerekçesine kadar.',
+    look: '',
+    durationMs: 11000,
+    onEnter,
+  };
+}
+
+/** Kapanis kapagi: tur burada biter ve basa doner. */
+const OUTRO: TourStep = {
+  id: 'kapanis',
+  kind: 'cover',
+  short: 'Kapanış',
+  title: 'Teşekkür ederiz',
+  caption:
+    'Gerçek yörünge hesabı, uzay standartlarına uygun telemetri yapısı ve yapay zekâ destekli anomali tespiti tek ekranda. Bizi dinlediğiniz için teşekkür ederiz.',
+  look: '',
+  durationMs: 9000,
+};
+
 export const TOURS: Record<TourId, TourStep[]> = {
-  tam: TOUR_STEPS,
-  ozet: OZET_STEPS,
+  tam: [intro(showFullConsole), ...TOUR_STEPS, OUTRO],
+  ozet: [intro(showSummary), ...OZET_STEPS, OUTRO],
 };

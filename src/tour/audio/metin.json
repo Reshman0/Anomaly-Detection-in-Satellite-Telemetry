@@ -1,5 +1,6 @@
 {
   "_aciklama": "Tanitim turu seslendirme metinleri. Ekrandaki altyazidan (tourScript.ts) farkli olarak kisaltmalar acik yazilir. Her metin ~12 saniyeyi gecmemeli: suruklenme senaryosunun zamanlamasi buna bagli. Sesleri yeniden uretmek icin: scripts/tur_ses_uret.py",
+  "giris": "AzSonra yer istasyonu konsoluna hoş geldiniz. Bu tanıtım, uydu telemetrisinde açıklanabilir yapay zekâ ile anomali tespiti projemizin operatör arayüzünü anlatır. Şimdi ekrandaki panelleri tek tek gezeceğiz.",
   "ust-serit": "Üst şeritte görev adı, yer saati ile uydu saati, istasyon bağlantısı ve seçili uydu yer alır. Sağdaki sayaç, uyduyla bağlantının ne zaman açılıp kapanacağını söyler.",
   "dunya": "Dünya görünümünde Türk uydularının anlık konumları, gerçek yörünge verisiyle hesaplanır. Kesik daire, Kahramankazan istasyonunun uyduyu görebildiği alandır.",
   "senaryo": "Senaryo konsolundan, gösterim için anomali senaryoları başlatılır. Şimdi yavaş sürüklenme senaryosu çalışıyor. Senaryolar, gösterim amaçlı kurgulanmıştır.",
@@ -18,5 +19,6 @@
   "oz-durum-alarm": "Aynı kart, birkaç saniye sonra. Sabit limit hâlâ nominal diyor; yapay zekâ ise uyarı veriyor. Sorun, limit aşılmadan önce görünür.",
   "oz-dunya": "Özet görünümde uydu listesi gizlenir ve harita genişler. Kesik daire, istasyonun uyduyu görebildiği alanı gösterir.",
   "oz-xai": "Model neden alarm verdi? Açıklanabilirlik paneli; hangi anda, hangi kanalda ve hangi frekans yapısında sapma olduğunu gösterir.",
-  "oz-oneri": "Doğrulanan anomali için, operatöre önerilen adım burada tek satırda görünür. Soldaki rozet, önerinin aciliyetini gösterir."
+  "oz-oneri": "Doğrulanan anomali için, operatöre önerilen adım burada tek satırda görünür. Soldaki rozet, önerinin aciliyetini gösterir.",
+  "kapanis": "Tanıtım burada tamamlanıyor. Gerçek yörünge hesabı, uzay standartlarına uygun telemetri yapısı ve yapay zekâ destekli anomali tespiti tek ekranda birleşiyor. Bizi dinlediğiniz için teşekkür ederiz."
 }
