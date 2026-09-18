@@ -2,14 +2,17 @@ import * as THREE from 'three';
 import { fmtTrDate } from './gibs';
 
 /**
- * Ankara yakin goruntusu — saf yardimcilar (DOM yok, store yok; testler
- * `environment: 'node'` altinda kosar).
+ * Yakin goruntu (TUSAS ve Ankara) — saf yardimcilar (DOM yok, store yok;
+ * testler `environment: 'node'` altinda kosar).
  *
- * Kure tek bir dunya dokusu kullanir (2048x1024, ~20 km/piksel). Ankara
- * uzerinde 30 m'lik ayri bir parca (NASA HLS S30) kameranin yakinina gelince
- * belirir. Bunun icin kameranin yuzeye bugunkunden cok daha fazla
- * yaklasabilmesi gerekir; asagidaki kamera ayarlari BUGUNKU yakinlasma
- * siniri olan d = 1.35'in (2230 km) ustunde DAVRANISI DEGISTIRMEZ.
+ * Kure tek bir dunya dokusu kullanir (2048x1024, ~20 km/piksel). Onun ustunde
+ * ic ice iki parca kameranin yakinina gelince belirir, ikisi de AYNI
+ * Copernicus Sentinel-2 L2A sahnesinden (scripts/fetch-yakin.mjs):
+ *   Ankara  61 x 55 km, 30 m
+ *   TUSAS   15 x 15 km, 10 m (Kahramankazan: TUSAS yerleskesi, pist, Saray OSB)
+ * Bunun icin kameranin yuzeye cok yaklasabilmesi gerekir; asagidaki kamera
+ * ayarlari eski yakinlasma siniri olan d = 1.35'in (2230 km) ustunde
+ * DAVRANISI DEGISTIRMEZ.
  *
  * Birim: kure yaricapi 1 = 6371 km; `d` kameranin Dunya merkezine uzakligi.
  */
@@ -27,18 +30,29 @@ export interface Bbox {
 }
 
 /**
- * Gomulu goruntunun kapsadigi kutu (~61 x 55 km). Kahramankazan yer
- * istasyonunu ve Ankara kent merkezini icerir. scripts/fetch-ankara.mjs ile
- * AYNI olmali; bir test yan dosyayi bununla karsilastirir.
+ * Genis parcanin kutusu (~61 x 55 km, 30 m). Kahramankazan yer istasyonunu,
+ * TUSAS'i ve Ankara kent merkezini icerir. scripts/fetch-yakin.mjs ile AYNI
+ * olmali; bir test yan dosyayi bununla karsilastirir.
  */
 export const ANKARA_BBOX: Bbox = { south: 39.7, west: 32.45, north: 40.25, east: 33.1 };
-export const ANKARA_CENTER = {
-  lat: (ANKARA_BBOX.south + ANKARA_BBOX.north) / 2,
-  lon: (ANKARA_BBOX.west + ANKARA_BBOX.east) / 2,
-};
 
-/** Kameranin yuzeye en fazla yaklasabilecegi irtifa. */
-export const MIN_ALT_KM = 40;
+/**
+ * Ic parcanin kutusu (~15 x 15 km, 10 m): TUSAS yerleskesi, pist ve Saray
+ * OSB. Hocanin cercevesini (TUSAS_FRAME) kaydirma payiyla kapsar.
+ * scripts/fetch-yakin.mjs ile AYNI olmali.
+ */
+export const TUSAS_BBOX: Bbox = { south: 40.0, west: 32.51, north: 40.135, east: 32.685 };
+
+/**
+ * TUSAS on ayarinin cercevesi: Abdullah Hoca'nin Copernicus Browser linki
+ * (zoom=14, lat=40.06796, lng=32.59751). Web Mercator zoom 14'te 40°K'de
+ * 156543.03 · cos(40.07°) / 2^14 = 7.31 m/px; harita alani ~1460 x 920 px
+ * -> ~10.7 x 6.7 km.
+ */
+export const TUSAS_FRAME = { lat: 40.06796, lon: 32.59751, widthKm: 10.7, heightKm: 6.7 };
+
+/** Kameranin yuzeye en fazla yaklasabilecegi irtifa (8 km'de gorus ~5.5 km). */
+export const MIN_ALT_KM = 8;
 export const MIN_DISTANCE = 1 + MIN_ALT_KM / EARTH_KM;
 /** Bugunku `controls.minDistance`. Bunun ustunde kamera davranisi aynen korunur. */
 export const LEGACY_MIN_DISTANCE = 1.35;
@@ -51,9 +65,13 @@ const BASE_NEAR = 0.05;
 const BASE_ZOOM_SPEED = 0.7;
 const BASE_ROTATE_SPEED = 0.5;
 
-/** Bu irtifanin altinda parca tam gorunur, ustunde kararak kaybolur. */
-export const PATCH_FULL_KM = 600;
-export const PATCH_HIDDEN_KM = 1500;
+/**
+ * Bu irtifanin altinda parca tam gorunur, ustunde kararak kaybolur. Daha
+ * yuksekte 30 m'lik ayrinti zaten secilmez; parca yalnizca koyu kuresel
+ * zemin uzerinde acik renkli bir kare olarak gorunurdu (olculen: 400 km).
+ */
+export const PATCH_FULL_KM = 200;
+export const PATCH_HIDDEN_KM = 450;
 
 /**
  * Enlem/boylam -> kure koordinati. three.js sag el sistemidir ve kamera
@@ -148,12 +166,17 @@ export function bboxSizeKm(b: Bbox = ANKARA_BBOX): { widthKm: number; heightKm: 
   };
 }
 
-/** Kutuyu tamamen sigdiran irtifa (dik bakis, duz yuzey yaklasimi). */
-export function fitAltitudeKm(aspect: number, vFovDeg: number, b: Bbox = ANKARA_BBOX, margin = 1.1): number {
+/** En x boy (km) bir cerceveyi tamamen sigdiran irtifa (dik bakis, duz yuzey). */
+export function fitFrameAltitudeKm(aspect: number, vFovDeg: number, widthKm: number, heightKm: number, margin = 1): number {
   const tanV = Math.tan((vFovDeg / 2) * D2R);
   const tanH = tanV * aspect;
-  const { widthKm, heightKm } = bboxSizeKm(b);
   return Math.max(heightKm / (2 * tanV), widthKm / (2 * tanH)) * margin;
+}
+
+/** Kutuyu tamamen sigdiran irtifa. */
+export function fitAltitudeKm(aspect: number, vFovDeg: number, b: Bbox = ANKARA_BBOX, margin = 1.1): number {
+  const { widthKm, heightKm } = bboxSizeKm(b);
+  return fitFrameAltitudeKm(aspect, vFovDeg, widthKm, heightKm, margin);
 }
 
 /**
@@ -172,14 +195,53 @@ export function patchInView(camPos: THREE.Vector3, tanDiag: number, b: Bbox = AN
   return groundKm <= altitudeKm(d) * tanDiag + Math.hypot(widthKm, heightKm) / 2;
 }
 
+/** `toVec`in tersi: kure koordinati -> enlem/boylam (derece). */
+export function latLonOf(v: THREE.Vector3): { lat: number; lon: number } {
+  const r = v.length();
+  return { lat: Math.asin(v.y / r) / D2R, lon: Math.atan2(-v.z, v.x) / D2R };
+}
+
+export function insideBbox(lat: number, lon: number, b: Bbox): boolean {
+  return lat >= b.south && lat <= b.north && lon >= b.west && lon <= b.east;
+}
+
+/**
+ * Cipin anlatacagi parca. Kamera kureye dik bakar; bakis merkezi ic parcanin
+ * (TUSAS) icindeyse VE ic parca gorusun dusey yuksekliginin en az ucte birini
+ * kapliyorsa ic parca (10 m). Degilse dis parca (Ankara, 30 m) ekrandaysa o.
+ * Yoksa null. 600 km'den TUSAS'a bakarken cip "10 m" demesin diye ikinci kosul.
+ */
+export function chipTarget(
+  camPos: THREE.Vector3,
+  tanV: number,
+  aspect: number,
+  inner: Bbox,
+  outer: Bbox,
+): 'inner' | 'outer' | null {
+  const alt = altitudeKm(camPos.length());
+  if (alt <= 0) return null;
+  const { lat, lon } = latLonOf(camPos);
+  if (insideBbox(lat, lon, inner) && bboxSizeKm(inner).heightKm * 3 >= 2 * alt * tanV) return 'inner';
+  if (patchInView(camPos, Math.hypot(tanV, tanV * aspect), outer)) return 'outer';
+  return null;
+}
+
+/** Cipin ihtiyac duydugu yan dosya alanlari (earthTexture.ts YakinMeta). */
+export interface ChipSource {
+  label: string;
+  date: string;
+  resolution_m: number;
+}
+
 /**
  * Atif cipi. Ekrandaki goruntunun kaynagini soyler (yonerge §0): bu bir
- * Sentinel-2 (Copernicus) turevi NASA urunudur, Gokturk goruntusu DEGILDIR.
+ * Copernicus Sentinel-2 goruntusudur, Gokturk goruntusu DEGILDIR. Cozunurluk
+ * ekrandaki parcaninkidir (TUSAS 10 m, Ankara 30 m).
  */
-export function chipLines(altKm: number, isoDate: string): [string, string, string] {
+export function chipLines(altKm: number, src: ChipSource): [string, string, string] {
   return [
-    'YAKIN GÖRÜNTÜ · Ankara · ' + fmtTrDate(isoDate),
-    'NASA HLS · Sentinel-2 (Copernicus) · 30 m',
+    'YAKIN GÖRÜNTÜ · ' + src.label + ' · ' + fmtTrDate(src.date),
+    'Copernicus Sentinel-2 L2A · ' + src.resolution_m + ' m',
     'Göktürk görüntüsü değildir · kamera ' + Math.round(altKm) + ' km',
   ];
 }
