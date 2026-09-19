@@ -79,19 +79,28 @@ function showSummary() {
   if (!st.summaryMode) st.setSummaryMode(true);
 }
 
-/** Canli adimda panel icindeki sekmeye basar (yazisina gore). */
+/**
+ * Canli adimda panel icindeki sekmeye basar (yazisina gore).
+ *
+ * Esitlik degil BASLANGIC eslesmesi: sekme yazisinin yaninda rozet olabiliyor
+ * (ornegin acik oneri varken "BILDIRIMLER" dugmesinin metni "BİLDİRİMLER1").
+ * Tam eslesme arandiginda dugme bulunamiyor ve sekme hic degismiyordu.
+ */
 function tabla(panel: string, yazi: string) {
   const root = document.querySelector(`[data-tour="${panel}"]`);
-  const btn = Array.from(root?.querySelectorAll('button') ?? []).find(
-    (b) => b.textContent?.trim() === yazi,
+  const btn = Array.from(root?.querySelectorAll('button') ?? []).find((b) =>
+    (b.textContent ?? '').trim().startsWith(yazi),
   );
   btn?.click();
 }
 
+/**
+ * Suruklenme senaryosunu (yeniden) baslatir. Hiza dokunmaz: tur boyunca konsol
+ * 5x akar (bkz. tour/tourStore.ts), senaryo da o hizda ilerler.
+ */
 function startDrift() {
   const st = useConsole.getState();
   const drift = SCENARIOS.find((s) => s.id === 'drift');
-  st.setSpeed(1);
   if (drift) st.runScenario(drift);
 }
 
@@ -176,6 +185,11 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'alarm',
     kind: 'live',
+    // Senaryo 90 gorev saniyesi surer; 5x hizda 18 saniyede biter ve alarm /
+    // durum / XAI adimlarina yetismez. Burada yeniden baslatilir: durum
+    // adiminda "NOMINAL karsi ALARM" karsitligi, XAI adiminda da 3/3 kanit
+    // canli olur. Alarm kuyrugu ve bildirimler silinmez, birikir.
+    onEnter: startDrift,
     short: 'Alarm',
     title: 'Alarm kuyruğu',
     caption:
