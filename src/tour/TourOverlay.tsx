@@ -51,6 +51,10 @@ const T = {
   fly: 850,
 };
 
+/** Cerceve hareketi: adimlar arasi kayma ve panelle birlikte buyume. */
+const HALKA_KAYMA = { ms: T.move, egri: 'cubic-bezier(.65,0,.35,1)' };
+const HALKA_BUYUME = { ms: T.grow, egri: 'cubic-bezier(.2,.8,.2,1)' };
+
 const ACCENT = '61 217 235';
 const acc = (a = 1) => `rgb(${ACCENT} / ${a})`;
 const DIM = 'rgb(2 5 8 / 0.74)';
@@ -203,6 +207,12 @@ export default function TourOverlay() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [ring, setRing] = useState<Rect | null>(null);
   const [ringAnim, setRingAnim] = useState(false);
+  /**
+   * Cercevenin gecis suresi ve egrisi. Panel yerinde buyurken cerceve de AYNI
+   * sure ve egriyle buyumeli; farkli olursa (eskiden 620 ms / farkli egri)
+   * cerceve panelden ayrilip yuzlerce piksel kayiyordu.
+   */
+  const [ringGecis, setRingGecis] = useState(HALKA_KAYMA);
   const [shot, setShot] = useState<Shot | null>(null);
   const [stepMs, setStepMs] = useState(0);
   /** Kartta gosterilen adim: kart kaybolurken siradaki adimin metni gorunmesin. */
@@ -353,6 +363,7 @@ export default function TourOverlay() {
       const vw = window.innerWidth;
       const t0 = performance.now();
       setRingAnim(ringRef.current !== null && !reduceMotion);
+      setRingGecis(HALKA_KAYMA);
       setRing(r0);
       setPhase('locate');
       // Fotograf, cerceve kayarken cekilmeye baslar: overlay zaten kareye
@@ -401,6 +412,9 @@ export default function TourOverlay() {
           target.style.transformOrigin = 'center center';
           target.style.transform = `translate(${x}px, ${y}px) scale(${k})`;
           target.style.zIndex = '40';
+          // Cerceve panelle birlikte buyur: ayni sure, ayni egri.
+          setRingAnim(!reduceMotion);
+          setRingGecis(HALKA_BUYUME);
           setRing({
             left: r0.left + x - (r0.width * (k - 1)) / 2,
             top: r0.top + y - (r0.height * (k - 1)) / 2,
@@ -518,11 +532,14 @@ export default function TourOverlay() {
   // --- Hedef cercevesi (yuva) ---
   let ringEl: React.ReactNode = null;
   if (ring) {
+    // Pay her kenarda ayri hesaplanir: ekran kenarina dayanan panelde cerceve
+    // panelin icine dogru kaymaz, kenarla ayni hizada durur.
     const P = 5;
-    const left = Math.max(2, ring.left - P);
-    const top = Math.max(2, ring.top - P);
-    const width = Math.min(vw - 2, ring.left + ring.width + P) - left;
-    const height = Math.min(vh - 2, ring.top + ring.height + P) - top;
+    const pay = (bosluk: number) => Math.max(0, Math.min(P, bosluk));
+    const left = ring.left - pay(ring.left);
+    const top = ring.top - pay(ring.top);
+    const width = ring.width + pay(ring.left) + pay(vw - (ring.left + ring.width));
+    const height = ring.height + pay(ring.top) + pay(vh - (ring.top + ring.height));
     const slot = flying;
     const chipBelow = top < 70;
     ringEl = (
@@ -539,10 +556,10 @@ export default function TourOverlay() {
           boxShadow: `0 0 26px 2px ${acc(slot ? 0.2 : 0.55)}, 0 0 0 200vmax ${DIM}`,
           opacity: phase === 'idle' ? 0 : 1,
           transition: [
-            ringAnim ? `left ${dur(T.move)}ms cubic-bezier(.65,0,.35,1)` : '',
-            ringAnim ? `top ${dur(T.move)}ms cubic-bezier(.65,0,.35,1)` : '',
-            ringAnim ? `width ${dur(T.move)}ms cubic-bezier(.65,0,.35,1)` : '',
-            ringAnim ? `height ${dur(T.move)}ms cubic-bezier(.65,0,.35,1)` : '',
+            ringAnim ? `left ${dur(ringGecis.ms)}ms ${ringGecis.egri}` : '',
+            ringAnim ? `top ${dur(ringGecis.ms)}ms ${ringGecis.egri}` : '',
+            ringAnim ? `width ${dur(ringGecis.ms)}ms ${ringGecis.egri}` : '',
+            ringAnim ? `height ${dur(ringGecis.ms)}ms ${ringGecis.egri}` : '',
             `background-color ${dur(400)}ms ease`,
             `box-shadow ${dur(400)}ms ease`,
             `opacity ${dur(300)}ms ease`,
