@@ -88,10 +88,33 @@ function tabla(panel: string, yazi: string) {
   btn?.click();
 }
 
+/**
+ * XAI panelinin uc seviyesini sirayla gosterir. Hem tam gorunum hem Ozet
+ * gorunum turu ayni gezintiyi kullanir: panel iki turde de ayni panel.
+ *
+ * Isi haritasi kaniti senaryonun 62. saniyesinde olusur; hazir degilse bos
+ * sekme gostermek yerine beklenir. Adim biterse `alive()` false doner ve
+ * gezinti birakilir.
+ */
+function xaiSeviyeleriniGez(bekleme: number) {
+  return async ({ wait, alive }: { wait: (ms: number) => Promise<void>; alive: () => boolean }) => {
+    const st = () => useConsole.getState();
+    const hazir = (l: 1 | 2 | 3) => st().sim.xai.some((e) => e.level === l);
+    st().setXaiLevel(1);
+    await wait(bekleme);
+    if (!alive()) return;
+    st().setXaiLevel(2);
+    await wait(bekleme);
+    for (let i = 0; i < 30 && alive() && !hazir(3); i++) await wait(300);
+    if (!alive()) return;
+    st().setXaiLevel(3);
+  };
+}
+
+/** Tur senaryoyu baslatir; hiza DOKUNMAZ — operator hangi hizda izliyorsa o kalir. */
 function startDrift() {
   const st = useConsole.getState();
   const drift = SCENARIOS.find((s) => s.id === 'drift');
-  st.setSpeed(1);
   if (drift) st.runScenario(drift);
 }
 
@@ -194,20 +217,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'xai',
     kind: 'live',
-    act: async ({ wait, alive }) => {
-      const st = () => useConsole.getState();
-      const hazir = (l: 1 | 2 | 3) => st().sim.xai.some((e) => e.level === l);
-      st().setXaiLevel(1);
-      await wait(2500);
-      if (!alive()) return;
-      st().setXaiLevel(2);
-      await wait(2500);
-      // Isi haritasi kaniti senaryoda 62. saniyede olusur. Hazir degilse bos
-      // sekme gostermek yerine beklenir; adim biterse zaten birakilir.
-      for (let i = 0; i < 30 && alive() && !hazir(3); i++) await wait(300);
-      if (!alive()) return;
-      st().setXaiLevel(3);
-    },
+    act: xaiSeviyeleriniGez(2500),
     short: 'XAI',
     title: 'Model neden alarm verdi?',
     caption:
@@ -343,6 +353,9 @@ export const OZET_STEPS: TourStep[] = [
     id: 'oz-xai',
     kind: 'live',
     target: 'xai',
+    // Ozet turu da seviyeleri tek tek gezer; adim tam gorunumdekinden kisa
+    // oldugu icin bekleme de kisa.
+    act: xaiSeviyeleriniGez(2000),
     short: 'XAI',
     title: 'Model neden alarm verdi?',
     caption:
