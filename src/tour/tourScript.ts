@@ -117,16 +117,16 @@ export const TOUR_STEPS: TourStep[] = [
     caption:
       'Türk uydularının gerçek yörünge verisiyle (TLE + SGP4) hesaplanan anlık konumları ve Kahramankazan istasyonunun görüş alanı. Kamera şimdi bütün filodan alçak yörünge kuşağına, oradan da TUSAŞ tesislerinin üzerine iniyor.',
     look: 'Panel canlı: uydular gerçek zamanlı ilerliyor, kamera ön ayarlar arasında süzülüyor.',
-    durationMs: 15500,
+    durationMs: 12500,
     act: async ({ wait, alive }) => {
       const st = () => useConsole.getState();
       st().setMapMode('3D');
       // Dongude kamera TUSAS'ta kalmis olur: bu, hemen geri ucusu baslatir.
       st().setGlobeView('ALL');
-      await wait(1500);
+      await wait(1000);
       if (!alive()) return;
       st().setGlobeView('LEO');
-      await wait(2800);
+      await wait(2200);
       if (!alive()) return;
       // TUSAS ucusu ~5 sn surer; sesin sonuna eklenen sessizlikle yakin
       // goruntu ekranda ~7 saniye kalir.
@@ -146,6 +146,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'gecis',
+    kind: 'live',
     short: 'Geçiş',
     title: 'Geçiş planı',
     caption:
@@ -164,6 +165,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'telemetri',
+    kind: 'live',
     short: 'Telemetri',
     title: 'Telemetri şeritleri',
     caption:
@@ -198,10 +200,10 @@ export const TOUR_STEPS: TourStep[] = [
       const st = () => useConsole.getState();
       const hazir = (l: 1 | 2 | 3) => st().sim.xai.some((e) => e.level === l);
       st().setXaiLevel(1);
-      await wait(2500);
+      await wait(2200);
       if (!alive()) return;
       st().setXaiLevel(2);
-      await wait(2500);
+      await wait(2200);
       // Isi haritasi kaniti senaryoda 62. saniyede olusur. Hazir degilse bos
       // sekme gostermek yerine beklenir; adim biterse zaten birakilir.
       for (let i = 0; i < 30 && alive() && !hazir(3); i++) await wait(300);
@@ -213,7 +215,7 @@ export const TOUR_STEPS: TourStep[] = [
     caption:
       'Açıklanabilirlik paneli üç seviyede cevap verir: hangi anda, hangi kanalda ve hangi frekans yapısında sapma var. Operatör yalnızca alarmı değil, gerekçesini görür.',
     look: 'Üç sekme: nerede sapmış, hangi kanal, ısı haritası. Sağda sorumlu kanal ve model.',
-    durationMs: 15000,
+    durationMs: 10000,
   },
   {
     id: 'bilgi',

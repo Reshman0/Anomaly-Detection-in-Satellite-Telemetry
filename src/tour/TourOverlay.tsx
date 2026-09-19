@@ -38,17 +38,17 @@ interface Shot {
 
 /** Animasyon sureleri (ms). */
 const T = {
-  ret: 520,
-  fade: 260,
-  move: 750,
-  captureAfter: 800,
-  lockMin: 1600,
+  ret: 420,
+  fade: 200,
+  move: 620,
+  captureAfter: 450,
+  lockMin: 1100,
   /** Canli adimda cerceve kilitlenme suresi: fotograf beklenmedigi icin kisa. */
-  liveLock: 700,
+  liveLock: 450,
   /** Canli panelin yerinde buyume suresi. */
-  grow: 620,
-  raise: 260,
-  fly: 950,
+  grow: 500,
+  raise: 220,
+  fly: 850,
 };
 
 const ACCENT = '61 217 235';
@@ -304,7 +304,7 @@ export default function TourOverlay() {
       }
       setShot(null);
       step.onEnter?.();
-      await sleep(120);
+      await sleep(80);
       if (cancelled) return;
 
       // Kapak adimi (acilis / kapanis): panel yok, kart ortada durur.
@@ -383,7 +383,8 @@ export default function TourOverlay() {
       let next: Shot;
       try {
         const wide = layoutFor(r0, vw) === 'wide';
-        next = await capture(target, Math.max(wide ? 3 : 2, window.devicePixelRatio || 1));
+        // Olcek yukseldikce html2canvas belirgin yavasliyor; serit disinda 2 yeter.
+        next = await capture(target, Math.max(wide ? 2.5 : 2, window.devicePixelRatio || 1));
       } catch (err) {
         console.warn('[tur] Ekran görüntüsü alınamadı:', err);
         timer = setTimeout(advance, 1000);
