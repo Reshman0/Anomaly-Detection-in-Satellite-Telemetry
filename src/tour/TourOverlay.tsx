@@ -38,16 +38,16 @@ interface Shot {
 
 /** Animasyon sureleri (ms). */
 const T = {
-  ret: 420,
-  fade: 200,
+  ret: 260,
+  fade: 140,
   move: 620,
-  captureAfter: 450,
-  lockMin: 1100,
+  captureAfter: 260,
+  lockMin: 760,
   /** Canli adimda cerceve kilitlenme suresi: fotograf beklenmedigi icin kisa. */
-  liveLock: 450,
+  liveLock: 260,
   /** Canli panelin yerinde buyume suresi. */
-  grow: 500,
-  raise: 220,
+  grow: 460,
+  raise: 160,
   fly: 850,
 };
 
@@ -217,6 +217,12 @@ export default function TourOverlay() {
   const clipRef = useRef<{ el: HTMLElement; overflow: string }[]>([]);
   const ringRef = useRef<Rect | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /**
+   * Siradaki adimin sesi onceden cozulur. Sesler derlemeye data URI olarak
+   * gomulu; ilk calmada cozme ~0,8 sn suruyordu ve adimlar arasi sessizlik
+   * buradan geliyordu. Onden yuklenince `play()` neredeyse aninda baslar.
+   */
+  const primedRef = useRef<Record<string, HTMLAudioElement>>({});
   shotRef.current = shot;
   ringRef.current = ring;
 
@@ -254,6 +260,23 @@ export default function TourOverlay() {
     setRing(null);
     setRingAnim(false);
     setPhase('idle');
+    primedRef.current = {};
+  }, [active]);
+
+  // Tur acilirken ilk iki adimin sesini onden coz: acilista bekleme olmasin.
+  useEffect(() => {
+    if (!active) return;
+    for (const s of steps.slice(stepIndex, stepIndex + 2)) {
+      if (primedRef.current[s.id]) continue;
+      const src = audioFor(s.id);
+      if (!src) continue;
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = src;
+      a.load();
+      primedRef.current[s.id] = a;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   // Kart yuksekligi ekran boyutuna ve metne gore degisir; olc.
@@ -332,6 +355,17 @@ export default function TourOverlay() {
       setRingAnim(ringRef.current !== null && !reduceMotion);
       setRing(r0);
       setPhase('locate');
+      // Fotograf, cerceve kayarken cekilmeye baslar: overlay zaten kareye
+      // girmiyor, bekleyip sonra cekmek adimlar arasina olu zaman katiyordu.
+      const wide = layoutFor(r0, vw) === 'wide';
+      const shotPromise =
+        step.kind === 'live'
+          ? null
+          : // Olcek yukseldikce html2canvas belirgin yavasliyor; serit disinda 2 yeter.
+            capture(target, Math.max(wide ? 2.5 : 2, window.devicePixelRatio || 1)).catch((err) => {
+              console.warn('[tur] Ekran görüntüsü alınamadı:', err);
+              return null;
+            });
       await sleep(m(T.captureAfter));
       if (cancelled) return;
 
@@ -380,17 +414,12 @@ export default function TourOverlay() {
         return;
       }
 
-      let next: Shot;
-      try {
-        const wide = layoutFor(r0, vw) === 'wide';
-        // Olcek yukseldikce html2canvas belirgin yavasliyor; serit disinda 2 yeter.
-        next = await capture(target, Math.max(wide ? 2.5 : 2, window.devicePixelRatio || 1));
-      } catch (err) {
-        console.warn('[tur] Ekran görüntüsü alınamadı:', err);
-        timer = setTimeout(advance, 1000);
+      const next = await shotPromise;
+      if (cancelled) return;
+      if (!next) {
+        timer = setTimeout(advance, 600);
         return;
       }
-      if (cancelled) return;
       const rest = m(T.lockMin) - (performance.now() - t0);
       if (rest > 0) {
         await sleep(rest);
@@ -426,15 +455,38 @@ export default function TourOverlay() {
         hold(step.durationMs);
         return;
       }
-      const audio = new Audio(src);
+      // Onden cozulmus ses varsa onu kullan; yoksa simdi olustur.
+      const audio = primedRef.current[step.id] ?? new Audio(src);
+      delete primedRef.current[step.id];
+      try {
+        audio.currentTime = 0;
+      } catch {
+        /* metadata henuz yoksa gerek yok */
+      }
       audioRef.current = audio;
       audio.onended = advance;
       audio.onerror = () => hold(step.durationMs);
-      audio.onloadedmetadata = () => {
+      const mark = () => {
         if (Number.isFinite(audio.duration)) setStepMs(audio.duration * 1000);
       };
+      audio.onloadedmetadata = mark;
+      mark();
       // Tarayici etkilesim olmadan sesi engellerse tur sessiz ama altyazili surer.
       audio.play().catch(() => hold(step.durationMs));
+      if (!muted) prime(stepIndex + 1);
+    }
+
+    /** Verilen adimin sesini arka planda cozer (calmaz). */
+    function prime(i: number) {
+      const s = steps[i];
+      if (!s || primedRef.current[s.id]) return;
+      const src = audioFor(s.id);
+      if (!src) return;
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = src;
+      a.load();
+      primedRef.current[s.id] = a;
     }
 
     return () => {

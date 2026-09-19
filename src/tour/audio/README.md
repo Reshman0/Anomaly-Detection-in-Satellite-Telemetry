@@ -56,3 +56,7 @@ Ham kayıtlar (`ses-ham/parca1.wav`, `ses-ham/parca2.wav`) ve önceki çevrimdı
 Metni değiştirirseniz: ilgili paragrafı AI Studio'da aynı sesle yeniden seslendirip aynı adla
 mp3 olarak koyun. `scripts/tur_ses_uret.py` çevrimdışı Piper sesiyle üretir ve buradaki
 dosyaların üzerine yazar.
+
+Ses dosyalarinin basindaki ve sonundaki sessizlik kirpildi (kayipsiz kesim): adim,
+anlatici son kelimeyi bitirdigi anda sonrakine geciyor. Yeni bir ses eklerken ayni
+sekilde kirpin, yoksa adimlar arasinda olu zaman olusur.
