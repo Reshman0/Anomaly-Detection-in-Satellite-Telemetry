@@ -18,6 +18,8 @@ Tam görünüm turu (`G` tam ekranda, ya da `?tur`) dosya adları, sırasıyla:
 - `durum.mp3`
 - `xai.mp3`
 - `bilgi.mp3`
+- `bildirim.mp3` *(ses bekleniyor)*
+- `erisim.mp3` *(ses bekleniyor)*
 - `kapanis.mp3`
 
 Özet görünüm turu (`G` Özet modunda, ya da `?tur=ozet`) dosya adları, sırasıyla:
@@ -33,6 +35,8 @@ Tam görünüm turu (`G` tam ekranda, ya da `?tur`) dosya adları, sırasıyla:
 - `oz-xai.mp3`
 - `oz-oneri.mp3`
 - `kapanis.mp3`
+
+Sesler 1,10 kat hızlandırıldı (ffmpeg `rubberband=tempo=1.10`, perde korunur; `atempo` 1,2'de bazı kelimeleri yutuyordu). 1x kopyalar `ses-ham/hiz-1x/`'te.
 
 Ses, adım süresini belirler: dosya bitince tur bir sonraki panele geçer. Her ses ~12 saniyeyi
 geçmemeli; turlar "Yavaş sürüklenme" senaryosunun zamanlamasına bağlı (durum/kontrast adımında

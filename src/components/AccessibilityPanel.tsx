@@ -86,6 +86,7 @@ export default function AccessibilityPanel() {
         role="dialog"
         aria-modal="true"
         aria-label="Erişilebilirlik ayarları"
+        data-tour="erisim"
         onClick={(e) => e.stopPropagation()}
         className="card-in w-[820px] max-w-[calc(96vw/var(--ui-scale,1))] max-h-[calc(88vh/var(--ui-scale,1))] bg-ops-panel border border-ops-line2 shadow-2xl flex flex-col"
       >

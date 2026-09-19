@@ -43,6 +43,10 @@ const T = {
   move: 750,
   captureAfter: 800,
   lockMin: 1600,
+  /** Canli adimda cerceve kilitlenme suresi: fotograf beklenmedigi icin kisa. */
+  liveLock: 700,
+  /** Canli panelin yerinde buyume suresi. */
+  grow: 620,
   raise: 260,
   fly: 950,
 };
@@ -162,6 +166,14 @@ async function capture(target: HTMLElement, panelScale: number): Promise<Shot> {
   };
 }
 
+/** Canli adimda kartin hangi yana gececegi (panel cok genisse null: kart altta). */
+function liveSideFor(r: Rect, vw: number): 'left' | 'right' | null {
+  if (r.width > vw * 0.62) return null;
+  if (r.left + r.width < vw * 0.56) return 'right';
+  if (r.left > vw * 0.44) return 'left';
+  return null;
+}
+
 const nextFrames = () =>
   new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
@@ -199,12 +211,41 @@ export default function TourOverlay() {
   const [cardH, setCardH] = useState(260);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const shotRef = useRef<Shot | null>(null);
+  /** Canli adimda CSS ile buyutulen panel; adim bitince eski haline doner. */
+  const zoomedRef = useRef<HTMLElement | null>(null);
+  /** Buyurken kirpilmasin diye gecici olarak acilan ust kapsayicilar. */
+  const clipRef = useRef<{ el: HTMLElement; overflow: string }[]>([]);
   const ringRef = useRef<Rect | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   shotRef.current = shot;
   ringRef.current = ring;
 
   const step = steps[stepIndex];
+
+  /** Buyuyen panelin ust kapsayicilarindaki kirpmayi gecici olarak kaldirir. */
+  function openClips(el: HTMLElement) {
+    const root = document.getElementById('root');
+    for (let p = el.parentElement; p && p !== root; p = p.parentElement) {
+      const o = getComputedStyle(p).overflow;
+      if (o !== 'visible') {
+        clipRef.current.push({ el: p, overflow: p.style.overflow });
+        p.style.overflow = 'visible';
+      }
+    }
+  }
+
+  /** Buyutulen canli paneli eski haline dondurur. */
+  function restoreZoom() {
+    for (const c of clipRef.current) c.el.style.overflow = c.overflow;
+    clipRef.current = [];
+    const el = zoomedRef.current;
+    if (!el) return;
+    el.style.transform = '';
+    el.style.transition = '';
+    el.style.zIndex = '';
+    el.style.transformOrigin = '';
+    zoomedRef.current = null;
+  }
 
   // Tur kapaninca her seyi birak.
   useEffect(() => {
@@ -294,6 +335,51 @@ export default function TourOverlay() {
       await sleep(m(T.captureAfter));
       if (cancelled) return;
 
+      // Canli adim: panel yerinde kalir ve oynamaya devam eder (kure doner,
+      // seritler akar). Fotograf cekilmez; cerceve panelin uzerinde durur,
+      // cevresi kararir. Adim boyunca `act` konsolu yonetebilir.
+      if (step.kind === 'live') {
+        // Canli adimda fotograf beklemesi yok: cerceve kilitlenince hemen basla.
+        const rest0 = m(T.liveLock) - (performance.now() - t0);
+        if (rest0 > 0) await sleep(rest0);
+        if (cancelled) return;
+        // Koreografi kart gelmeden baslar; izleyici beklemez.
+        step.act?.({
+          wait: (ms) => new Promise<void>((r) => setTimeout(r, reduceMotion ? 0 : ms)),
+          alive: () => !cancelled,
+        });
+
+        // Panel yerinde CSS ile buyutulur: icerik canli oynamaya devam eder,
+        // yazi da vektor olarak buyur (fotograf degil).
+        const vh = window.innerHeight;
+        const band = freeBand(vh, cardRef.current?.offsetHeight ?? 260);
+        const sideFor = liveSideFor(r0, vw);
+        const maxW = sideFor ? vw * 0.56 : vw * 0.92;
+        const k = step.noZoom ? 1 : Math.min(maxW / r0.width, (band.bottom - band.top) / r0.height, 1.75);
+        if (k > 1.04) {
+          const cx = sideFor === 'right' ? vw * 0.3 : sideFor === 'left' ? vw * 0.7 : vw / 2;
+          const cy = (band.top + band.bottom) / 2;
+          const x = cx - (r0.left + r0.width / 2);
+          const y = cy - (r0.top + r0.height / 2);
+          zoomedRef.current = target;
+          openClips(target);
+          target.style.transition = `transform ${m(T.grow)}ms cubic-bezier(.2,.8,.2,1)`;
+          target.style.transformOrigin = 'center center';
+          target.style.transform = `translate(${x}px, ${y}px) scale(${k})`;
+          target.style.zIndex = '40';
+          setRing({
+            left: r0.left + x - (r0.width * (k - 1)) / 2,
+            top: r0.top + y - (r0.height * (k - 1)) / 2,
+            width: r0.width * k,
+            height: r0.height * k,
+          });
+        }
+        setCardIndex(stepIndex);
+        setPhase('show');
+        await narrate();
+        return;
+      }
+
       let next: Shot;
       try {
         const wide = layoutFor(r0, vw) === 'wide';
@@ -352,6 +438,8 @@ export default function TourOverlay() {
 
     return () => {
       cancelled = true;
+      step.leave?.();
+      restoreZoom();
       if (timer) clearTimeout(timer);
       if (audioRef.current) {
         audioRef.current.onended = null;
@@ -367,7 +455,7 @@ export default function TourOverlay() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const showing = SHOW_PHASES.includes(phase);
-  const flying = phase === 'show';
+  const flying = phase === 'show' && shot !== null;
   const dur = (ms: number) => (reduceMotion ? 0 : ms);
 
   const origin = shot?.from ?? ring;
@@ -570,7 +658,10 @@ export default function TourOverlay() {
   // --- Aciklama karti ---
   const cs = steps[cardIndex] ?? step;
   const cover = cs.kind === 'cover';
-  const side = layout === 'side' && !cover;
+  const live = cs.kind === 'live';
+  // Canli adimda panel yerinde durdugu icin kart panelin bos tarafina gecer.
+  const liveSide: 'left' | 'right' | null = live && ring ? liveSideFor(ring, vw) : null;
+  const side = (layout === 'side' && !cover && !live) || liveSide !== null;
   const card = (
     <div
       ref={cardRef}
@@ -580,6 +671,13 @@ export default function TourOverlay() {
         zIndex: 6,
         ...(cover
           ? { left: '50%', top: '50%', width: 'min(1080px, 86vw)', transform: 'translate(-50%, -50%)' }
+          : liveSide
+            ? {
+                [liveSide === 'right' ? 'right' : 'left']: '3vw',
+                top: '50%',
+                width: 'min(560px, 38vw)',
+                transform: 'translateY(-50%)',
+              }
           : side
             ? { right: '3vw', top: '50%', width: '31vw', transform: 'translateY(-50%)' }
             : { left: '50%', bottom: '3vh', width: 'min(1180px, 92vw)', transform: 'translateX(-50%)' }),

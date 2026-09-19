@@ -1,8 +1,8 @@
 {
-  "_aciklama": "Tanitim turu seslendirme metinleri. Ekrandaki altyazidan (tourScript.ts) farkli olarak kisaltmalar acik yazilir. Her metin ~12 saniyeyi gecmemeli: suruklenme senaryosunun zamanlamasi buna bagli. Sesleri yeniden uretmek icin: scripts/tur_ses_uret.py",
+  "_aciklama": "Tanitim turu seslendirme metinleri. Ekrandaki altyazidan (tourScript.ts) farkli olarak kisaltmalar acik yazilir. Her metin ~12 saniyeyi gecmemeli: suruklenme senaryosunun zamanlamasi buna bagli. Sesleri yeniden uretmek icin: scripts/tur_ses_uret.py. Ses dosyalari 1,2 kat hizlandirilmistir (ffmpeg atempo); 1x kopyalar ses-ham/hiz-1x klasorunde.",
   "giris": "AzSonra yer istasyonu konsoluna hoş geldiniz. Bu tanıtım, uydu telemetrisinde açıklanabilir yapay zekâ ile anomali tespiti projemizin operatör arayüzünü anlatır. Şimdi ekrandaki panelleri tek tek gezeceğiz.",
   "ust-serit": "Üst şeritte görev adı, yer saati ile uydu saati, istasyon bağlantısı ve seçili uydu yer alır. Sağdaki sayaç, uyduyla bağlantının ne zaman açılıp kapanacağını söyler.",
-  "dunya": "Dünya görünümünde Türk uydularının anlık konumları, gerçek yörünge verisiyle hesaplanır. Kesik daire, Kahramankazan istasyonunun uyduyu görebildiği alandır.",
+  "dunya": "Dünya görünümünde Türk uydularının anlık konumları gerçek yörünge verisiyle hesaplanır. Kamera şimdi bütün filodan alçak yörünge kuşağına, oradan da TUSAŞ tesislerinin üzerine iniyor.",
   "senaryo": "Senaryo konsolundan, gösterim için anomali senaryoları başlatılır. Şimdi yavaş sürüklenme senaryosu çalışıyor. Senaryolar, gösterim amaçlı kurgulanmıştır.",
   "gecis": "Geçiş planı, uydunun istasyonun üzerinden ne zaman geçeceğini, ne kadar kalacağını ve ne kadar yükseleceğini gösterir. Soldaki daire, antenin izleyeceği yoldur.",
   "paket": "Paket denetleyici, telemetrinin ham hâlini gösterir: uzay standartlarına uygun paket, çerçeve ve hata düzeltme katmanları.",
@@ -20,5 +20,7 @@
   "oz-dunya": "Özet görünümde uydu listesi gizlenir ve harita genişler. Kesik daire, istasyonun uyduyu görebildiği alanı gösterir.",
   "oz-xai": "Model neden alarm verdi? Açıklanabilirlik paneli; hangi anda, hangi kanalda ve hangi frekans yapısında sapma olduğunu gösterir.",
   "oz-oneri": "Doğrulanan anomali için, operatöre önerilen adım burada tek satırda görünür. Soldaki rozet, önerinin aciliyetini gösterir.",
+  "bildirim": "Bildirimler sekmesi, doğrulanan her anomali için öneriyi ve gerekçesini kalıcı olarak saklar. Operatör vardiya devrinde bu listeyi okur; hiçbir uyarı ekran kapanınca kaybolmaz.",
+  "erisim": "Konsol renk körlüğü, azaltılmış hareket, yazı boyutu ve ekran okuyucu duyurusu için ayar taşır. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir.",
   "kapanis": "Tanıtım burada tamamlanıyor. Gerçek yörünge hesabı, uzay standartlarına uygun telemetri yapısı ve yapay zekâ destekli anomali tespiti tek ekranda birleşiyor. Bizi dinlediğiniz için teşekkür ederiz."
 }
