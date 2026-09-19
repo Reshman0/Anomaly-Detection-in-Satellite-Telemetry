@@ -3,8 +3,11 @@
 Bu klasöre konan `<adım-id>.mp3` dosyaları derlemeye gömülür (tek dosya build, internet gerekmez).
 Dosya yoksa adım `tourScript.ts` içindeki `durationMs` kadar sürer; altyazı her durumda ekranda.
 
+Her iki tur da `giris.mp3` ile başlar, `kapanis.mp3` ile biter (ortak kapak adımları).
+
 Tam görünüm turu (`G` tam ekranda, ya da `?tur`) dosya adları, sırasıyla:
 
+- `giris.mp3`
 - `ust-serit.mp3`
 - `dunya.mp3`
 - `senaryo.mp3`
@@ -15,9 +18,13 @@ Tam görünüm turu (`G` tam ekranda, ya da `?tur`) dosya adları, sırasıyla:
 - `durum.mp3`
 - `xai.mp3`
 - `bilgi.mp3`
+- `bildirim.mp3` *(ses bekleniyor)*
+- `erisim.mp3` *(ses bekleniyor)*
+- `kapanis.mp3`
 
 Özet görünüm turu (`G` Özet modunda, ya da `?tur=ozet`) dosya adları, sırasıyla:
 
+- `giris.mp3`
 - `oz-durum.mp3`
 - `oz-senaryo.mp3`
 - `oz-parametre.mp3`
@@ -27,6 +34,9 @@ Tam görünüm turu (`G` tam ekranda, ya da `?tur`) dosya adları, sırasıyla:
 - `oz-dunya.mp3`
 - `oz-xai.mp3`
 - `oz-oneri.mp3`
+- `kapanis.mp3`
+
+Sesler 1,10 kat hızlandırıldı (ffmpeg `rubberband=tempo=1.10`, perde korunur; `atempo` 1,2'de bazı kelimeleri yutuyordu). 1x kopyalar `ses-ham/hiz-1x/`'te.
 
 Ses, adım süresini belirler: dosya bitince tur bir sonraki panele geçer. Her ses ~12 saniyeyi
 geçmemeli; turlar "Yavaş sürüklenme" senaryosunun zamanlamasına bağlı (durum/kontrast adımında
