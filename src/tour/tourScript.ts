@@ -95,6 +95,25 @@ function tabla(panel: string, yazi: string) {
 }
 
 /**
+ * Ust seritteki "Bilgi" dugmesine basar: secili uydunun bilgi penceresi acilir.
+ *
+ * Pencere store'da degil bilesenin kendi durumunda tutuluyor (UyduBilgiPenceresi
+ * local state). Store'a yeni bir alan eklemek yerine dugmeye basiliyor; acilis
+ * yolu operatorun kullandigi yolla ayni oluyor.
+ */
+function uyduBilgiAc() {
+  const kok = document.querySelector('[data-tour="ust-serit"]');
+  Array.from(kok?.querySelectorAll('button') ?? [])
+    .find((b) => (b.textContent ?? '').trim().startsWith('Bilgi'))
+    ?.click();
+}
+
+/** Bilgi penceresini kapatir (adim bitince). */
+function uyduBilgiKapat() {
+  document.querySelector<HTMLButtonElement>('[data-tour="uydu-bilgi"] button[aria-label="Kapat"]')?.click();
+}
+
+/**
  * Suruklenme senaryosunu (yeniden) baslatir. Hiza dokunmaz: tur boyunca konsol
  * 5x akar (bkz. tour/tourStore.ts), senaryo da o hizda ilerler.
  */
@@ -255,14 +274,29 @@ export const TOUR_STEPS: TourStep[] = [
     leave: () => tabla('bilgi', 'INFO'),
   },
   {
+    id: 'uydu-bilgi',
+    kind: 'live',
+    // Pencere hedef aranmadan once acilmali: `onEnter` adimin en basinda calisir.
+    onEnter: uyduBilgiAc,
+    leave: uyduBilgiKapat,
+    // Pencere zaten 960 px ve ekranin ortasinda: buyutulmesine gerek yok.
+    noZoom: true,
+    short: 'Uydu bilgi',
+    title: 'Seçili uydunun künyesi',
+    caption:
+      'Üst şeritteki Bilgi düğmesi seçili uydunun künyesini açar: kaç tur attığı, bu oturumda aktarılan veri, görev ömrünün ne kadarının geçtiği, sensörlerin durumu ve bu oturumda kaydedilen anomaliler.',
+    look: 'Tur sayısı uydunun yörünge verisindeki gerçek tur numarasından ilerletilir.',
+    durationMs: 13000,
+  },
+  {
     id: 'erisim',
     kind: 'live',
     short: 'Erişim',
     title: 'Erişilebilirlik ayarları',
     caption:
-      'Konsol renk körlüğü, azaltılmış hareket, yazı boyutu ve ekran okuyucu duyurusu için ayar taşır. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir; operatör ekranı herkes için okunabilir olmalıdır.',
-    look: 'Renk paleti seçenekleri ve hareket / yazı boyutu ayarları.',
-    durationMs: 11500,
+      'Dikkat odaklanmasına yardımcı olabilmesi için yüksek karşıtlık modu, çeşitli renk körlüğü modları ve ekrandaki tüm bileşenleri büyütüp küçültme imkânı gibi özellikler eklenmiştir. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir.',
+    look: 'Yüksek karşıtlık, renk körlüğü paletleri ve yüzde 85 ile yüzde 175 arası arayüz ölçeği.',
+    durationMs: 14500,
     // Pencere hedef aranmadan once acilmali: `onEnter` adimin en basinda calisir.
     onEnter: () => useConsole.getState().setA11yOpen(true),
     leave: () => useConsole.getState().setA11yOpen(false),
