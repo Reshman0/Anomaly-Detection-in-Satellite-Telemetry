@@ -3,3 +3,4 @@ dist
 .vite
 tsconfig.tsbuildinfo
 ses-ham/
+Claude outputs/

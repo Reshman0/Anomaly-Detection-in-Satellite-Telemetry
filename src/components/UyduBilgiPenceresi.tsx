@@ -152,6 +152,7 @@ function Pencere({ kapat }: { kapat: () => void }) {
           icin vh/vw degerleri de olcekle carpiliyor ve yuksek olcekte kutu
           ekrandan tasiyordu. Bolunce zoom sonrasi gercek ekrana sigar. */}
       <div
+        data-tour="uydu-bilgi"
         role="dialog"
         aria-modal="true"
         aria-label="Uydu bilgileri"

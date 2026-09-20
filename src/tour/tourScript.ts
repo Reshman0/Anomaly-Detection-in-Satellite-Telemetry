@@ -79,19 +79,50 @@ function showSummary() {
   if (!st.summaryMode) st.setSummaryMode(true);
 }
 
-/** Canli adimda panel icindeki sekmeye basar (yazisina gore). */
+/**
+ * Canli adimda panel icindeki sekmeye basar (yazisina gore).
+ *
+ * Esitlik degil BASLANGIC eslesmesi: sekme yazisinin yaninda rozet olabiliyor
+ * (ornegin acik oneri varken "BILDIRIMLER" dugmesinin metni "BİLDİRİMLER1").
+ * Tam eslesme arandiginda dugme bulunamiyor ve sekme hic degismiyordu.
+ */
 function tabla(panel: string, yazi: string) {
   const root = document.querySelector(`[data-tour="${panel}"]`);
-  const btn = Array.from(root?.querySelectorAll('button') ?? []).find(
-    (b) => b.textContent?.trim() === yazi,
+  const btn = Array.from(root?.querySelectorAll('button') ?? []).find((b) =>
+    (b.textContent ?? '').trim().startsWith(yazi),
   );
   btn?.click();
 }
 
+/** Erisim adiminda yuksek karsitlik gosterilirken onceki deger burada tutulur. */
+let karsitlikOncesi: 'normal' | 'high' | null = null;
+
+/**
+ * Ust seritteki "Bilgi" dugmesine basar: secili uydunun bilgi penceresi acilir.
+ *
+ * Pencere store'da degil bilesenin kendi durumunda tutuluyor (UyduBilgiPenceresi
+ * local state). Store'a yeni bir alan eklemek yerine dugmeye basiliyor; acilis
+ * yolu operatorun kullandigi yolla ayni oluyor.
+ */
+function uyduBilgiAc() {
+  const kok = document.querySelector('[data-tour="ust-serit"]');
+  Array.from(kok?.querySelectorAll('button') ?? [])
+    .find((b) => (b.textContent ?? '').trim().startsWith('Bilgi'))
+    ?.click();
+}
+
+/** Bilgi penceresini kapatir (adim bitince). */
+function uyduBilgiKapat() {
+  document.querySelector<HTMLButtonElement>('[data-tour="uydu-bilgi"] button[aria-label="Kapat"]')?.click();
+}
+
+/**
+ * Suruklenme senaryosunu (yeniden) baslatir. Hiza dokunmaz: tur boyunca konsol
+ * 5x akar (bkz. tour/tourStore.ts), senaryo da o hizda ilerler.
+ */
 function startDrift() {
   const st = useConsole.getState();
   const drift = SCENARIOS.find((s) => s.id === 'drift');
-  st.setSpeed(1);
   if (drift) st.runScenario(drift);
 }
 
@@ -176,6 +207,11 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'alarm',
     kind: 'live',
+    // Senaryo 90 gorev saniyesi surer; 5x hizda 18 saniyede biter ve alarm /
+    // durum / XAI adimlarina yetismez. Burada yeniden baslatilir: durum
+    // adiminda "NOMINAL karsi ALARM" karsitligi, XAI adiminda da 3/3 kanit
+    // canli olur. Alarm kuyrugu ve bildirimler silinmez, birikir.
+    onEnter: startDrift,
     short: 'Alarm',
     title: 'Alarm kuyruğu',
     caption:
@@ -241,17 +277,53 @@ export const TOUR_STEPS: TourStep[] = [
     leave: () => tabla('bilgi', 'INFO'),
   },
   {
+    id: 'uydu-bilgi',
+    kind: 'live',
+    // Pencere hedef aranmadan once acilmali: `onEnter` adimin en basinda calisir.
+    onEnter: uyduBilgiAc,
+    leave: uyduBilgiKapat,
+    // Pencere zaten 960 px ve ekranin ortasinda: buyutulmesine gerek yok.
+    noZoom: true,
+    short: 'Uydu bilgi',
+    title: 'Seçili uydunun künyesi',
+    caption:
+      'Üst şeritteki Bilgi düğmesi seçili uydunun künyesini açar: kaç tur attığı, bu oturumda aktarılan veri, görev ömrünün ne kadarının geçtiği, sensörlerin durumu ve bu oturumda kaydedilen anomaliler.',
+    look: 'Tur sayısı uydunun yörünge verisindeki gerçek tur numarasından ilerletilir.',
+    durationMs: 16500,
+  },
+  {
     id: 'erisim',
     kind: 'live',
     short: 'Erişim',
     title: 'Erişilebilirlik ayarları',
     caption:
-      'Konsol renk körlüğü, azaltılmış hareket, yazı boyutu ve ekran okuyucu duyurusu için ayar taşır. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir; operatör ekranı herkes için okunabilir olmalıdır.',
-    look: 'Renk paleti seçenekleri ve hareket / yazı boyutu ayarları.',
-    durationMs: 11500,
+      'Dikkat odaklanmasına yardımcı olabilmesi için yüksek karşıtlık modu, çeşitli renk körlüğü modları ve ekrandaki tüm bileşenleri büyütüp küçültme imkânı gibi özellikler eklenmiştir. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir.',
+    look: 'Yüksek karşıtlık iki saniyeliğine açılıyor: bütün konsolun zemini ve çizgileri birlikte değişiyor.',
+    durationMs: 14500,
     // Pencere hedef aranmadan once acilmali: `onEnter` adimin en basinda calisir.
     onEnter: () => useConsole.getState().setA11yOpen(true),
-    leave: () => useConsole.getState().setA11yOpen(false),
+    // Anlatim surerken yuksek karsitligi acip kapatir: ayarin ne yaptigi
+    // soylenmek yerine gosterilir. Adim yarida kesilirse `leave` eski degeri
+    // geri koyar (ayar localStorage'a yazildigi icin kalici olurdu).
+    act: async ({ wait, alive }) => {
+      const st = () => useConsole.getState();
+      karsitlikOncesi = st().a11y.contrast;
+      await wait(1000);
+      if (!alive()) return;
+      st().setA11y({ contrast: 'high' });
+      await wait(2000);
+      if (!alive()) return;
+      st().setA11y({ contrast: karsitlikOncesi });
+      karsitlikOncesi = null;
+    },
+    leave: () => {
+      const st = useConsole.getState();
+      if (karsitlikOncesi !== null) {
+        st.setA11y({ contrast: karsitlikOncesi });
+        karsitlikOncesi = null;
+      }
+      st.setA11yOpen(false);
+    },
   },
 ];
 

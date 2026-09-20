@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { useConsole } from '../store';
+import { TUR_HIZI } from '../engine/missionClock';
+import type { Speed } from '../engine/missionClock';
 import { TOURS, type TourId } from './tourScript';
 
 /**
@@ -19,13 +21,29 @@ interface TourState {
   next: () => void;
 }
 
+/** Tur baslamadan onceki konsol hizi; tur bitince geri alinir. */
+let turOncesiHiz: Speed | null = null;
+
 export const useTour = create<TourState>((set, get) => ({
   active: false,
   tour: 'tam',
   stepIndex: 0,
-  start: (tour) =>
-    set({ active: true, stepIndex: 0, tour: tour ?? (useConsole.getState().summaryMode ? 'ozet' : 'tam') }),
-  stop: () => set({ active: false }),
+  // Tur boyunca konsol 5x akar: anlatim beklerken telemetri ve senaryo
+  // izlenebilir hizda ilerlesin. 5x ust seritteki dugmelerde yoktur; tur
+  // bitince operatorun hizi geri gelir.
+  start: (tour) => {
+    const konsol = useConsole.getState();
+    if (turOncesiHiz === null) turOncesiHiz = konsol.speed;
+    konsol.setSpeed(TUR_HIZI);
+    set({ active: true, stepIndex: 0, tour: tour ?? (konsol.summaryMode ? 'ozet' : 'tam') });
+  },
+  stop: () => {
+    if (turOncesiHiz !== null) {
+      useConsole.getState().setSpeed(turOncesiHiz);
+      turOncesiHiz = null;
+    }
+    set({ active: false });
+  },
   toggle: () => (get().active ? get().stop() : get().start()),
   next: () => set((s) => ({ stepIndex: (s.stepIndex + 1) % TOURS[s.tour].length })),
 }));

@@ -2,7 +2,13 @@ import { MIB } from './mib';
 
 /** Ust seritteki hiz carpanlari. 1x senaryo izlemek, 30-60x gecisleri, 300-600x tam yorungeyi izlemek icin. */
 export const SPEED_OPTIONS = [1, 10, 30, 60, 300, 600] as const;
-export type Speed = (typeof SPEED_OPTIONS)[number];
+/**
+ * Tanitim turunun hizi. Ust seritteki dugmelerde BILEREK yok: operatorun
+ * secebilecegi bir hiz degil, turun kendi tempo ayari (tur bitince onceki
+ * hiza donulur, bkz. tour/tourStore.ts).
+ */
+export const TUR_HIZI = 5;
+export type Speed = (typeof SPEED_OPTIONS)[number] | typeof TUR_HIZI;
 
 /** Uygulama acilirken seritlerde gorunecek gecmis (§5): 10 dakika. */
 export const PREFILL_S = 600;

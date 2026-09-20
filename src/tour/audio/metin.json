@@ -21,6 +21,7 @@
   "oz-xai": "Model neden alarm verdi? Açıklanabilirlik paneli; hangi anda, hangi kanalda ve hangi frekans yapısında sapma olduğunu gösterir.",
   "oz-oneri": "Doğrulanan anomali için, operatöre önerilen adım burada tek satırda görünür. Soldaki rozet, önerinin aciliyetini gösterir.",
   "bildirim": "Bildirimler sekmesi, doğrulanan her anomali için öneriyi ve gerekçesini kalıcı olarak saklar. Operatör vardiya devrinde bu listeyi okur; hiçbir uyarı ekran kapanınca kaybolmaz.",
-  "erisim": "Konsol renk körlüğü, azaltılmış hareket, yazı boyutu ve ekran okuyucu duyurusu için ayar taşır. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir.",
+  "uydu-bilgi": "Üst şeritteki Bilgi düğmesi seçili uydunun künyesini açar: kaç tur attığı, bu oturumda aktarılan veri, görev ömrünün ne kadarının geçtiği, sensörlerin durumu ve bu oturumda kaydedilen anomaliler. Tur sayısı uydunun yörünge verisindeki gerçek tur numarasından ilerletilir.",
+  "erisim": "Dikkat odaklanmasına yardımcı olabilmesi için yüksek karşıtlık modu, çeşitli renk körlüğü modları ve ekrandaki tüm bileşenleri büyütüp küçültme imkânı gibi özellikler eklenmiştir. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir.",
   "kapanis": "Tanıtım burada tamamlanıyor. Gerçek yörünge hesabı, uzay standartlarına uygun telemetri yapısı ve yapay zekâ destekli anomali tespiti tek ekranda birleşiyor. Bizi dinlediğiniz için teşekkür ederiz."
 }
