@@ -147,9 +147,9 @@ korelasyonu izlenimi), hız çarpanı, `SLE RAF` durumu (uydu görüş alanında
 `ACTIVE`, dışındayken `READY`), yer istasyonu, AOS/LOS geri sayımı, anlık
 yükselti açısı ve kullanılan TLE'nin yaşı.
 
-**Küre.** `satellite.js` ile gerçek SGP4. **Türkiye'nin 9 aktif uydusu**
+**Küre.** `satellite.js` ile gerçek SGP4. Katalogdaki **sekiz Türk uydusu**
 gerçek zamanlı konumlarıyla çizilir: TÜRKSAT GEO haberleşme filosu (4A, 4B, 5A,
-5B, 6A) ve yer gözlem uyduları (GÖKTÜRK-1, GÖKTÜRK-2, GÖKTÜRK-2B, RASAT). Her
+5B, 6A) ve yer gözlem uyduları (GÖKTÜRK-1, GÖKTÜRK-2, GÖKTÜRK-2B). Her
 uydu için hem gövde işareti hem **yer izdüşümü** (dünya yüzeyindeki anlık
 konum) gösterilir.
 
@@ -644,7 +644,7 @@ src/
     apid_table.json     APID tahsis tablosu
     scenario_*.json     nominal / point / drift / collective (+ story ve info adımları)
     mission_notes.json  nominal INFO paneli görev notları
-    tle.txt             gömülü TLE kataloğu (9 aktif uydu, 3 satırlık standart biçim)
+    tle.txt             gömülü TLE kataloğu (8 uydu, 3 satırlık standart biçim)
     satellites.json     uydu meta verisi: işletici, görev türü, grup
     land_110m.json      Natural Earth 110m kıta çizgileri (kamu malı)
     borders_110m.json   Natural Earth 110m ülke kara sınırları (kamu malı)
@@ -939,9 +939,10 @@ sonrası listelenir; Plan-S Connecta ve üniversite/amatör kategorileri kapsam
 dışıdır. Bir uydunun aktif sayılması için **iki bağımsız kaynak** birlikte
 aranır: CelesTrak SATCAT'teki `OPS_STATUS_CODE` alanının `+` (operasyonel)
 olması ve uydunun CelesTrak `active` GP grubunda bulunması. Son denetim
-(2026-09-16): dokuz uydunun dokuzu iki kaynakta da aktif; BİLSAT-1'in (2003)
-SATCAT durumu boş ve aktif grupta yok, bu yüzden çıkarıldı. Denetimi
-yinelemek için:
+(2026-09-16): dokuz aday uydunun dokuzu da iki kaynakta aktif; BİLSAT-1'in
+(2003) SATCAT durumu boş ve aktif grupta yok, bu yüzden çıkarıldı. **RASAT**
+(37791) iki kaynakta da aktif görünüyor, ama demodan **ekip kararıyla**
+çıkarıldı; katalogda bu yüzden sekiz uydu var. Denetimi yinelemek için:
 
 ```bash
 curl -s "https://celestrak.org/satcat/records.php?CATNR=56178&FORMAT=json"
@@ -1188,7 +1189,7 @@ taşınıyor. PNG konulduğu anda öncelik ona geçer. Kanıtların `top_channel
 enjekte edilen kanallarla eşitlendi ki iddia ile hesap çelişmesin.
 
 **6. Uydu başına anomali hafızası ve tek MIB.** Şartname §11 "ikinci bir uydu
-misyonu"nu kapsam dışı bırakır. Ekip talebiyle katalogdaki 9 uydunun her biri
+misyonu"nu kapsam dışı bırakır. Ekip talebiyle katalogdaki 8 uydunun her biri
 artık **kendi alarm kuyruğuna ve anomali hafızasına** sahip; senaryo her zaman
 **seçili uyduya** enjekte edilir. Gerçek uyduların uçuş MIB'leri kamuya açık
 olmadığı için her uydu, AZS-DEMO referans parametre setinin NORAD ile
@@ -1200,7 +1201,7 @@ sekmesindeki `Telemetri kaynağı` satırı.
 
 **Yalnızca seçili uydu telemetri üretir.** Kataloğun tamamını canlı koşturmak
 açılışta uydu başına 600 ön-doldurma adımı ve karede uydu sayısı kadar paket
-üretimi demekti (karar 32 uyduluk katalogla alındı; bugünkü 9 uyduda da
+üretimi demekti (karar 32 uyduluk katalogla alındı; bugünkü 8 uyduda da
 geçerli).
 Seçilmemiş uydu uykudadır (kare başına maliyeti sıfır); geri seçildiğinde
 *kaldığı yerden değil, güncel görev saatinden* devam eder. Uyanışta alarmlar,

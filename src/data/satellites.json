@@ -1,6 +1,6 @@
 {
   "_source": "TLE'ler Celestrak GP (celestrak.org) uzerinden alinmis son yayinlanmis kayitlardir; src/data/tle.txt icinde gomuludur. Calisma zamaninda ag istegi yapilmaz.",
-  "_scope": "Turkiye'nin AKTIF uydulari; TURKSAT filosunda 4A ve sonrasi listelenir. Aktiflik iki bagimsiz kaynakla dogrulanir: CelesTrak SATCAT OPS_STATUS_CODE ('+' operasyonel) ve CelesTrak 'active' GP grubu (2026-09-16). BILSAT-1 iki kaynakta da aktif gorunmedigi icin cikarildi. Plan-S Connecta ve universite/amator kategorileri kapsam disidir.",
+  "_scope": "Turkiye'nin AKTIF uydulari; TURKSAT filosunda 4A ve sonrasi listelenir. Aktiflik iki bagimsiz kaynakla dogrulanir: CelesTrak SATCAT OPS_STATUS_CODE ('+' operasyonel) ve CelesTrak 'active' GP grubu (2026-09-16). BILSAT-1 iki kaynakta da aktif gorunmedigi icin cikarildi. RASAT (37791) iki kaynakta da aktif gorunuyor ama demodan EKIP KARARIYLA cikarildi. Plan-S Connecta ve universite/amator kategorileri kapsam disidir.",
   "_names": "Ekran adlari ekip kararidir ve katalog adindan farkli olabilir: NORAD 56178 katalogda IMECE, NORAD 41875 katalogda GOKTURK 1A olarak kayitlidir. Kimlik her zaman NORAD numarasi ve uluslararasi tanimlayicidir (TLE'den).",
   "_derived": "Firlatma yili, yorunge sinifi, periyot, egim ve GEO istasyon tutumu gostergesi TLE'den HESAPLANIR; bu dosyada iddia edilmez. Burada yalnizca isletici ve gorev turu tanimlanir.",
   "default_norad": "56178",
@@ -17,7 +17,6 @@
 
     { "norad": "39030", "name": "GÖKTÜRK-2", "group": "obs", "operator": "MSB · TÜBİTAK UZAY / TUSAŞ", "mission": "Yer gözlem" },
     { "norad": "41875", "name": "GÖKTÜRK-1", "group": "obs", "operator": "MSB", "mission": "Yer gözlem" },
-    { "norad": "56178", "name": "GÖKTÜRK-2B", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" },
-    { "norad": "37791", "name": "RASAT", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" }
+    { "norad": "56178", "name": "GÖKTÜRK-2B", "group": "obs", "operator": "TÜBİTAK UZAY", "mission": "Yer gözlem" }
   ]
 }
