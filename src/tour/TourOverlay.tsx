@@ -316,6 +316,9 @@ export default function TourOverlay() {
     if (!active || !step) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    /** Cercevenin paneli izledigi dongu ve onu baslatan bekleme (asagida). */
+    let takip: ReturnType<typeof setInterval> | undefined;
+    let takipBaslangic: ReturnType<typeof setTimeout> | undefined;
     const m = (ms: number) => (reduceMotion ? 0 : ms);
     const sleep = (ms: number) =>
       new Promise<void>((r) => {
@@ -424,6 +427,7 @@ export default function TourOverlay() {
         }
         setCardIndex(stepIndex);
         setPhase('show');
+        cerceveyiTakipEttir(target, m(T.grow) + 80);
         await narrate();
         return;
       }
@@ -490,6 +494,37 @@ export default function TourOverlay() {
       if (!muted) prime(stepIndex + 1);
     }
 
+    /**
+     * Cerceveyi panele kilitler ve panelde kalmasini saglar.
+     *
+     * Cerceve bir kez hesaplanip birakildiginda, panel adim ORTASINDA boyut
+     * degistirirse (bilgi panelinde senaryo ilerledikce icerik buyuyor, sekme
+     * degisiyor, liste uzuyor) cerceve eski olcude kaliyor ve panelden kayiyor.
+     * Burada panelin gercek yeri kisa araliklarla okunur; sadece gercekten
+     * degistiyse cerceve guncellenir, o yuzden normalde hic is yapmaz.
+     *
+     * Buyume animasyonu bitmeden baslamaz: yoksa animasyonun ara karelerini
+     * kovalar ve titrer.
+     */
+    function cerceveyiTakipEttir(target: HTMLElement, gecikme: number) {
+      // Kendi zamanlayicisi: `timer` sesin / surenin zamanlayicisi, paylasilirsa
+      // biri digerini iptal eder.
+      takipBaslangic = setTimeout(() => {
+        if (cancelled) return;
+        // Duzeltmeler animasyonsuz olsun: cerceve panelin gerisinde kalmasin.
+        setRingAnim(false);
+        takip = setInterval(() => {
+          if (cancelled || !target.isConnected) return;
+          const r = rectOf(target);
+          const o = ringRef.current;
+          if (!o || Math.abs(o.left - r.left) > 1 || Math.abs(o.top - r.top) > 1 ||
+              Math.abs(o.width - r.width) > 1 || Math.abs(o.height - r.height) > 1) {
+            setRing(r);
+          }
+        }, 200);
+      }, gecikme);
+    }
+
     /** Verilen adimin sesini arka planda cozer (calmaz). */
     function prime(i: number) {
       const s = steps[i];
@@ -505,6 +540,8 @@ export default function TourOverlay() {
 
     return () => {
       cancelled = true;
+      if (takipBaslangic) clearTimeout(takipBaslangic);
+      if (takip) clearInterval(takip);
       step.leave?.();
       restoreZoom();
       if (timer) clearTimeout(timer);

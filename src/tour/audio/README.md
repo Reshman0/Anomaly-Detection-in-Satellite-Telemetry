@@ -18,8 +18,9 @@ Tam görünüm turu (`G` tam ekranda, ya da `?tur`) dosya adları, sırasıyla:
 - `durum.mp3`
 - `xai.mp3`
 - `bilgi.mp3`
-- `bildirim.mp3` *(ses bekleniyor)*
-- `erisim.mp3` *(ses bekleniyor)*
+- `bildirim.mp3`
+- `uydu-bilgi.mp3`
+- `erisim.mp3` *(metin degisti; yeni kayit bekleniyor)*
 - `kapanis.mp3`
 
 Özet görünüm turu (`G` Özet modunda, ya da `?tur=ozet`) dosya adları, sırasıyla:

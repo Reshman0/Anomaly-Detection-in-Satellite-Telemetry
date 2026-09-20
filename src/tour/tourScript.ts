@@ -94,6 +94,9 @@ function tabla(panel: string, yazi: string) {
   btn?.click();
 }
 
+/** Erisim adiminda yuksek karsitlik gosterilirken onceki deger burada tutulur. */
+let karsitlikOncesi: 'normal' | 'high' | null = null;
+
 /**
  * Ust seritteki "Bilgi" dugmesine basar: secili uydunun bilgi penceresi acilir.
  *
@@ -286,7 +289,7 @@ export const TOUR_STEPS: TourStep[] = [
     caption:
       'Üst şeritteki Bilgi düğmesi seçili uydunun künyesini açar: kaç tur attığı, bu oturumda aktarılan veri, görev ömrünün ne kadarının geçtiği, sensörlerin durumu ve bu oturumda kaydedilen anomaliler.',
     look: 'Tur sayısı uydunun yörünge verisindeki gerçek tur numarasından ilerletilir.',
-    durationMs: 13000,
+    durationMs: 16500,
   },
   {
     id: 'erisim',
@@ -295,11 +298,32 @@ export const TOUR_STEPS: TourStep[] = [
     title: 'Erişilebilirlik ayarları',
     caption:
       'Dikkat odaklanmasına yardımcı olabilmesi için yüksek karşıtlık modu, çeşitli renk körlüğü modları ve ekrandaki tüm bileşenleri büyütüp küçültme imkânı gibi özellikler eklenmiştir. Alarm şiddeti yalnızca renkle değil şekil ve metinle de verilir.',
-    look: 'Yüksek karşıtlık, renk körlüğü paletleri ve yüzde 85 ile yüzde 175 arası arayüz ölçeği.',
+    look: 'Yüksek karşıtlık iki saniyeliğine açılıyor: bütün konsolun zemini ve çizgileri birlikte değişiyor.',
     durationMs: 14500,
     // Pencere hedef aranmadan once acilmali: `onEnter` adimin en basinda calisir.
     onEnter: () => useConsole.getState().setA11yOpen(true),
-    leave: () => useConsole.getState().setA11yOpen(false),
+    // Anlatim surerken yuksek karsitligi acip kapatir: ayarin ne yaptigi
+    // soylenmek yerine gosterilir. Adim yarida kesilirse `leave` eski degeri
+    // geri koyar (ayar localStorage'a yazildigi icin kalici olurdu).
+    act: async ({ wait, alive }) => {
+      const st = () => useConsole.getState();
+      karsitlikOncesi = st().a11y.contrast;
+      await wait(1000);
+      if (!alive()) return;
+      st().setA11y({ contrast: 'high' });
+      await wait(2000);
+      if (!alive()) return;
+      st().setA11y({ contrast: karsitlikOncesi });
+      karsitlikOncesi = null;
+    },
+    leave: () => {
+      const st = useConsole.getState();
+      if (karsitlikOncesi !== null) {
+        st.setA11y({ contrast: karsitlikOncesi });
+        karsitlikOncesi = null;
+      }
+      st.setA11yOpen(false);
+    },
   },
 ];
 
